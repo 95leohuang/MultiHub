@@ -49,7 +49,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     });
   },
   getSavedPath: () => ipcRenderer.invoke('get-saved-path'),
-  savePath: (path) => ipcRenderer.invoke('save-path', path)
+  savePath: (path) => ipcRenderer.invoke('save-path', path),
+  getShortcutConfig: () => ipcRenderer.invoke('get-shortcut-config'),
+  saveShortcutConfig: (config) => ipcRenderer.invoke('save-shortcut-config', config)
 });
 
 // 快捷键增强

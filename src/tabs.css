@@ -125,18 +125,193 @@ body {
   font-weight: 500;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .shortcut-hint {
   font-size: 11px;
   color: #666;
   background: rgba(255, 255, 255, 0.05);
   padding: 2px 8px;
   border-radius: 4px;
+  pointer-events: none;
+}
+
+#shortcut-settings-btn {
+  background: none;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  padding: 4px;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+#shortcut-settings-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+/* ========================================
+   Modal 樣式
+   ======================================== */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  transition: opacity 0.3s;
+}
+
+.modal-overlay.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.modal-content {
+  background: #252525;
+  width: 90%;
+  max-width: 450px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid #333;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 16px;
+  color: #fff;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 24px;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.close-btn:hover {
+  color: #fff;
+}
+
+.modal-body {
+  padding: 20px;
+  overflow-y: auto;
+  max-height: 60vh;
+}
+
+.settings-desc {
+  font-size: 13px;
+  color: #eee;
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+.shortcut-row {
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #333;
+}
+
+.shortcut-row:last-child {
+  border-bottom: none;
+}
+
+.shortcut-row-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.shortcut-number {
+  background: #0084ff;
+  color: #fff;
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.shortcut-services {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.service-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #333;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #bbb;
+  cursor: pointer;
+  transition: all 0.2s;
+  user-select: none;
+  border: 1px solid transparent;
+}
+
+.service-check:hover {
+  background: #444;
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.service-check.selected {
+  background: rgba(0, 132, 255, 0.25);
+  border: 1px solid rgba(0, 132, 255, 0.6);
+  color: #fff;
+}
+
+.service-check input {
+  display: none;
+}
+
+.modal-footer {
+  padding: 16px 20px;
+  background: #1e1e1e;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
 }
 
 .popup-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 8px;
+  gap: 10px;
   padding: 12px;
 }
 
@@ -147,45 +322,79 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
+  gap: 8px;
   padding: 12px 8px;
+  height: 90px;
   background: rgba(255, 255, 255, 0.03);
-  border: 1px solid transparent;
-  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
+  overflow: hidden;
 }
 
 .grid-item:hover {
   background: rgba(255, 255, 255, 0.08);
-  transform: translateY(-1px);
+  border-color: rgba(255, 255, 255, 0.1);
+  transform: translateY(-2px);
 }
 
 .grid-item.active {
-  background: rgba(0, 132, 255, 0.15);
-  border-color: rgba(0, 132, 255, 0.3);
+  background: rgba(0, 132, 255, 0.08);
+  border-color: rgba(0, 132, 255, 0.4);
+  box-shadow: inset 0 0 20px rgba(0, 132, 255, 0.1);
 }
 
-/* Favicon 圖示 */
+/* 輪播圖示容器 */
+.grid-icons-container {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .grid-favicon {
   width: 32px;
   height: 32px;
   border-radius: 8px;
   object-fit: contain;
-  transition: transform 0.2s ease;
-  background: rgba(255, 255, 255, 0.1);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  background: rgba(255, 255, 255, 0.05);
   padding: 4px;
+  position: absolute;
+  opacity: 0.1;
+  filter: grayscale(100%) blur(1px);
+  transform: scale(0.8) translate(0, 0);
+  pointer-events: none;
+  z-index: 1;
 }
 
-.grid-item:hover .grid-favicon {
-  transform: scale(1.1);
+/* 當前作用中的圖示：最亮、最大、置中 */
+.grid-favicon.active {
+  opacity: 1;
+  filter: grayscale(0%) blur(0);
+  transform: scale(1.1) translate(0, 0);
+  background: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 15px rgba(0, 132, 255, 0.3);
+  z-index: 10;
+  pointer-events: auto;
 }
+
 
 .grid-label {
   font-size: 11px;
   font-weight: 500;
-  color: #aaa;
+  color: #777;
+  text-align: center;
+  max-width: 90%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: color 0.3s;
 }
 
 .grid-item.active .grid-label {
@@ -194,13 +403,19 @@ body {
 
 .grid-shortcut {
   position: absolute;
-  top: 4px;
-  right: 4px;
-  font-size: 9px;
-  color: #555;
-  background: rgba(255, 255, 255, 0.06);
-  padding: 1px 4px;
-  border-radius: 3px;
+  top: 6px;
+  left: 6px;
+  font-size: 10px;
+  color: #fff;
+  background: #0084ff;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 /* 平台特定 active 狀態 */

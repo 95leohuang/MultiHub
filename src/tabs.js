@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const dockTrigger = document.getElementById('dock-trigger');
   const dockFavicon = document.getElementById('dock-favicon');
   const gridPopup = document.getElementById('grid-popup');
-  const gridItems = document.querySelectorAll('.grid-item');
+  const popupGrid = document.querySelector('.popup-grid');
 
   const messengerWebview = document.getElementById('messenger-webview');
   const chatgptWebview = document.getElementById('chatgpt-webview');
@@ -39,18 +39,124 @@ document.addEventListener('DOMContentLoaded', () => {
     telegram: telegramWebview
   };
 
-  // 平台名稱對應
-  const platformNames = {
-    messenger: 'Messenger',
-    chatgpt: 'ChatGPT',
-    gemini: 'Gemini',
-    git: 'Git Update',
-    discord: 'Discord',
-    telegram: 'Telegram'
+  // 平台詳細配置
+  const platformConfig = {
+    messenger: { label: 'Messenger', favicon: 'https://static.xx.fbcdn.net/rsrc.php/yO/r/qa11ER6rke_.ico' },
+    chatgpt: { label: 'ChatGPT', favicon: 'https://chatgpt.com/favicon.ico' },
+    gemini: { label: 'Gemini', favicon: 'https://www.gstatic.com/lamda/images/gemini_favicon_f069958c85030456e93de685481c559f160ea06b.png' },
+    git: { label: 'Git Update', favicon: '../assets/git-icon.png' },
+    discord: { label: 'Discord', favicon: 'https://cdn.prod.website-files.com/6257adef93867e50d84d30e2/6266bc493fb42d4e27bb8393_847541504914fd33810e70a0ea73177e.ico' },
+    telegram: { label: 'Telegram', favicon: 'https://web.telegram.org/favicon.ico' }
   };
 
-  // Tab 順序（用於快捷鍵切換）
+  // Tab 順序
   const tabOrder = ['messenger', 'chatgpt', 'gemini', 'git', 'discord', 'telegram'];
+
+  // 快捷鍵配置狀態
+  let shortcutConfig = {
+    1: ['messenger'],
+    2: ['chatgpt'],
+    3: ['gemini'],
+    4: ['git'],
+    5: ['discord'],
+    6: ['telegram']
+  };
+
+  /**
+   * 載入快捷鍵配置
+   */
+  async function loadShortcutConfig() {
+    if (window.electronAPI && window.electronAPI.getShortcutConfig) {
+      try {
+        const config = await window.electronAPI.getShortcutConfig();
+        if (config) {
+          shortcutConfig = config;
+          renderPlatformGrid();
+        }
+      } catch (err) {
+        console.error('Failed to load shortcut config:', err);
+      }
+    }
+  }
+
+  /**
+   * 渲染平台切換網格
+   */
+  function renderPlatformGrid() {
+    const activeTab = localStorage.getItem('activeTab') || 'messenger';
+    popupGrid.innerHTML = '';
+
+    // 以 1~6 快捷鍵為核心進行渲染
+    for (let i = 1; i <= 6; i++) {
+      const services = shortcutConfig[i] || [];
+      const item = document.createElement('div');
+      item.className = 'grid-item';
+      item.dataset.shortcut = i;
+
+      const hasActiveTab = services.includes(activeTab);
+      if (hasActiveTab) {
+        item.classList.add('active');
+      }
+
+      const iconsContainer = document.createElement('div');
+      iconsContainer.className = 'grid-icons-container';
+
+      services.forEach((serviceKey, index) => {
+        const config = platformConfig[serviceKey];
+        if (!config) return;
+
+        const img = document.createElement('img');
+        img.className = 'grid-favicon';
+        const isActive = serviceKey === activeTab;
+        if (isActive) img.classList.add('active');
+        
+        img.src = config.favicon;
+        img.title = config.label;
+        img.dataset.tab = serviceKey;
+
+        // 如果不是 active 的，稍微位移以營造「後方輪播」感
+        if (!isActive && services.length > 1) {
+          const offset = (index + 1) * 3;
+          img.style.transform = `scale(0.8) translate(${offset}px, ${-offset}px)`;
+          img.style.zIndex = services.length - index;
+        }
+
+        // 點擊個別圖示直接切換
+        img.addEventListener('click', (e) => {
+          e.stopPropagation();
+          switchTab(serviceKey);
+        });
+
+        iconsContainer.appendChild(img);
+      });
+
+      const label = document.createElement('span');
+      label.className = 'grid-label';
+      
+      // 標籤邏輯：優先顯示當前在這個快捷鍵分組下 active 的平台名稱
+      const activeInGroup = services.find(s => s === activeTab);
+      if (activeInGroup) {
+        label.textContent = platformConfig[activeInGroup].label;
+      } else {
+        // 如果此分組沒被選中，顯示分組內第一個平台的名稱（或列表縮寫）
+        label.textContent = services.length > 0 ? platformConfig[services[0]].label : '未設定';
+      }
+
+      const shortcut = document.createElement('span');
+      shortcut.className = 'grid-shortcut';
+      shortcut.textContent = i;
+
+      item.appendChild(iconsContainer);
+      item.appendChild(label);
+      item.appendChild(shortcut);
+
+      item.addEventListener('click', () => {
+        switchTabCarousel(i);
+      });
+
+      popupGrid.appendChild(item);
+    }
+  }
 
   // Popup 狀態
   let isPopupOpen = false;
@@ -75,39 +181,86 @@ document.addEventListener('DOMContentLoaded', () => {
 
   /**
    * 切換 Tab
-   * @param {string} tabName - Tab 名稱 (messenger | chatgpt | gemini | youtube)
+   * @param {string} tabName - Tab 名稱
    */
   function switchTab(tabName) {
-    // 更新 Grid Item 狀態
-    gridItems.forEach(item => {
-      item.classList.toggle('active', item.dataset.tab === tabName);
-    });
-
-    // 更新 webview 顯示
+    // 1. 更新 webview 顯示
     Object.entries(webviews).forEach(([name, element]) => {
       const isActive = name === tabName;
       element.classList.toggle('active', isActive);
 
-      // 如果是 webview 且未載入，則執行延遲載入
       if (isActive && element.tagName === 'WEBVIEW' && !element.src && element.dataset.src) {
         element.src = element.dataset.src;
       }
     });
 
-    // 更新 Dock 按鈕的 favicon
-    const activeItem = document.querySelector(`.grid-item[data-tab="${tabName}"]`);
-    if (activeItem) {
-      const faviconImg = activeItem.querySelector('.grid-favicon');
-      if (faviconImg) {
-        dockFavicon.src = faviconImg.src;
+    // 2. 更新 Grid UI 狀態
+    document.querySelectorAll('.grid-item').forEach(item => {
+      const shortcutNum = item.dataset.shortcut;
+      const services = shortcutConfig[shortcutNum] || [];
+      const isActiveGroup = services.includes(tabName);
+      item.classList.toggle('active', isActiveGroup);
+
+      // 更新分組內的圖示位置與狀態
+      const icons = item.querySelectorAll('.grid-favicon');
+      icons.forEach((img, index) => {
+        const isThisActive = img.dataset.tab === tabName;
+        img.classList.toggle('active', isThisActive);
+        
+        if (isThisActive) {
+          img.style.transform = '';
+          img.style.zIndex = '10';
+        } else {
+          // 重新計算位移動畫
+          const offset = (index + 1) * 3;
+          img.style.transform = `scale(0.8) translate(${offset}px, ${-offset}px)`;
+          img.style.zIndex = services.length - index;
+        }
+      });
+
+      // 更新標籤文字：只顯示該分組中「當前選中」的名稱
+      const label = item.querySelector('.grid-label');
+      if (isActiveGroup) {
+        label.textContent = platformConfig[tabName].label;
+      } else if (services.length > 0) {
+        label.textContent = platformConfig[services[0]].label;
       }
+    });
+
+    // 3. 更新 Dock 按鈕的 favicon
+    const config = platformConfig[tabName];
+    if (config) {
+      dockFavicon.src = config.favicon;
     }
 
-    // 儲存當前 tab 狀態
     localStorage.setItem('activeTab', tabName);
+  }
 
-    // 切換後關閉 Popup
-    closePopup();
+  /**
+   * 根據快捷鍵進行輪播切換
+   * @param {number} shortcutNum - 快捷鍵數字 (1-6)
+   */
+  function switchTabCarousel(shortcutNum) {
+    const services = shortcutConfig[shortcutNum];
+    if (!services || services.length === 0) return;
+
+    if (services.length === 1) {
+      switchTab(services[0]);
+      return;
+    }
+
+    // 取得當前啟用的 tab
+    const currentTab = localStorage.getItem('activeTab');
+    const currentIndex = services.indexOf(currentTab);
+
+    // 如果當前 tab 在該快捷鍵的清單中，切換到下一個
+    if (currentIndex !== -1) {
+      const nextIndex = (currentIndex + 1) % services.length;
+      switchTab(services[nextIndex]);
+    } else {
+      // 否則切換到清單中的第一個
+      switchTab(services[0]);
+    }
   }
 
   // 綁定 Dock Trigger 點擊事件
@@ -116,12 +269,7 @@ document.addEventListener('DOMContentLoaded', () => {
     togglePopup();
   });
 
-  // 綁定 Grid Item 點擊事件
-  gridItems.forEach(item => {
-    item.addEventListener('click', () => {
-      switchTab(item.dataset.tab);
-    });
-  });
+  // 移除舊的靜態綁定，改由 renderPlatformGrid 處理點擊事件
 
   // 點擊其他地方關閉 Popup
   document.addEventListener('click', (e) => {
@@ -243,19 +391,27 @@ document.addEventListener('DOMContentLoaded', () => {
    * @param {number} count - 未讀訊息數量
    */
   function updateMessengerBadge(count) {
-    const messengerItem = document.querySelector('.grid-item[data-tab="messenger"]');
-    if (!messengerItem) return;
+    const messengerIcon = document.querySelector(`.grid-favicon[data-tab="messenger"]`);
+    if (!messengerIcon) return;
 
-    const label = messengerItem.querySelector('.grid-label');
+    const gridItem = messengerIcon.closest('.grid-item');
+    if (!gridItem) return;
+
+    const label = gridItem.querySelector('.grid-label');
     if (!label) return;
 
-    if (count > 0) {
-      label.textContent = `Messenger (${count})`;
-      messengerItem.classList.add('has-badge');
-    } else {
-      label.textContent = 'Messenger';
-      messengerItem.classList.remove('has-badge');
-    }
+    // 取得原始標題（排除舊的數字）
+    const services = shortcutConfig[gridItem.dataset.shortcut] || [];
+    const baseLabels = services.map(s => {
+      let name = platformConfig[s]?.label || s;
+      if (s === 'messenger' && count > 0) {
+        return `${name} (${count})`;
+      }
+      return name;
+    });
+
+    label.textContent = baseLabels.join(', ');
+    gridItem.classList.toggle('has-badge', count > 0);
 
     // 使用 preload 暴露的 API 通知主進程更新系統托盤
     if (window.electronAPI && window.electronAPI.updateBadge) {
@@ -281,24 +437,125 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // 監聽全域快捷鍵 Ctrl+1~6（從 main process 發送，解決 webview 焦點問題）
+  // 監聽全域快捷鍵 Alt+1~6（從 main process 發送，解決 webview 焦點問題）
   if (window.electronAPI && window.electronAPI.onSwitchTab) {
-    window.electronAPI.onSwitchTab((tabIndex) => {
-      const index = tabIndex - 1;
-      if (tabOrder[index]) {
-        switchTab(tabOrder[index]);
-      }
+    window.electronAPI.onSwitchTab((shortcutNum) => {
+      switchTabCarousel(shortcutNum);
     });
   }
 
+  // ========================================
+  // 快捷鍵設定邏輯
+  // ========================================
+  const settingsModal = document.getElementById('settings-modal');
+  const shortcutSettingsBtn = document.getElementById('shortcut-settings-btn');
+  const closeSettingsBtn = document.getElementById('close-settings');
+  const cancelSettingsBtn = document.getElementById('reset-shortcuts');
+  const saveShortcutsBtn = document.getElementById('save-shortcuts');
+  const shortcutConfigList = document.getElementById('shortcut-config-list');
+
+  /**
+   * 渲染設定列表
+   */
+  function renderShortcutSettings() {
+    shortcutConfigList.innerHTML = '';
+
+    for (let i = 1; i <= 6; i++) {
+      const row = document.createElement('div');
+      row.className = 'shortcut-row';
+
+      const header = document.createElement('div');
+      header.className = 'shortcut-row-header';
+      header.innerHTML = `<span class="shortcut-number">${i}</span><span style="font-size:13px;color:#fff;">Alt + ${i}</span>`;
+
+      const servicesDiv = document.createElement('div');
+      servicesDiv.className = 'shortcut-services';
+
+      const currentServices = shortcutConfig[i] || [];
+
+      tabOrder.forEach(serviceKey => {
+        const isSelected = currentServices.includes(serviceKey);
+        const config = platformConfig[serviceKey];
+        const label = document.createElement('label');
+        label.className = `service-check ${isSelected ? 'selected' : ''}`;
+        label.innerHTML = `
+          <input type="checkbox" data-shortcut="${i}" data-service="${serviceKey}" ${isSelected ? 'checked' : ''}>
+          ${config.label}
+        `;
+
+        label.querySelector('input').addEventListener('change', (e) => {
+          label.classList.toggle('selected', e.target.checked);
+        });
+
+        servicesDiv.appendChild(label);
+      });
+
+      row.appendChild(header);
+      row.appendChild(servicesDiv);
+      shortcutConfigList.appendChild(row);
+    }
+  }
+
+  // 開啟設定
+  shortcutSettingsBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    renderShortcutSettings();
+    settingsModal.classList.remove('hidden');
+    closePopup();
+  });
+
+  // 關閉設定
+  closeSettingsBtn.addEventListener('click', () => {
+    settingsModal.classList.add('hidden');
+  });
+
+  // 點擊 Overlay 關閉
+  settingsModal.addEventListener('click', (e) => {
+    if (e.target === settingsModal) {
+      settingsModal.classList.add('hidden');
+    }
+  });
+
+  // 恢復預設
+  cancelSettingsBtn.addEventListener('click', () => {
+    shortcutConfig = {
+      1: ['messenger'],
+      2: ['chatgpt'],
+      3: ['gemini'],
+      4: ['git'],
+      5: ['discord'],
+      6: ['telegram']
+    };
+    renderShortcutSettings();
+  });
+
+  // 儲存設定
+  saveShortcutsBtn.addEventListener('click', async () => {
+    const newConfig = {};
+    for (let i = 1; i <= 6; i++) {
+      const selected = Array.from(document.querySelectorAll(`input[data-shortcut="${i}"]:checked`))
+        .map(input => input.dataset.service);
+      newConfig[i] = selected;
+    }
+
+    shortcutConfig = newConfig;
+    if (window.electronAPI && window.electronAPI.saveShortcutConfig) {
+      await window.electronAPI.saveShortcutConfig(newConfig);
+    }
+
+    renderPlatformGrid();
+    settingsModal.classList.add('hidden');
+  });
+
+  // 初始化載入
+  renderPlatformGrid();
+  loadShortcutConfig();
+
   // 初始化時更新 Dock favicon
   const initialTab = localStorage.getItem('activeTab') || 'messenger';
-  const initialItem = document.querySelector(`.grid-item[data-tab="${initialTab}"]`);
-  if (initialItem) {
-    const faviconImg = initialItem.querySelector('.grid-favicon');
-    if (faviconImg) {
-      dockFavicon.src = faviconImg.src;
-    }
+  const config = platformConfig[initialTab];
+  if (config) {
+    dockFavicon.src = config.favicon;
   }
 
   console.log('Floating Dock system initialized');

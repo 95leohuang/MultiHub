@@ -33,7 +33,7 @@
   </div>
 
   <!-- Floating Dock 按鈕 -->
-  <button id="dock-trigger" title="切換平台 (Ctrl+1~6)">
+  <button id="dock-trigger" title="切換平台 (Alt+1~6)">
     <img id="dock-favicon" src="https://static.xx.fbcdn.net/rsrc.php/yO/r/qa11ER6rke_.ico" alt="">
   </button>
 
@@ -41,46 +41,33 @@
   <div id="grid-popup" class="hidden">
     <div class="popup-header">
       <span>切換平台</span>
-      <span class="shortcut-hint">Ctrl+1~6</span>
+      <div class="header-actions">
+        <span class="shortcut-hint">Alt+1~6</span>
+        <button id="shortcut-settings-btn" title="設定快捷鍵">⚙️</button>
+      </div>
     </div>
     <div class="popup-grid">
-      <button class="grid-item active" data-tab="messenger"
-        data-favicon="https://static.xx.fbcdn.net/rsrc.php/yO/r/qa11ER6rke_.ico">
-        <img class="grid-favicon" src="https://static.xx.fbcdn.net/rsrc.php/yO/r/qa11ER6rke_.ico" alt="Messenger">
-        <span class="grid-label">Messenger</span>
-        <span class="grid-shortcut">1</span>
-      </button>
-      <button class="grid-item" data-tab="chatgpt" data-favicon="https://chatgpt.com/favicon.ico">
-        <img class="grid-favicon" src="https://chatgpt.com/favicon.ico" alt="ChatGPT">
-        <span class="grid-label">ChatGPT</span>
-        <span class="grid-shortcut">2</span>
-      </button>
-      <button class="grid-item" data-tab="gemini"
-        data-favicon="https://www.gstatic.com/lamda/images/gemini_favicon_f069958c85030456e93de685481c559f160ea06b.png">
-        <img class="grid-favicon"
-          src="https://www.gstatic.com/lamda/images/gemini_favicon_f069958c85030456e93de685481c559f160ea06b.png"
-          alt="Gemini">
-        <span class="grid-label">Gemini</span>
-        <span class="grid-shortcut">3</span>
-      </button>
-      <button class="grid-item" data-tab="git" data-favicon="../assets/git-icon.png">
-        <img class="grid-favicon" src="../assets/git-icon.png" alt="Git Update">
-        <span class="grid-label">Git Update</span>
-        <span class="grid-shortcut">4</span>
-      </button>
-      <button class="grid-item" data-tab="discord"
-        data-favicon="https://cdn.prod.website-files.com/6257adef93867e50d84d30e2/6266bc493fb42d4e27bb8393_847541504914fd33810e70a0ea73177e.ico">
-        <img class="grid-favicon"
-          src="https://cdn.prod.website-files.com/6257adef93867e50d84d30e2/6266bc493fb42d4e27bb8393_847541504914fd33810e70a0ea73177e.ico"
-          alt="Discord">
-        <span class="grid-label">Discord</span>
-        <span class="grid-shortcut">5</span>
-      </button>
-      <button class="grid-item" data-tab="telegram" data-favicon="https://web.telegram.org/favicon.ico">
-        <img class="grid-favicon" src="https://web.telegram.org/favicon.ico" alt="Telegram">
-        <span class="grid-label">Telegram</span>
-        <span class="grid-shortcut">6</span>
-      </button>
+      <!-- 會由 JS 動態生成 (renderPlatformGrid) -->
+    </div>
+  </div>
+
+  <!-- 快捷鍵設定 Modal -->
+  <div id="settings-modal" class="modal-overlay hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>快捷鍵偏好設定</h3>
+        <button id="close-settings" class="close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="settings-desc">你可以為每個數字 (Alt+1~6) 分配一個或多個平台。若分配多個，重複按下快捷鍵將會輪播切換。</p>
+        <div id="shortcut-config-list">
+          <!-- 會由 JS 動態生成 -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="reset-shortcuts" class="git-btn secondary">恢復預設</button>
+        <button id="save-shortcuts" class="git-btn">儲存設定</button>
+      </div>
     </div>
   </div>
 

@@ -21,6 +21,22 @@ app.commandLine.appendSwitch('enable-features', 'MemorySavings');
 // 初始化配置存储
 const store = new Store();
 
+// 快捷鍵配置處理
+ipcMain.handle('get-shortcut-config', () => {
+  return store.get('shortcutConfig', {
+    1: ['messenger'],
+    2: ['chatgpt'],
+    3: ['gemini'],
+    4: ['git'],
+    5: ['discord'],
+    6: ['telegram']
+  });
+});
+
+ipcMain.handle('save-shortcut-config', (event, config) => {
+  store.set('shortcutConfig', config);
+});
+
 let mainWindow;
 let tray;
 let isQuitting = false;
@@ -457,9 +473,9 @@ app.whenReady().then(async () => {
 
   console.log('Global shortcut registered:', registered ? 'Alt+`' : 'Ctrl+Shift+M');
 
-  // 註冊 Ctrl+1~6 快捷鍵切換 Tab（全域快捷鍵，避免 webview 焦點問題）
+  // 註冊 Alt+1~6 快捷鍵切換 Tab（全域快捷鍵，避免 webview 焦點問題）
   for (let i = 1; i <= 6; i++) {
-    globalShortcut.register(`CommandOrControl+${i}`, () => {
+    globalShortcut.register(`Alt+${i}`, () => {
       if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.webContents.send('switch-tab', i);
         // 確保視窗可見
@@ -470,7 +486,7 @@ app.whenReady().then(async () => {
       }
     });
   }
-  console.log('Tab shortcuts (Ctrl+1~6) registered');
+  console.log('Tab shortcuts (Alt+1~6) registered');
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
@@ -530,6 +546,7 @@ ipcMain.handle('select-directory', async () => {
   if (result.canceled) return null;
   return result.filePaths[0];
 });
+
 
 // 搜尋 Git 儲存庫
 ipcMain.handle('search-repos', async (event, searchPath) => {
