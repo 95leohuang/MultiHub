@@ -51,7 +51,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getSavedPath: () => ipcRenderer.invoke('get-saved-path'),
   savePath: (path) => ipcRenderer.invoke('save-path', path),
   getShortcutConfig: () => ipcRenderer.invoke('get-shortcut-config'),
-  saveShortcutConfig: (config) => ipcRenderer.invoke('save-shortcut-config', config)
+  saveShortcutConfig: (config) => ipcRenderer.invoke('save-shortcut-config', config),
+  // Skill 同步相關 API
+  compareSkills: (rootPath) => ipcRenderer.invoke('compare-skills', rootPath),
+  readSkillContent: (data) => ipcRenderer.invoke('read-skill-content', data),
+  syncSkillFile: (data) => ipcRenderer.invoke('sync-skill-file', data)
 });
 
 // 快捷键增强

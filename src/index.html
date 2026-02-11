@@ -24,6 +24,9 @@
     <div id="git-updater-ui" class="webview">
       <!-- Git Updater UI will be injected here -->
     </div>
+    <div id="skill-sync-ui" class="webview">
+      <!-- Skill Sync UI will be injected here -->
+    </div>
     <webview id="discord-webview" data-src="https://discord.com/app" class="webview" partition="persist:discord"
       allowpopups>
     </webview>
@@ -71,8 +74,57 @@
     </div>
   </div>
 
+  <!-- Skill Preview Modal -->
+    <div id="skill-preview-modal" class="modal-overlay hidden">
+        <div class="modal-content large">
+            <div class="modal-header">
+                <h3 id="preview-filename">SKILL.md</h3>
+                <button class="close-btn" id="close-preview">&times;</button>
+            </div>
+            
+            <div class="preview-body">
+                <div class="preview-sidebar">
+                    <div class="sidebar-header">Repository Versions</div>
+                    <div class="version-list" id="preview-version-list">
+                        <!-- Version items go here -->
+                    </div>
+                </div>
+                
+                <div class="preview-main">
+                    <div class="diff-controls" id="diff-info">
+                        Select a version to preview. 
+                    </div>
+                    
+                    <div class="preview-panels" id="preview-panels-container">
+                        <div class="preview-panel left" id="left-panel">
+                            <div class="panel-header" id="left-panel-header">Source (L)</div>
+                            <div class="panel-scroller" id="left-scroller">
+                                <div class="line-numbers" id="left-line-numbers"></div>
+                                <pre id="left-text-content" class="code-view"></pre>
+                            </div>
+                        </div>
+                        <div class="preview-panel right" id="right-panel">
+                            <div class="panel-header" id="right-panel-header">Comparison (R)</div>
+                            <div class="panel-scroller" id="right-scroller">
+                                <div class="line-numbers" id="right-line-numbers"></div>
+                                <pre id="right-text-content" class="code-view"></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="modal-footer">
+                <button class="git-btn secondary" id="clear-selection">Clear Comparison</button>
+                <div class="preview-hint">Choose another repo to compare side-by-side.</div>
+                <button class="git-btn" id="sync-selected-version" disabled>Use as Master</button>
+            </div>
+        </div>
+    </div>
+
   <script src="tabs.js"></script>
   <script src="git-updater-ui.js"></script>
+  <script src="skill-sync-ui.js"></script>
 </body>
 
 </html>

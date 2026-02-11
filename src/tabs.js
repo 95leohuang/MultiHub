@@ -35,6 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
     chatgpt: chatgptWebview,
     gemini: geminiWebview,
     git: document.getElementById('git-updater-ui'),
+    skills: document.getElementById('skill-sync-ui'),
     discord: discordWebview,
     telegram: telegramWebview
   };
@@ -45,12 +46,13 @@ document.addEventListener('DOMContentLoaded', () => {
     chatgpt: { label: 'ChatGPT', favicon: 'https://chatgpt.com/favicon.ico' },
     gemini: { label: 'Gemini', favicon: 'https://www.gstatic.com/lamda/images/gemini_favicon_f069958c85030456e93de685481c559f160ea06b.png' },
     git: { label: 'Git Update', favicon: '../assets/git-icon.png' },
+    skills: { label: 'Skill Sync', favicon: 'https://cdn-icons-png.flaticon.com/512/2103/2103633.png' },
     discord: { label: 'Discord', favicon: 'https://cdn.prod.website-files.com/6257adef93867e50d84d30e2/6266bc493fb42d4e27bb8393_847541504914fd33810e70a0ea73177e.ico' },
     telegram: { label: 'Telegram', favicon: 'https://web.telegram.org/favicon.ico' }
   };
 
   // Tab 順序
-  const tabOrder = ['messenger', 'chatgpt', 'gemini', 'git', 'discord', 'telegram'];
+  const tabOrder = ['messenger', 'chatgpt', 'gemini', 'git', 'skills', 'discord', 'telegram'];
 
   // 快捷鍵配置狀態
   let shortcutConfig = {
