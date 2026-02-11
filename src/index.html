@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src * data: blob:; connect-src *; frame-src *;">
+  <title>Multi Hub</title>
+  <link rel="stylesheet" href="tabs.css">
+</head>
+
+<body>
+  <!-- Webview 容器（使用延遲載入優化效能） -->
+  <div id="webview-container">
+    <webview id="messenger-webview" src="https://www.messenger.com" class="webview active" partition="persist:messenger"
+      allowpopups></webview>
+    <webview id="chatgpt-webview" data-src="https://chatgpt.com" class="webview" partition="persist:chatgpt" allowpopups
+      useragent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36">
+    </webview>
+    <webview id="gemini-webview" data-src="https://gemini.google.com" class="webview" allowpopups
+      preload="./webview-preload.js">
+    </webview>
+    <div id="git-updater-ui" class="webview">
+      <!-- Git Updater UI will be injected here -->
+    </div>
+    <webview id="discord-webview" data-src="https://discord.com/app" class="webview" partition="persist:discord"
+      allowpopups>
+    </webview>
+    <webview id="telegram-webview" data-src="https://web.telegram.org" class="webview" partition="persist:telegram"
+      allowpopups>
+    </webview>
+  </div>
+
+  <!-- Floating Dock 按鈕 -->
+  <button id="dock-trigger" title="切換平台 (Ctrl+1~6)">
+    <img id="dock-favicon" src="https://static.xx.fbcdn.net/rsrc.php/yO/r/qa11ER6rke_.ico" alt="">
+  </button>
+
+  <!-- Grid Popup -->
+  <div id="grid-popup" class="hidden">
+    <div class="popup-header">
+      <span>切換平台</span>
+      <span class="shortcut-hint">Ctrl+1~6</span>
+    </div>
+    <div class="popup-grid">
+      <button class="grid-item active" data-tab="messenger"
+        data-favicon="https://static.xx.fbcdn.net/rsrc.php/yO/r/qa11ER6rke_.ico">
+        <img class="grid-favicon" src="https://static.xx.fbcdn.net/rsrc.php/yO/r/qa11ER6rke_.ico" alt="Messenger">
+        <span class="grid-label">Messenger</span>
+        <span class="grid-shortcut">1</span>
+      </button>
+      <button class="grid-item" data-tab="chatgpt" data-favicon="https://chatgpt.com/favicon.ico">
+        <img class="grid-favicon" src="https://chatgpt.com/favicon.ico" alt="ChatGPT">
+        <span class="grid-label">ChatGPT</span>
+        <span class="grid-shortcut">2</span>
+      </button>
+      <button class="grid-item" data-tab="gemini"
+        data-favicon="https://www.gstatic.com/lamda/images/gemini_favicon_f069958c85030456e93de685481c559f160ea06b.png">
+        <img class="grid-favicon"
+          src="https://www.gstatic.com/lamda/images/gemini_favicon_f069958c85030456e93de685481c559f160ea06b.png"
+          alt="Gemini">
+        <span class="grid-label">Gemini</span>
+        <span class="grid-shortcut">3</span>
+      </button>
+      <button class="grid-item" data-tab="git" data-favicon="../assets/git-icon.png">
+        <img class="grid-favicon" src="../assets/git-icon.png" alt="Git Update">
+        <span class="grid-label">Git Update</span>
+        <span class="grid-shortcut">4</span>
+      </button>
+      <button class="grid-item" data-tab="discord"
+        data-favicon="https://cdn.prod.website-files.com/6257adef93867e50d84d30e2/6266bc493fb42d4e27bb8393_847541504914fd33810e70a0ea73177e.ico">
+        <img class="grid-favicon"
+          src="https://cdn.prod.website-files.com/6257adef93867e50d84d30e2/6266bc493fb42d4e27bb8393_847541504914fd33810e70a0ea73177e.ico"
+          alt="Discord">
+        <span class="grid-label">Discord</span>
+        <span class="grid-shortcut">5</span>
+      </button>
+      <button class="grid-item" data-tab="telegram" data-favicon="https://web.telegram.org/favicon.ico">
+        <img class="grid-favicon" src="https://web.telegram.org/favicon.ico" alt="Telegram">
+        <span class="grid-label">Telegram</span>
+        <span class="grid-shortcut">6</span>
+      </button>
+    </div>
+  </div>
+
+  <script src="tabs.js"></script>
+  <script src="git-updater-ui.js"></script>
+</body>
+
+</html>

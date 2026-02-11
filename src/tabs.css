@@ -1,0 +1,503 @@
+/* 全域樣式重置 */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+  background-color: #1a1a1a;
+}
+
+/* Webview 容器 */
+#webview-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+}
+
+/* Webview 樣式 */
+.webview {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+  display: none;
+}
+
+.webview.active {
+  display: flex;
+}
+
+/* ========================================
+   Floating Dock 按鈕
+   ======================================== */
+#dock-trigger {
+  position: fixed;
+  top: 8px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: rgba(45, 45, 45, 0.05);
+  border: 1px solid transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.25s ease;
+  z-index: 1000;
+  padding: 4px;
+  opacity: 0.3;
+}
+
+#dock-trigger:hover {
+  background: rgba(45, 45, 45, 0.9);
+  border-color: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  transform: scale(1.08);
+  opacity: 1;
+}
+
+#dock-trigger.active {
+  background: rgba(45, 45, 45, 0.9);
+  border-color: rgba(0, 132, 255, 0.5);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  opacity: 1;
+}
+
+#dock-favicon {
+  width: 16px;
+  height: 16px;
+  border-radius: 2px;
+  object-fit: contain;
+  transition: opacity 0.25s ease;
+}
+
+#dock-trigger:not(:hover):not(.active) #dock-favicon {
+  opacity: 0.5;
+}
+
+/* ========================================
+   Grid Popup
+   ======================================== */
+#grid-popup {
+  position: fixed;
+  top: 42px;
+  right: 8px;
+  width: 240px;
+  background: rgba(30, 30, 30, 0.98);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(20px);
+  z-index: 999;
+  overflow: hidden;
+  transform-origin: top right;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#grid-popup.hidden {
+  opacity: 0;
+  transform: scale(0.9) translateY(-10px);
+  pointer-events: none;
+}
+
+.popup-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  color: #888;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.shortcut-hint {
+  font-size: 11px;
+  color: #666;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.popup-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  padding: 12px;
+}
+
+/* ========================================
+   Grid Item
+   ======================================== */
+.grid-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid transparent;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.grid-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+  transform: translateY(-1px);
+}
+
+.grid-item.active {
+  background: rgba(0, 132, 255, 0.15);
+  border-color: rgba(0, 132, 255, 0.3);
+}
+
+/* Favicon 圖示 */
+.grid-favicon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  object-fit: contain;
+  transition: transform 0.2s ease;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 4px;
+}
+
+.grid-item:hover .grid-favicon {
+  transform: scale(1.1);
+}
+
+.grid-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: #aaa;
+}
+
+.grid-item.active .grid-label {
+  color: #fff;
+}
+
+.grid-shortcut {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  font-size: 9px;
+  color: #555;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+/* 平台特定 active 狀態 */
+.grid-item[data-tab="messenger"].active {
+  background: rgba(0, 132, 255, 0.15);
+  border-color: rgba(0, 132, 255, 0.3);
+}
+
+.grid-item[data-tab="chatgpt"].active {
+  background: rgba(16, 163, 127, 0.15);
+  border-color: rgba(16, 163, 127, 0.3);
+}
+
+.grid-item[data-tab="gemini"].active {
+  background: rgba(138, 43, 226, 0.15);
+  border-color: rgba(138, 43, 226, 0.3);
+}
+
+.grid-item[data-tab="youtube"].active {
+  background: rgba(255, 0, 0, 0.15);
+  border-color: rgba(255, 0, 0, 0.3);
+}
+
+.grid-item[data-tab="discord"].active {
+  background: rgba(88, 101, 242, 0.15);
+  border-color: rgba(88, 101, 242, 0.3);
+}
+
+.grid-item[data-tab="telegram"].active {
+  background: rgba(0, 136, 204, 0.15);
+  border-color: rgba(0, 136, 204, 0.3);
+}
+
+/* 深色模式滾動條 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #2c2c2c;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #555;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #777;
+}
+
+/* 載入動畫 */
+@keyframes pulse {
+
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+.webview.loading::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 40px;
+  height: 40px;
+  border: 3px solid #333;
+  border-top-color: #0084ff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+/* ========================================
+   Git Updater UI
+   ======================================== */
+#git-updater-ui {
+  flex-direction: column;
+  background: #1e1e1e;
+  color: #e0e0e0;
+  padding: 20px;
+  overflow-y: auto;
+  user-select: none;
+}
+
+.git-header {
+  margin-bottom: 20px;
+  border-bottom: 1px solid #333;
+  padding-bottom: 15px;
+}
+
+.git-header h2 {
+  font-size: 20px;
+  margin-bottom: 15px;
+  color: #fff;
+}
+
+.search-controls {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.git-input {
+  min-width: 150px;
+  flex: 1 1 auto;
+  background: #2a2a2a;
+  border: 1px solid #444;
+  border-radius: 4px;
+  padding: 8px 12px;
+  color: #fff;
+  font-family: inherit;
+}
+
+.git-btn {
+  flex: 0 0 auto;
+  background: #0084ff;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+
+.git-btn:hover {
+  background: #0073e6;
+}
+
+.git-btn:disabled {
+  background: #444;
+  cursor: not-allowed;
+}
+
+.git-btn.secondary {
+  background: #444;
+}
+
+.git-btn.secondary:hover {
+  background: #555;
+}
+
+.git-table-container {
+  flex: 1;
+  background: #252525;
+  border: 1px solid #333;
+  border-radius: 8px;
+  overflow-y: auto;
+  margin-bottom: 20px;
+}
+
+.git-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.git-table th {
+  background: #333;
+  padding: 10px 15px;
+  font-size: 13px;
+  color: #888;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.repo-path-cell {
+  max-width: 0;
+  width: 60%;
+}
+
+.repo-name {
+  font-weight: 600;
+  color: #fff;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.repo-full-path {
+  font-size: 11px;
+  color: #666;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.git-table th {
+  background: #333;
+  padding: 10px 15px;
+  font-size: 13px;
+  color: #888;
+}
+
+.git-table td {
+  padding: 12px 15px;
+  border-bottom: 1px solid #333;
+  font-size: 14px;
+}
+
+.git-table tr:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.repo-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.progress-bar-bg {
+  flex: 1;
+  height: 8px;
+  background: #333;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: #0084ff;
+  width: 0%;
+  transition: width 0.3s;
+}
+
+.status-text {
+  font-size: 12px;
+  min-width: 60px;
+}
+
+.git-log-section {
+  height: 200px;
+  display: flex;
+  flex-direction: column;
+  background: #000;
+  border-radius: 4px;
+  border: 1px solid #333;
+}
+
+.log-tabs {
+  display: flex;
+  background: #111;
+  border-bottom: 1px solid #333;
+  padding: 0 10px;
+  overflow-x: auto;
+}
+
+.log-tab {
+  padding: 6px 12px;
+  font-size: 11px;
+  color: #666;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+}
+
+.log-tab.active {
+  color: #0c0;
+  border-bottom-color: #0c0;
+  background: rgba(0, 204, 0, 0.05);
+}
+
+.git-log-container {
+  flex: 1;
+  padding: 10px;
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 12px;
+  color: #0c0;
+  overflow-y: auto;
+}
+
+.log-entry {
+  margin-bottom: 4px;
+}
+
+.log-entry.error {
+  color: #f44;
+}
+
+.log-entry.warning {
+  color: #fb0;
+}

@@ -1,0 +1,77 @@
+{
+  "name": "multi-hub",
+  "productName": "Multi Hub",
+  "version": "2.2.0",
+  "description": "Multi-service hub desktop app - Messenger, ChatGPT, Gemini, Git Repo Updater, Discord, Telegram",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder",
+    "build:win": "electron-builder --win portable",
+    "build:mac": "electron-builder --mac",
+    "build:linux": "electron-builder --linux"
+  },
+  "keywords": [
+    "messenger",
+    "chatgpt",
+    "gemini",
+    "git",
+    "updater",
+    "discord",
+    "telegram",
+    "electron",
+    "desktop",
+    "multi-hub"
+  ],
+  "author": "LeoHuang",
+  "license": "MIT",
+  "dependencies": {
+    "cross-fetch": "^4.1.0",
+    "electron-context-menu": "^3.6.1",
+    "electron-store": "^8.1.0"
+  },
+  "devDependencies": {
+    "electron": "^27.0.0",
+    "electron-builder": "^24.6.4"
+  },
+  "build": {
+    "appId": "com.multi.hub",
+    "productName": "Multi Hub",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "assets/**/*"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "assets/icon.png"
+    },
+    "portable": {
+      "artifactName": "${productName}-${version}-Portable.exe"
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "icon": "assets/icon.icns",
+      "category": "public.app-category.social-networking"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "icon": "assets/icon.png",
+      "category": "Network"
+    }
+  }
+}
