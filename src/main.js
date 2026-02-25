@@ -442,13 +442,30 @@ function createTray() {
   const icon = nativeImage.createFromPath(trayIconPath).resize({ width: 16, height: 16 });
   tray = new Tray(icon);
 
-  const contextMenu = Menu.buildFromTemplate([
+  const buildTrayMenu = () => Menu.buildFromTemplate([
     {
-      label: 'Show App',
+      label: 'Show Multi Hub',
       click: () => {
-        mainWindow.show();
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.show();
+          mainWindow.focus();
+        }
       }
     },
+    { type: 'separator' },
+    {
+      label: 'Messenger',
+      click: () => { if (mainWindow) { mainWindow.show(); mainWindow.webContents.send('switch-tab', 1); } }
+    },
+    {
+      label: 'ChatGPT',
+      click: () => { if (mainWindow) { mainWindow.show(); mainWindow.webContents.send('switch-tab', 2); } }
+    },
+    {
+      label: 'Discord',
+      click: () => { if (mainWindow) { mainWindow.show(); mainWindow.webContents.send('switch-tab', 5); } }
+    },
+    { type: 'separator' },
     {
       label: 'Exit',
       click: () => {
@@ -458,16 +475,24 @@ function createTray() {
     }
   ]);
 
-  tray.setContextMenu(contextMenu);
+  tray.setContextMenu(buildTrayMenu());
   tray.setToolTip('Multi Hub');
 
   tray.on('click', () => {
     if (mainWindow && !mainWindow.isDestroyed()) {
-      if (mainWindow.isVisible()) {
+      if (mainWindow.isVisible() && mainWindow.isFocused()) {
         mainWindow.hide();
       } else {
         mainWindow.show();
+        mainWindow.focus();
       }
+    }
+  });
+
+  tray.on('double-click', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.show();
+      mainWindow.focus();
     }
   });
 }
@@ -590,7 +615,8 @@ app.whenReady().then(async () => {
 });
 
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
+  // 有系統匣時不退出，僅在 macOS 以外且無 tray 時才退出
+  if (process.platform !== 'darwin' && !tray) {
     app.quit();
   }
 });
@@ -761,5 +787,40 @@ ipcMain.handle('update-repo', async (event, repoPath) => {
   }
 });
 
-// End of Skill Sync Handlers removed from bottom
+// 取得 Git 分支名稱與狀態
+ipcMain.handle('get-repo-info', async (event, repoPath) => {
+  const runCmd = (cmd) => new Promise((resolve) => {
+    exec(cmd, { cwd: repoPath }, (error, stdout, stderr) => {
+      resolve(error ? '' : stdout.trim());
+    });
+  });
+
+  try {
+    const [branch, statusOutput, remoteStatus] = await Promise.all([
+      runCmd('git rev-parse --abbrev-ref HEAD'),
+      runCmd('git status --porcelain'),
+      runCmd('git rev-list --left-right --count HEAD...@{upstream} 2>/dev/null || echo "0\t0"')
+    ]);
+
+    const isDirty = statusOutput.length > 0;
+    const changedFiles = statusOutput.split('\n').filter(l => l.trim()).length;
+    const parts = remoteStatus.split('\t');
+    const ahead = parseInt(parts[0]) || 0;
+    const behind = parseInt(parts[1]) || 0;
+
+    return { branch, isDirty, changedFiles, ahead, behind };
+  } catch (err) {
+    return { branch: 'unknown', isDirty: false, changedFiles: 0, ahead: 0, behind: 0 };
+  }
+});
+
+// 送出 Toast 通知
+ipcMain.on('show-toast', (event, { message, type }) => {
+  // 轉發給渲染進程
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('toast', { message, type });
+  }
+});
+
+// End of handlers
 

@@ -11,33 +11,207 @@
 </head>
 
 <body>
-  <!-- Webview 容器（使用延遲載入優化效能） -->
-  <div id="webview-container">
-    <webview id="messenger-webview" src="https://www.messenger.com" class="webview active" partition="persist:messenger"
-      allowpopups></webview>
-    <webview id="chatgpt-webview" data-src="https://chatgpt.com" class="webview" partition="persist:chatgpt" allowpopups
-      useragent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36">
-    </webview>
-    <webview id="gemini-webview" data-src="https://gemini.google.com" class="webview" allowpopups
-      preload="./webview-preload.js">
-    </webview>
-    <div id="git-updater-ui" class="webview">
-      <!-- Git Updater UI will be injected here -->
+  <!-- 主要佈局容器 -->
+  <div id="app-layout">
+    <!-- 側邊欄 Tab 導航 -->
+    <div id="sidebar">
+      <div id="sidebar-logo" title="Multi Hub">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="2" />
+          <circle cx="12" cy="5" r="2" />
+          <circle cx="12" cy="19" r="2" />
+          <circle cx="5" cy="12" r="2" />
+          <circle cx="19" cy="12" r="2" />
+          <line x1="12" y1="7" x2="12" y2="10" />
+          <line x1="12" y1="14" x2="12" y2="17" />
+          <line x1="7" y1="12" x2="10" y2="12" />
+          <line x1="14" y1="12" x2="17" y2="12" />
+        </svg>
+      </div>
+      <div id="sidebar-tabs">
+        <!-- 動態生成 -->
+      </div>
+      <div id="sidebar-bottom">
+        <button id="theme-toggle" class="sidebar-icon-btn" title="切換深色/淺色主題">
+          <!-- 月亮圖示（深色模式時顯示） -->
+          <svg id="theme-icon-dark" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+          </svg>
+          <!-- 太陽圖示（淺色模式時顯示，預設隱藏） -->
+          <svg id="theme-icon-light" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2" style="display:none">
+            <circle cx="12" cy="12" r="5" />
+            <line x1="12" y1="1" x2="12" y2="3" />
+            <line x1="12" y1="21" x2="12" y2="23" />
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+            <line x1="1" y1="12" x2="3" y2="12" />
+            <line x1="21" y1="12" x2="23" y2="12" />
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+          </svg>
+        </button>
+        <button id="sidebar-settings-btn" class="sidebar-icon-btn" title="快捷鍵設定">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3" />
+            <path
+              d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+          </svg>
+        </button>
+      </div>
     </div>
-    <div id="skill-sync-ui" class="webview">
-      <!-- Skill Sync UI will be injected here -->
+
+    <!-- 主要內容區 -->
+    <div id="main-content">
+      <!-- 導航列（只有 webview 類型才顯示） -->
+      <div id="nav-bar" class="hidden">
+        <div id="nav-controls">
+          <button class="nav-btn" id="nav-back" title="上一頁 (Alt+Left)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+          </button>
+          <button class="nav-btn" id="nav-forward" title="下一頁 (Alt+Right)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          </button>
+          <button class="nav-btn" id="nav-reload" title="重新整理 (Ctrl+R)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <polyline points="23 4 23 10 17 10" />
+              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+            </svg>
+          </button>
+          <button class="nav-btn" id="nav-home" title="回首頁">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+              <polyline points="9 22 9 12 15 12 15 22" />
+            </svg>
+          </button>
+        </div>
+        <div id="nav-title-area">
+          <div id="nav-loading-spinner" class="hidden"></div>
+          <span id="nav-page-title">載入中...</span>
+        </div>
+        <div id="nav-right">
+          <button class="nav-btn" id="nav-open-external" title="在瀏覽器中開啟">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+              <polyline points="15 3 21 3 21 9" />
+              <line x1="10" y1="14" x2="21" y2="3" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Webview 容器（使用延遲載入優化效能） -->
+      <div id="webview-container">
+        <webview id="messenger-webview" src="https://www.messenger.com" class="webview active"
+          partition="persist:messenger" allowpopups></webview>
+        <webview id="chatgpt-webview" data-src="https://chatgpt.com" class="webview" partition="persist:chatgpt"
+          allowpopups
+          useragent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36">
+        </webview>
+        <webview id="gemini-webview" data-src="https://gemini.google.com" class="webview" allowpopups
+          preload="./webview-preload.js">
+        </webview>
+        <div id="git-updater-ui" class="webview">
+          <!-- Git Updater UI will be injected here -->
+        </div>
+        <div id="skill-sync-ui" class="webview">
+          <!-- Skill Sync UI will be injected here -->
+        </div>
+        <webview id="discord-webview" data-src="https://discord.com/app" class="webview" partition="persist:discord"
+          allowpopups>
+        </webview>
+        <webview id="telegram-webview" data-src="https://web.telegram.org" class="webview" partition="persist:telegram"
+          allowpopups>
+        </webview>
+        <!-- Quick Notes UI -->
+        <div id="quick-notes-ui" class="webview">
+          <div class="notes-toolbar">
+            <div class="notes-toolbar-left">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+                <line x1="16" y1="13" x2="8" y2="13" />
+                <line x1="16" y1="17" x2="8" y2="17" />
+                <polyline points="10 9 9 9 8 9" />
+              </svg>
+              <span>Quick Notes</span>
+            </div>
+            <button id="add-note-btn" class="notes-add-btn" title="新增筆記 (Ctrl+N)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+              新增筆記
+            </button>
+          </div>
+          <div class="notes-layout">
+            <!-- 左側：筆記清單 -->
+            <div class="notes-list-panel" id="notes-list-panel">
+              <div id="notes-list">
+                <!-- 動態生成 -->
+              </div>
+              <div id="notes-empty" class="notes-empty hidden">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+                  opacity="0.3">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <polyline points="14 2 14 8 20 8" />
+                </svg>
+                <p>尚無筆記</p>
+                <span>點擊「新增筆記」開始記錄</span>
+              </div>
+            </div>
+            <!-- 右側：筆記編輯區 -->
+            <div class="notes-editor-panel" id="notes-editor-panel">
+              <div id="notes-editor-empty" class="notes-editor-placeholder">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+                  opacity="0.2">
+                  <path d="M12 20h9" />
+                  <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                </svg>
+                <p>選擇或新增筆記開始編輯</p>
+              </div>
+              <div id="notes-editor-content" class="hidden">
+                <input type="text" id="note-title-input" class="note-title-input" placeholder="筆記標題...">
+                <div class="note-meta" id="note-meta"></div>
+                <textarea id="note-body-input" class="note-body-input"
+                  placeholder="開始輸入筆記內容...&#10;&#10;支援純文字，自動儲存。"></textarea>
+                <div class="notes-editor-actions">
+                  <button class="note-action-btn" id="note-copy-btn" title="複製內容">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="9" y="9" width="13" height="13" rx="2" />
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                    </svg>
+                    複製
+                  </button>
+                  <button class="note-action-btn danger" id="note-delete-btn" title="刪除筆記">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="3 6 5 6 21 6" />
+                      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                      <path d="M10 11v6" />
+                      <path d="M14 11v6" />
+                      <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                    </svg>
+                    刪除
+                  </button>
+                  <span class="note-save-status" id="note-save-status"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
-    <webview id="discord-webview" data-src="https://discord.com/app" class="webview" partition="persist:discord"
-      allowpopups>
-    </webview>
-    <webview id="telegram-webview" data-src="https://web.telegram.org" class="webview" partition="persist:telegram"
-      allowpopups>
-    </webview>
   </div>
 
-  <!-- Floating Dock 按鈕 -->
-  <button id="dock-trigger" title="切換平台 (Alt+1~6)">
+  <!-- Floating Dock 按鈕（保留，可選擇性顯示） -->
+  <button id="dock-trigger" title="切換平台 (Alt+1~6)" class="hidden">
     <img id="dock-favicon" src="https://static.xx.fbcdn.net/rsrc.php/yO/r/qa11ER6rke_.ico" alt="">
+    <span id="dock-badge" class="dock-badge hidden">0</span>
   </button>
 
   <!-- Grid Popup -->
@@ -46,13 +220,22 @@
       <span>切換平台</span>
       <div class="header-actions">
         <span class="shortcut-hint">Alt+1~6</span>
-        <button id="shortcut-settings-btn" title="設定快捷鍵">⚙️</button>
+        <button id="shortcut-settings-btn" title="設定快捷鍵">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3" />
+            <path
+              d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+          </svg>
+        </button>
       </div>
     </div>
     <div class="popup-grid">
       <!-- 會由 JS 動態生成 (renderPlatformGrid) -->
     </div>
   </div>
+
+  <!-- Toast 通知容器 -->
+  <div id="toast-container"></div>
 
   <!-- 快捷鍵設定 Modal -->
   <div id="settings-modal" class="modal-overlay hidden">
@@ -62,7 +245,7 @@
         <button id="close-settings" class="close-btn">&times;</button>
       </div>
       <div class="modal-body">
-        <p class="settings-desc">你可以為每個數字 (Alt+1~6) 分配一個或多個平台。若分配多個，重複按下快捷鍵將會輪播切換。</p>
+        <p class="settings-desc">你可以為每個數字 (Alt+1~7) 分配一個或多個平台。若分配多個，重複按下快捷鍵將會輪播切換。</p>
         <div id="shortcut-config-list">
           <!-- 會由 JS 動態生成 -->
         </div>
@@ -75,52 +258,53 @@
   </div>
 
   <!-- Skill Preview Modal -->
-    <div id="skill-preview-modal" class="modal-overlay hidden">
-        <div class="modal-content large">
-            <div class="modal-header">
-                <h3 id="preview-filename">SKILL.md</h3>
-                <button class="close-btn" id="close-preview">&times;</button>
-            </div>
-            
-            <div class="preview-body">
-                <div class="preview-sidebar">
-                    <div class="sidebar-header">Repository Versions</div>
-                    <div class="version-list" id="preview-version-list">
-                        <!-- Version items go here -->
-                    </div>
-                </div>
-                
-                <div class="preview-main">
-                    <div class="diff-controls" id="diff-info">
-                        Select a version to preview. 
-                    </div>
-                    
-                    <div class="preview-panels" id="preview-panels-container">
-                        <div class="preview-panel left" id="left-panel">
-                            <div class="panel-header" id="left-panel-header">Source (L)</div>
-                            <div class="panel-scroller" id="left-scroller">
-                                <div class="line-numbers" id="left-line-numbers"></div>
-                                <pre id="left-text-content" class="code-view"></pre>
-                            </div>
-                        </div>
-                        <div class="preview-panel right" id="right-panel">
-                            <div class="panel-header" id="right-panel-header">Comparison (R)</div>
-                            <div class="panel-scroller" id="right-scroller">
-                                <div class="line-numbers" id="right-line-numbers"></div>
-                                <pre id="right-text-content" class="code-view"></pre>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="modal-footer">
-                <button class="git-btn secondary" id="clear-selection">Clear Comparison</button>
-                <div class="preview-hint">Choose another repo to compare side-by-side.</div>
-                <button class="git-btn" id="sync-selected-version" disabled>Use as Master</button>
-            </div>
+  <div id="skill-preview-modal" class="modal-overlay hidden">
+    <div class="modal-content large">
+      <div class="modal-header">
+        <h3 id="preview-filename">SKILL.md</h3>
+        <button class="close-btn" id="close-preview">&times;</button>
+      </div>
+      <div class="preview-body">
+        <div class="preview-sidebar">
+          <div class="sidebar-header">Repository Versions</div>
+          <div class="version-list" id="preview-version-list">
+            <!-- Version items go here -->
+          </div>
         </div>
+        <div class="preview-main">
+          <div class="diff-controls" id="diff-info">
+            Select a version to preview.
+          </div>
+          <div class="preview-panels" id="preview-panels-container">
+            <div class="preview-panel left" id="left-panel">
+              <div class="panel-header" id="left-panel-header">Source (L)</div>
+              <div class="panel-scroller" id="left-scroller">
+                <div class="line-numbers" id="left-line-numbers"></div>
+                <pre id="left-text-content" class="code-view"></pre>
+              </div>
+            </div>
+            <div class="preview-panel right" id="right-panel">
+              <div class="panel-header" id="right-panel-header">Comparison (R)</div>
+              <div class="panel-scroller" id="right-scroller">
+                <div class="line-numbers" id="right-line-numbers"></div>
+                <pre id="right-text-content" class="code-view"></pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="git-btn secondary" id="clear-selection">Clear Comparison</button>
+        <div class="preview-hint">Choose another repo to compare side-by-side.</div>
+        <button class="git-btn" id="sync-selected-version" disabled>Use as Master</button>
+      </div>
     </div>
+  </div>
+
+  <!-- 載入動畫 -->
+  <div id="loading-overlay" class="hidden">
+    <div class="loading-spinner"></div>
+  </div>
 
   <script src="tabs.js"></script>
   <script src="git-updater-ui.js"></script>

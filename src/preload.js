@@ -55,7 +55,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Skill 同步相關 API
   compareSkills: (rootPath) => ipcRenderer.invoke('compare-skills', rootPath),
   readSkillContent: (data) => ipcRenderer.invoke('read-skill-content', data),
-  syncSkillFile: (data) => ipcRenderer.invoke('sync-skill-file', data)
+  syncSkillFile: (data) => ipcRenderer.invoke('sync-skill-file', data),
+  // Git Repo Info
+  getRepoInfo: (repoPath) => ipcRenderer.invoke('get-repo-info', repoPath),
+  // Toast 通知監聽
+  onToast: (callback) => ipcRenderer.on('toast', (event, { message, type }) => callback(message, type))
 });
 
 // 快捷键增强
