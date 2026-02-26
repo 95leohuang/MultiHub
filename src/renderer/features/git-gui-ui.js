@@ -16,6 +16,8 @@ document.addEventListener('DOMContentLoaded', () => {
   let activeCommitHash = null;
   let activeCommitFiles = [];
   let activeChangeFile = null;
+  /** @type {boolean} 是否顯示所有分支 */
+  let logShowAll = true;
   /** @type {{ local: object[], remote: object[], current: string }} */
   let branchData = { local: [], remote: [], current: '' };
   /** @type {'flat'|'tree'|'grouped'} */
@@ -69,8 +71,15 @@ document.addEventListener('DOMContentLoaded', () => {
       <!-- === Commit Log 面板 === -->
       <div class="gg-panel active" id="gg-panel-log">
         <div class="gg-log-layout">
+          <div class="gg-log-left">
+            <div class="gg-log-toolbar">
+              <button class="gg-log-filter-btn active" id="gg-log-all-btn" title="顯示所有分支">All Branches</button>
+              <button class="gg-log-filter-btn" id="gg-log-current-btn" title="只顯示目前分支">⎇ Current</button>
+            </div>
           <div class="gg-log-list" id="gg-log-list">
             <div class="gg-empty"><div class="gg-empty-icon">📋</div><p>選擇左側 Repository</p></div>
+          </div>
+          </div>
           </div>
           <div class="gg-log-detail" id="gg-log-detail">
             <div class="gg-diff-placeholder">
@@ -503,7 +512,8 @@ document.addEventListener('DOMContentLoaded', () => {
     SetLoading(logListEl);
     logDetailEl.innerHTML = '<div class="gg-diff-placeholder"><div class="gg-empty"><div class="gg-empty-icon">🔍</div><p>點擊左側 Commit 查看詳情</p></div></div>';
 
-    window.electronAPI.gitGuiLog(activeRepo.path, { limit: 200 })
+    const opts = { limit: 300, showAll: logShowAll };
+    window.electronAPI.gitGuiLog(activeRepo.path, opts)
       .then(commits => {
         logCommits = commits;
         if (commits.length === 0) {
@@ -692,7 +702,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const graphData = BuildGraphLanes(commits);
     const ROW_H = 52;
     const COL_W = 14;
-    const maxL = graphData.reduce((m, g) => Math.max(m, g.maxLane), 0);
+    const MAX_LANES = 12; // 最多顯示 12 欄，避免 SVG 佔滿版面
+    const maxL = Math.min(graphData.reduce((m, g) => Math.max(m, g.maxLane), 0), MAX_LANES - 1);
     const SVG_W = (maxL + 1) * COL_W + COL_W; // 全部 row 等寬
 
     logListEl.innerHTML = commits.map((c, i) => {
@@ -1245,6 +1256,27 @@ document.addEventListener('DOMContentLoaded', () => {
       btn.classList.add('active');
       RenderBranches(branchData);
     });
+  });
+  //#endregion
+
+  //#region Log 篩選切換
+  const logAllBtn = document.getElementById('gg-log-all-btn');
+  const logCurrentBtn = document.getElementById('gg-log-current-btn');
+
+  logAllBtn.addEventListener('click', () => {
+    if (logShowAll) return;
+    logShowAll = true;
+    logAllBtn.classList.add('active');
+    logCurrentBtn.classList.remove('active');
+    LoadLog();
+  });
+
+  logCurrentBtn.addEventListener('click', () => {
+    if (!logShowAll) return;
+    logShowAll = false;
+    logCurrentBtn.classList.add('active');
+    logAllBtn.classList.remove('active');
+    LoadLog();
   });
   //#endregion
 

@@ -56,13 +56,14 @@ function registerGitGuiHandlers() {
   //#region 取得 Commit Log 列表
   ipcMain.handle('git-gui-log', async (event, repoPath, options = {}) => {
     const limit = options.limit || 300;
-    // --all 顯示所有分支，%P=父節點（空格分隔）
+    const showAll = options.showAll !== false; // 預設 true
+    // %P=父節點（空格分隔）
     const format = '%H%x00%h%x00%s%x00%an%x00%ai%x00%D%x00%P';
+    const args = ['log'];
+    if (showAll) args.push('--all');
+    args.push(`--pretty=format:${format}`, `--max-count=${limit}`);
     try {
-      const out = await runGitArgs(
-        ['log', '--all', `--pretty=format:${format}`, `--max-count=${limit}`],
-        repoPath
-      );
+      const out = await runGitArgs(args, repoPath);
       if (!out.trim()) return [];
       return out.trim().split('\n').map(line => {
         const parts = line.split('\x00');
