@@ -682,6 +682,7 @@ document.addEventListener('DOMContentLoaded', () => {
     branchData = null;
     activeCommitHash = null;
     activeCommitFiles = [];
+    changeFiles = [];
   }
   //#endregion
 
