@@ -85,6 +85,10 @@ document.addEventListener('DOMContentLoaded', () => {
           <button class="gg-icon-btn" id="gg-sidebar-collapse-btn" title="收縮側邊欄">${LucideIcon('arrow-left', 13)}</button>
         </div>
       </div>
+      <!-- 收縮時顯示的 icon 欄 -->
+      <div class="gg-sidebar-collapsed-icon" title="展開 Repositories">
+        ${LucideIcon('package', 16)}
+      </div>
       <div class="gg-sidebar-body">
         <div class="gg-repo-search">
           <input type="text" id="gg-repo-filter" placeholder="篩選 repo..." />
@@ -1735,14 +1739,14 @@ document.addEventListener('DOMContentLoaded', () => {
   branchSearchEl.addEventListener('input', () => {
     branchFilter = branchSearchEl.value;
     branchSearchClearEl.classList.toggle('hidden', !branchFilter);
-    RenderBranches(branchData);
+    if (branchData) RenderBranches(branchData);
   });
 
   branchSearchClearEl.addEventListener('click', () => {
     branchFilter = '';
     branchSearchEl.value = '';
     branchSearchClearEl.classList.add('hidden');
-    RenderBranches(branchData);
+    if (branchData) RenderBranches(branchData);
   });
 
   document.querySelectorAll('.gg-view-btn').forEach(btn => {
@@ -1750,7 +1754,7 @@ document.addEventListener('DOMContentLoaded', () => {
       branchViewMode = btn.dataset.mode;
       document.querySelectorAll('.gg-view-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-      RenderBranches(branchData);
+      if (branchData) RenderBranches(branchData);
     });
   });
   //#endregion
@@ -2003,14 +2007,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
   /** Repo sidebar 收縮/展開 */
   let sidebarCollapsed = false;
-  if (sidebarCollapseBtn) {
-    sidebarCollapseBtn.addEventListener('click', () => {
-      sidebarCollapsed = !sidebarCollapsed;
-      sidebarEl.classList.toggle('collapsed', sidebarCollapsed);
+
+  function ToggleSidebar() {
+    sidebarCollapsed = !sidebarCollapsed;
+    sidebarEl.classList.toggle('collapsed', sidebarCollapsed);
+    if (sidebarCollapseBtn) {
       sidebarCollapseBtn.innerHTML = sidebarCollapsed
         ? LucideIcon('arrow-right', 13)
         : LucideIcon('arrow-left', 13);
       sidebarCollapseBtn.title = sidebarCollapsed ? '展開側邊欄' : '收縮側邊欄';
+    }
+  }
+
+  if (sidebarCollapseBtn) {
+    sidebarCollapseBtn.addEventListener('click', ToggleSidebar);
+  }
+
+  // 點擊收縮 icon 欄也可展開
+  const sidebarCollapsedIcon = sidebarEl ? sidebarEl.querySelector('.gg-sidebar-collapsed-icon') : null;
+  if (sidebarCollapsedIcon) {
+    sidebarCollapsedIcon.addEventListener('click', () => {
+      if (sidebarCollapsed) ToggleSidebar();
     });
   }
 

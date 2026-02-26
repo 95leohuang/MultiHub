@@ -46,6 +46,28 @@
   display: none;
 }
 
+/* sidebar 收縮時 resizer 隱藏（不可拖拉） */
+#gg-sidebar.collapsed~.gg-sidebar-resizer {
+  pointer-events: none;
+  opacity: 0;
+  width: 1px;
+}
+
+/* sidebar 收縮時顯示置中圖示 */
+.gg-sidebar-collapsed-icon {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 0;
+  flex: 1;
+  color: var(--text-muted);
+  gap: 2px;
+}
+
+.gg-sidebar.collapsed .gg-sidebar-collapsed-icon {
+  display: flex;
+}
+
 /* Repo sidebar resize 分隔線 */
 .gg-sidebar-resizer {
   width: 4px;
@@ -333,7 +355,7 @@
   background: var(--accent);
 }
 
-/* Branch sidebar 搜尋欄 */
+/* Branch sidebar 搜尋欄（固定在頂部，不隨滾動） */
 .gg-lbs-search {
   display: flex;
   align-items: center;
@@ -341,6 +363,10 @@
   padding: 5px 10px;
   border-bottom: 1px solid var(--border-subtle);
   flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--bg-secondary);
 }
 
 .gg-lbs-search-icon {
