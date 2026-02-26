@@ -529,11 +529,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   //#region Graph Lane 演算法
 
-  /** 預設 lane 顏色循環 */
+  /** 預設 lane 顏色循環（SourceGit 風格） */
   const LANE_COLORS = [
-    '#4da6ff', '#f97316', '#a78bfa', '#4ade80',
-    '#fb7185', '#34d399', '#facc15', '#60a5fa',
-    '#e879f9', '#38bdf8'
+    '#4c9be8', '#e8804c', '#9b59b6', '#27ae60',
+    '#e74c3c', '#16a085', '#f39c12', '#2980b9',
+    '#8e44ad', '#1abc9c', '#d35400', '#2ecc71'
   ];
 
   /**
@@ -652,46 +652,48 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /**
-   * 產生單一 row 的 SVG graph
-   * upLines   = 上半段（頂 → 中心）
-   * downLines = 下半段（中心 → 底）
+   * 產生單一 row 的 SVG graph（SourceGit 風格：折線 + 帶外環空心節點）
    */
   function BuildGraphSvg(g, rowH, svgW) {
     const { lane, color, upLines, downLines } = g;
-    const colW = 14;
+    const colW = 10;  // 緊湊欄寬
     const h = rowH;
     const cy = h / 2;
     const cx = lane * colW + colW / 2;
-    const r = 3.5;
-    const sw = 1.8; // stroke-width
+    const r = 3;   // 節點半徑
+    const sw = 1.5; // stroke-width
+    const bend = Math.round(h * 0.35); // 折點高度偏移
 
     let paths = '';
 
-    // 上半段：from top(0) → cy
+    // 上半段：折線（先水平移動，再垂直）
     upLines.forEach(e => {
       const x1 = e.fromLane * colW + colW / 2;
       const x2 = e.toLane * colW + colW / 2;
       if (x1 === x2) {
-        paths += `<line x1="${x1}" y1="0" x2="${x2}" y2="${cy}" stroke="${e.color}" stroke-width="${sw}"/>`;
+        paths += `<line x1="${x1}" y1="0" x2="${x2}" y2="${cy}" stroke="${e.color}" stroke-width="${sw}" stroke-linecap="round"/>`;
       } else {
-        // 曲線：從 (x1,0) → (x2,cy)，控制點在中間高度
-        paths += `<path d="M${x1},0 C${x1},${cy * 0.6} ${x2},${cy * 0.4} ${x2},${cy}" fill="none" stroke="${e.color}" stroke-width="${sw}"/>`;
+        // 折線：垂直到折點，再斜線到目標
+        const fy = Math.round(cy * 0.45);
+        paths += `<polyline points="${x1},0 ${x1},${fy} ${x2},${cy}" fill="none" stroke="${e.color}" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round"/>`;
       }
     });
 
-    // 下半段：from cy → bottom(h)
+    // 下半段：折線（先斜線到折點，再垂直）
     downLines.forEach(e => {
       const x1 = e.fromLane * colW + colW / 2;
       const x2 = e.toLane * colW + colW / 2;
       if (x1 === x2) {
-        paths += `<line x1="${x1}" y1="${cy}" x2="${x2}" y2="${h}" stroke="${e.color}" stroke-width="${sw}"/>`;
+        paths += `<line x1="${x1}" y1="${cy}" x2="${x2}" y2="${h}" stroke="${e.color}" stroke-width="${sw}" stroke-linecap="round"/>`;
       } else {
-        paths += `<path d="M${x1},${cy} C${x1},${cy + (h - cy) * 0.4} ${x2},${cy + (h - cy) * 0.6} ${x2},${h}" fill="none" stroke="${e.color}" stroke-width="${sw}"/>`;
+        const fy = Math.round(cy + (h - cy) * 0.55);
+        paths += `<polyline points="${x1},${cy} ${x2},${fy} ${x2},${h}" fill="none" stroke="${e.color}" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round"/>`;
       }
     });
 
-    // 節點圓點（最頂層）
-    paths += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${color}" stroke="var(--bg-primary)" stroke-width="1.5"/>`;
+    // 節點：帶外環的空心圓（SourceGit 風格）
+    paths += `<circle cx="${cx}" cy="${cy}" r="${r + 1.5}" fill="var(--bg-primary)" stroke="${color}" stroke-width="1.2"/>`;
+    paths += `<circle cx="${cx}" cy="${cy}" r="${r - 0.5}" fill="${color}"/>`;
 
     return `<svg width="${svgW}" height="${h}" viewBox="0 0 ${svgW} ${h}" style="display:block;flex-shrink:0">${paths}</svg>`;
   }
@@ -700,14 +702,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function RenderLogList(commits) {
     const graphData = BuildGraphLanes(commits);
-    const ROW_H = 52;
-    const COL_W = 14;
-    const MAX_LANES = 12; // 最多顯示 12 欄，避免 SVG 佔滿版面
+    const ROW_H = 44;  // 更緊湊的行高
+    const COL_W = 10;  // 對應 BuildGraphSvg 的 colW
+    const MAX_LANES = 16;
     const maxL = Math.min(graphData.reduce((m, g) => Math.max(m, g.maxLane), 0), MAX_LANES - 1);
-    const SVG_W = (maxL + 1) * COL_W + COL_W; // 全部 row 等寬
+    const SVG_W = (maxL + 2) * COL_W;
 
     logListEl.innerHTML = commits.map((c, i) => {
       const g = graphData[i];
+
+      // ref tags：HEAD=綠，local=藍，remote=橙，tag=紫
       const refTags = c.refs.map(r => {
         let cls = 'local';
         if (r.includes('HEAD')) cls = 'head';
@@ -718,14 +722,16 @@ document.addEventListener('DOMContentLoaded', () => {
       }).join('');
 
       return `<div class="gg-commit-item ${activeCommitHash === c.hash ? 'active' : ''}" data-hash="${c.hash}" data-idx="${i}" style="height:${ROW_H}px">
-        <div class="gg-commit-graph" style="width:${SVG_W}px;height:${ROW_H}px;flex-shrink:0">${BuildGraphSvg(g, ROW_H, SVG_W)}</div>
+        <div class="gg-commit-graph" style="width:${SVG_W}px;height:${ROW_H}px">${BuildGraphSvg(g, ROW_H, SVG_W)}</div>
         <div class="gg-commit-body">
-          <div class="gg-commit-subject">${EscHtml(c.subject)}</div>
-          ${c.refs.length > 0 ? `<div class="gg-commit-refs">${refTags}</div>` : ''}
-          <div class="gg-commit-meta">
+          <div class="gg-commit-row1">
+            ${refTags}
+            <span class="gg-commit-subject">${EscHtml(c.subject)}</span>
+          </div>
+          <div class="gg-commit-row2">
             <span class="gg-commit-hash">${c.shortHash}</span>
-            <span>${EscHtml(c.authorName)}</span>
-            <span>${RelativeTime(c.authorDate)}</span>
+            <span class="gg-commit-author">${EscHtml(c.authorName)}</span>
+            <span class="gg-commit-time">${RelativeTime(c.authorDate)}</span>
           </div>
         </div>
       </div>`;
