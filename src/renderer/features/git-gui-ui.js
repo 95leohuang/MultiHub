@@ -712,18 +712,25 @@ document.addEventListener('DOMContentLoaded', () => {
     logListEl.innerHTML = commits.map((c, i) => {
       const g = graphData[i];
 
-      // ref tags：HEAD=綠，local=藍，remote=橙，tag=紫
-      const refTags = c.refs.map(r => {
+      // ref tags：HEAD=綠，local=藍，remote=橙，tag=紫，最多顯示 4 個，超過用 +N
+      const MAX_TAGS = 4;
+      const MAX_LABEL = 26; // 超過截斷並加 title
+      const allRefTags = c.refs.map(r => {
         let cls = 'local';
         if (r.includes('HEAD')) cls = 'head';
         else if (r.includes('/')) cls = 'remote';
         else if (r.startsWith('tag:')) cls = 'tag';
-        const label = r.replace('tag: ', '').replace('refs/heads/', '').replace('refs/remotes/', '');
-        return `<span class="gg-ref-tag ${cls}">${EscHtml(label)}</span>`;
-      }).join('');
+        const full = r.replace('tag: ', '').replace('refs/heads/', '').replace('refs/remotes/', '');
+        const label = full.length > MAX_LABEL ? full.slice(0, MAX_LABEL) + '…' : full;
+        return `<span class="gg-ref-tag ${cls}" title="${EscHtml(full)}">${EscHtml(label)}</span>`;
+      });
+      const visibleTags = allRefTags.slice(0, MAX_TAGS);
+      const extraCount = allRefTags.length - visibleTags.length;
+      const refTags = visibleTags.join('') +
+        (extraCount > 0 ? `<span class="gg-ref-tag more">+${extraCount}</span>` : '');
 
       const hasRefs = c.refs.length > 0;
-      const rowH = hasRefs ? ROW_H + 18 : ROW_H; // ref 行增加高度
+      const rowH = hasRefs ? ROW_H + 18 : ROW_H;
       return `<div class="gg-commit-item ${activeCommitHash === c.hash ? 'active' : ''}" data-hash="${c.hash}" data-idx="${i}" style="min-height:${rowH}px">
         <div class="gg-commit-graph" style="width:${SVG_W}px;min-height:${rowH}px">${BuildGraphSvg(g, rowH, SVG_W)}</div>
         <div class="gg-commit-body">

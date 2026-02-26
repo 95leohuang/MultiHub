@@ -518,6 +518,12 @@
   border: 1px solid rgba(168, 85, 247, 0.25);
 }
 
+.gg-ref-tag.more {
+  background: rgba(148, 163, 184, 0.12);
+  color: var(--text-muted);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+}
+
 /* 右側 Commit 詳細 / Diff */
 .gg-log-detail {
   flex: 1;
