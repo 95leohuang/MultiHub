@@ -1,7 +1,7 @@
 {
   "name": "multi-hub",
   "productName": "Multi Hub",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "description": "Multi-service hub desktop app - Messenger, ChatGPT, Gemini, Git Repo Updater, Discord, Telegram",
   "main": "src/main/index.js",
   "scripts": {

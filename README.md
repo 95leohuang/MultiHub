@@ -6,7 +6,7 @@
 
 ## 專案簡介
 
-Multi Hub 是一個輕量級的桌面應用程式，將常用的網路服務整合在同一個視窗中，無需開啟瀏覽器。透過左側邊欄與右上角 Floating Dock 切換的方式，讓你可以快速存取 Messenger、ChatGPT、Gemini AI、Git Updater、Skill Sync、Quick Notes、Discord 與 Telegram。
+Multi Hub 是一個輕量級的桌面應用程式，將常用的網路服務整合在同一個視窗中，無需開啟瀏覽器。透過左側邊欄與右上角 Floating Dock 切換的方式，讓你可以快速存取 Messenger、ChatGPT、Gemini AI、Git Updater、Git GUI、Skill Sync、Quick Notes、Discord 與 Telegram。
 
 ---
 
@@ -20,6 +20,7 @@ Multi Hub 是一個輕量級的桌面應用程式，將常用的網路服務整�
 - **深色 / 淺色主題** - 一鍵切換，偏好自動持久化
 - **Quick Notes** - 內建筆記功能，支援新增、編輯、自動儲存、複製、刪除
 - **Git Repo Updater** - 批次更新本地 Git 儲存庫，顯示分支 / dirty / behind 狀態
+- **Git GUI** - 本地 Git 圖形介面：commit、branch、stash、diff、status、push/pull 等
 - **Skill Sync** - 跨專案 `.cursor/skills` 技能檔案比較與同步
 - **系統匣常駐** - 關閉視窗後最小化至系統匣
 - **快捷鍵設定** - Alt+1~7 自訂綁定服務，支援多服務輪播
@@ -47,6 +48,7 @@ Multi Hub 是一個輕量級的桌面應用程式，將常用的網路服務整�
 | ChatGPT | chatgpt.com | OpenAI 對話式 AI |
 | Gemini | gemini.google.com | Google AI 助理 |
 | Git Update | — | 本地 Git Repo 批次更新工具 |
+| Git GUI | — | 本地 Git 圖形介面（commit / branch / stash / diff） |
 | Skill Sync | — | 跨專案技能檔案同步工具 |
 | Quick Notes | — | 輕量內建筆記 |
 | Discord | discord.com | 遊戲社群通訊 |
@@ -67,8 +69,9 @@ Multi Hub/
 │   │   ├── shortcuts.js            # 全域快捷鍵
 │   │   └── ipc/
 │   │       ├── store-handlers.js   # 設定儲存、路徑、Toast IPC
-│   │       ├── git-handlers.js     # Git 操作 IPC
-│   │       └── skill-handlers.js  # Skill Sync IPC
+│   │       ├── git-handlers.js     # Git Repo Updater IPC
+│   │       ├── git-gui-handlers.js # Git GUI IPC
+│   │       └── skill-handlers.js   # Skill Sync IPC
 │   ├── renderer/                   # 渲染程序（模組化）
 │   │   ├── app.js                  # 渲染程序主入口
 │   │   ├── platform-config.js      # 平台設定資料
@@ -89,9 +92,11 @@ Multi Hub/
 │   │   │   └── features/
 │   │   │       ├── skill-sync.css  # Skill Sync 樣式
 │   │   │       ├── git-updater.css # Git Updater 樣式
+│   │   │       ├── git-gui.css     # Git GUI 樣式
 │   │   │       └── quick-notes.css # Quick Notes 樣式
 │   │   └── features/
 │   │       ├── git-updater-ui.js   # Git Updater 渲染邏輯
+│   │       ├── git-gui-ui.js       # Git GUI 渲染邏輯
 │   │       └── skill-sync-ui.js    # Skill Sync 渲染邏輯
 │   ├── index.html                  # 主頁面
 │   ├── preload.js                  # 預載腳本（contextBridge）
