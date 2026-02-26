@@ -71,20 +71,35 @@ document.addEventListener('DOMContentLoaded', () => {
       <!-- === Commit Log 面板 === -->
       <div class="gg-panel active" id="gg-panel-log">
         <div class="gg-log-layout">
-          <div class="gg-log-left">
-            <div class="gg-log-toolbar">
-              <button class="gg-log-filter-btn active" id="gg-log-all-btn" title="顯示所有分支">All Branches</button>
-              <button class="gg-log-filter-btn" id="gg-log-current-btn" title="只顯示目前分支">⎇ Current</button>
+
+          <!-- 上半：Commit Table -->
+          <div class="gg-log-top">
+            <!-- 篩選列 + 表頭 -->
+            <div class="gg-log-header">
+              <div class="gg-log-toolbar">
+                <button class="gg-log-filter-btn active" id="gg-log-all-btn">All Branches</button>
+                <button class="gg-log-filter-btn" id="gg-log-current-btn">⎇ Current</button>
+              </div>
+              <div class="gg-log-cols-header">
+                <div class="gg-col-graph-subject">GRAPH &amp; SUBJECT</div>
+                <div class="gg-col-author">AUTHOR</div>
+                <div class="gg-col-sha">SHA</div>
+                <div class="gg-col-time">COMMIT TIME</div>
+              </div>
             </div>
-          <div class="gg-log-list" id="gg-log-list">
-            <div class="gg-empty"><div class="gg-empty-icon">📋</div><p>選擇左側 Repository</p></div>
+            <!-- Commit 列表 -->
+            <div class="gg-log-list" id="gg-log-list">
+              <div class="gg-empty"><div class="gg-empty-icon">📋</div><p>選擇左側 Repository</p></div>
+            </div>
           </div>
-          </div>
+
+          <!-- 下半：Commit Detail -->
           <div class="gg-log-detail" id="gg-log-detail">
             <div class="gg-diff-placeholder">
-              <div class="gg-empty"><div class="gg-empty-icon">🔍</div><p>點擊左側 Commit 查看詳情</p></div>
+              <div class="gg-empty"><div class="gg-empty-icon">🔍</div><p>點擊上方 Commit 查看詳情</p></div>
             </div>
           </div>
+
         </div>
       </div>
 
@@ -703,19 +718,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function RenderLogList(commits) {
     const graphData = BuildGraphLanes(commits);
-    const ROW_H = 44;  // 更緊湊的行高
-    const COL_W = 10;  // 對應 BuildGraphSvg 的 colW
+    const ROW_H = 28;  // SourceGit 風格：緊湊單行
+    const COL_W = 10;
     const MAX_LANES = 16;
     const maxL = Math.min(graphData.reduce((m, g) => Math.max(m, g.maxLane), 0), MAX_LANES - 1);
     const SVG_W = (maxL + 2) * COL_W;
+    const MAX_TAGS = 4;
+    const MAX_LABEL = 22;
 
     logListEl.innerHTML = commits.map((c, i) => {
       const g = graphData[i];
 
-      // ref tags：HEAD=綠，local=藍，remote=橙，tag=紫，最多顯示 4 個，超過用 +N
-      const MAX_TAGS = 4;
-      const MAX_LABEL = 26; // 超過截斷並加 title
-      const allRefTags = c.refs.map(r => {
+      const refTags = c.refs.map(r => {
         let cls = 'local';
         if (r.includes('HEAD')) cls = 'head';
         else if (r.includes('/')) cls = 'remote';
@@ -724,24 +738,21 @@ document.addEventListener('DOMContentLoaded', () => {
         const label = full.length > MAX_LABEL ? full.slice(0, MAX_LABEL) + '…' : full;
         return `<span class="gg-ref-tag ${cls}" title="${EscHtml(full)}">${EscHtml(label)}</span>`;
       });
-      const visibleTags = allRefTags.slice(0, MAX_TAGS);
-      const extraCount = allRefTags.length - visibleTags.length;
-      const refTags = visibleTags.join('') +
-        (extraCount > 0 ? `<span class="gg-ref-tag more">+${extraCount}</span>` : '');
+      const visibleTags = refTags.slice(0, MAX_TAGS);
+      const extra = refTags.length - visibleTags.length;
+      const tagsHtml = visibleTags.join('') + (extra > 0 ? `<span class="gg-ref-tag more">+${extra}</span>` : '');
 
-      const hasRefs = c.refs.length > 0;
-      const rowH = hasRefs ? ROW_H + 18 : ROW_H;
-      return `<div class="gg-commit-item ${activeCommitHash === c.hash ? 'active' : ''}" data-hash="${c.hash}" data-idx="${i}" style="min-height:${rowH}px">
-        <div class="gg-commit-graph" style="width:${SVG_W}px;min-height:${rowH}px">${BuildGraphSvg(g, rowH, SVG_W)}</div>
-        <div class="gg-commit-body">
-          ${hasRefs ? `<div class="gg-commit-refs">${refTags}</div>` : ''}
-          <div class="gg-commit-subject">${EscHtml(c.subject)}</div>
-          <div class="gg-commit-row2">
-            <span class="gg-commit-hash">${c.shortHash}</span>
-            <span class="gg-commit-author">${EscHtml(c.authorName)}</span>
-            <span class="gg-commit-time">${RelativeTime(c.authorDate)}</span>
+      return `<div class="gg-commit-item ${activeCommitHash === c.hash ? 'active' : ''}" data-hash="${c.hash}" data-idx="${i}">
+        <div class="gg-col-graph-subject">
+          <div class="gg-commit-graph" style="width:${SVG_W}px;height:${ROW_H}px;flex-shrink:0">${BuildGraphSvg(g, ROW_H, SVG_W)}</div>
+          <div class="gg-commit-subject-wrap">
+            ${tagsHtml}
+            <span class="gg-commit-subject" title="${EscHtml(c.subject)}">${EscHtml(c.subject)}</span>
           </div>
         </div>
+        <div class="gg-col-author" title="${EscHtml(c.authorName)}">${EscHtml(c.authorName)}</div>
+        <div class="gg-col-sha">${c.shortHash}</div>
+        <div class="gg-col-time">${RelativeTime(c.authorDate)}</div>
       </div>`;
     }).join('');
 
