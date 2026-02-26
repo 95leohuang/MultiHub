@@ -31,6 +31,7 @@ const ICONS = {
   'inbox': '<polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>',
   'alert-circle': '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>',
   'x': '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>',
+  'more-vertical': '<circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/>',
 };
 
 /**
@@ -401,23 +402,63 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     repoListEl.innerHTML = filtered.map(r => `
       <div class="gg-repo-item ${r.isDirty ? 'dirty' : ''} ${activeRepo && activeRepo.path === r.path ? 'active' : ''}"
-           data-path="${r.path}">
-        <span class="gg-repo-icon">📁</span>
+           data-path="${EscHtml(r.path)}">
+        <span class="gg-repo-icon">${LucideIcon('folder', 14)}</span>
         <div class="gg-repo-info">
           <div class="gg-repo-name">${EscHtml(r.name)}</div>
-          <div class="gg-repo-branch">${EscHtml(r.branch || '...')}</div>
+          <div class="gg-repo-branch">${LucideIcon('git-branch', 10)} ${EscHtml(r.branch || '...')}</div>
         </div>
         <span class="gg-repo-dirty-dot"></span>
+        <button class="gg-repo-menu-btn" data-path="${EscHtml(r.path)}" title="操作">${LucideIcon('more-vertical', 14)}</button>
       </div>
     `).join('');
 
     repoListEl.querySelectorAll('.gg-repo-item').forEach(el => {
-      el.addEventListener('click', () => {
+      el.addEventListener('click', e => {
+        if (e.target.closest('.gg-repo-menu-btn')) return;
         const p = el.dataset.path;
         const repo = repos.find(r => r.path === p);
         if (repo) SelectRepo(repo);
       });
     });
+
+    repoListEl.querySelectorAll('.gg-repo-menu-btn').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        ShowRepoContextMenu(btn, btn.dataset.path);
+      });
+    });
+  }
+
+  function ShowRepoContextMenu(anchor, repoPath) {
+    document.querySelector('.gg-repo-ctx-menu')?.remove();
+    const menu = document.createElement('div');
+    menu.className = 'gg-repo-ctx-menu';
+    menu.innerHTML = `
+      <button class="gg-ctx-item" data-action="remove">${LucideIcon('x', 13)} 從列表移除</button>
+    `;
+    document.body.appendChild(menu);
+    const rect = anchor.getBoundingClientRect();
+    menu.style.top = `${rect.bottom + 4}px`;
+    menu.style.left = `${rect.left}px`;
+
+    menu.querySelector('[data-action="remove"]').addEventListener('click', () => {
+      repos = repos.filter(r => r.path !== repoPath);
+      SaveRepos();
+      if (activeRepo && activeRepo.path === repoPath) {
+        activeRepo = repos.length > 0 ? repos[0] : null;
+        if (activeRepo) SelectRepo(activeRepo);
+        else {
+          toolbarRepoName.textContent = '—';
+          toolbarBranchName.textContent = '—';
+        }
+      }
+      RenderRepoList();
+      menu.remove();
+    });
+
+    const close = e => { if (!menu.contains(e.target)) { menu.remove(); document.removeEventListener('mousedown', close); } };
+    setTimeout(() => document.addEventListener('mousedown', close), 0);
   }
 
   function SelectRepo(repo) {

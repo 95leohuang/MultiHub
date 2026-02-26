@@ -167,6 +167,68 @@
   opacity: 1;
 }
 
+/* Repo item ⋯ 操作按鈕 */
+.gg-repo-menu-btn {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.gg-repo-menu-btn:hover {
+  background: var(--bg-active);
+  color: var(--text-primary);
+}
+
+.gg-repo-item:hover .gg-repo-menu-btn {
+  display: flex;
+  align-items: center;
+}
+
+/* Repo context menu dropdown */
+.gg-repo-ctx-menu {
+  position: fixed;
+  z-index: 9999;
+  background: var(--bg-elevated, #1e2433);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  padding: 4px 0;
+  min-width: 140px;
+}
+
+.gg-ctx-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  padding: 6px 12px;
+  font-size: 12px;
+  color: var(--text-primary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s;
+}
+
+.gg-ctx-item:hover {
+  background: var(--bg-hover);
+}
+
+.gg-ctx-item.danger {
+  color: #f87171;
+}
+
+.gg-ctx-item.danger:hover {
+  background: rgba(248, 113, 113, 0.1);
+}
+
 .gg-sidebar-add {
   padding: 8px;
   border-top: 1px solid var(--border-color);
