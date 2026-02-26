@@ -148,44 +148,65 @@ document.addEventListener('DOMContentLoaded', () => {
       <!-- === Local Changes 面板 === -->
       <div class="gg-panel" id="gg-panel-changes">
         <div class="gg-changes-layout">
+
+          <!-- 左側：Unstaged + Staged + 搜尋 -->
           <div class="gg-changes-left">
-            <!-- Staged -->
-            <div class="gg-changes-section" style="flex: 0 0 auto; max-height: 50%;">
-              <div class="gg-changes-section-header">
-                Staged <span id="gg-staged-count" style="font-weight:400">(0)</span>
-                <div class="section-actions">
-                  <button class="gg-icon-btn" id="gg-unstage-all-btn" title="Unstage All">${LucideIcon('arrow-down', 13)}</button>
-                </div>
-              </div>
-              <div class="gg-changes-list" id="gg-staged-list"></div>
+            <!-- 搜尋欄 -->
+            <div class="gg-changes-search-bar">
+              ${LucideIcon('search', 12, 'gg-search-icon')}
+              <input type="text" id="gg-changes-filter" placeholder="檢索檔案..." />
             </div>
+
             <!-- Unstaged -->
-            <div class="gg-changes-section" style="flex: 1;">
+            <div class="gg-changes-section" id="gg-section-unstaged">
               <div class="gg-changes-section-header">
-                Changes <span id="gg-unstaged-count" style="font-weight:400">(0)</span>
-                <div class="section-actions">
-                  <button class="gg-icon-btn" id="gg-stage-all-btn" title="Stage All">${LucideIcon('arrow-up', 13)}</button>
+                <span class="gg-section-icon">${LucideIcon('file-text', 12)}</span>
+                <span>Changes</span>
+                <span class="gg-section-count" id="gg-unstaged-count">0</span>
+                <div class="gg-section-actions">
+                  <button class="gg-icon-btn" id="gg-stage-all-btn" title="Stage All">${LucideIcon('arrow-down', 13)}</button>
                 </div>
               </div>
               <div class="gg-changes-list" id="gg-unstaged-list"></div>
             </div>
-            <!-- Commit Box -->
+
+            <!-- 分割線 -->
+            <div class="gg-changes-splitter" id="gg-changes-splitter"></div>
+
+            <!-- Staged -->
+            <div class="gg-changes-section" id="gg-section-staged">
+              <div class="gg-changes-section-header">
+                <span class="gg-section-icon">${LucideIcon('check-circle', 12)}</span>
+                <span>Staged</span>
+                <span class="gg-section-count" id="gg-staged-count">0</span>
+                <div class="gg-section-actions">
+                  <button class="gg-icon-btn" id="gg-unstage-all-btn" title="Unstage All">${LucideIcon('arrow-up', 13)}</button>
+                </div>
+              </div>
+              <div class="gg-changes-list" id="gg-staged-list"></div>
+            </div>
+          </div>
+
+          <!-- 右側：Diff + Commit Box -->
+          <div class="gg-changes-right">
+            <!-- Diff 預覽 -->
+            <div class="gg-changes-diff-area">
+              <div class="gg-diff-view" id="gg-changes-diff">
+                <div class="gg-diff-placeholder">
+                  <div class="gg-empty"><div class="gg-empty-icon">${LucideIcon('file-text', 32)}</div><p>點擊檔案查看 diff</p></div>
+                </div>
+              </div>
+            </div>
+            <!-- Commit Message + 按鈕 -->
             <div class="gg-commit-box">
-              <textarea class="gg-commit-textarea" id="gg-commit-msg" placeholder="輸入 commit message..."></textarea>
+              <textarea class="gg-commit-textarea" id="gg-commit-msg" placeholder="輸入 commit message（Ctrl+Enter 提交）..."></textarea>
               <div class="gg-commit-actions">
                 <button class="gg-toolbar-btn primary" id="gg-commit-btn" style="flex:1">${LucideIcon('check', 13)} Commit</button>
                 <button class="gg-toolbar-btn" id="gg-stash-save-btn" title="Stash 所有變更">${LucideIcon('package', 13)} Stash</button>
               </div>
             </div>
           </div>
-          <!-- Diff 預覽 -->
-          <div class="gg-log-detail" style="flex:1;">
-            <div class="gg-diff-view" id="gg-changes-diff">
-              <div class="gg-diff-placeholder">
-                <div class="gg-empty"><div class="gg-empty-icon">${LucideIcon('file-text', 32)}</div><p>點擊檔案查看 diff</p></div>
-              </div>
-            </div>
-          </div>
+
         </div>
       </div>
 
@@ -230,12 +251,51 @@ document.addEventListener('DOMContentLoaded', () => {
       <!-- === Stash 面板 === -->
       <div class="gg-panel" id="gg-panel-stash">
         <div class="gg-stash-layout">
-          <div class="gg-stash-toolbar">
-            <button class="gg-toolbar-btn primary" id="gg-stash-push-btn">${LucideIcon('package', 13)} Stash Push</button>
+
+          <!-- 左側：Stash 列表 + Changes 列表 -->
+          <div class="gg-stash-left">
+            <!-- Stash 列表區 -->
+            <div class="gg-stash-top">
+              <div class="gg-stash-section-header">
+                <span>${LucideIcon('layers', 13)} Stashes</span>
+                <span class="gg-section-count" id="gg-stash-count">0</span>
+                <div class="gg-section-actions">
+                  <button class="gg-toolbar-btn primary" id="gg-stash-push-btn" style="padding:2px 8px;font-size:11px">${LucideIcon('plus', 12)} New</button>
+                  <button class="gg-icon-btn" id="gg-stash-clear-btn" title="Clear All" style="margin-left:4px">${LucideIcon('trash-2', 13)}</button>
+                </div>
+              </div>
+              <!-- 搜尋 -->
+              <div class="gg-changes-search-bar">
+                ${LucideIcon('search', 12, 'gg-search-icon')}
+                <input type="text" id="gg-stash-filter" placeholder="搜尋 Stash..." />
+              </div>
+              <div class="gg-stash-list" id="gg-stash-list">
+                <div class="gg-empty"><div class="gg-empty-icon">${LucideIcon('package', 28)}</div><p>無 Stash 記錄</p></div>
+              </div>
+            </div>
+            <!-- 分割線 -->
+            <div class="gg-changes-splitter" id="gg-stash-splitter"></div>
+            <!-- 選中 Stash 的 Changes -->
+            <div class="gg-stash-bottom">
+              <div class="gg-stash-section-header">
+                <span>${LucideIcon('file-text', 13)} Changes</span>
+                <span class="gg-section-count" id="gg-stash-changes-count">0</span>
+              </div>
+              <div class="gg-changes-list" id="gg-stash-changes-list">
+                <div class="gg-empty" style="padding:12px;font-size:11px"><p>選擇左側 Stash 查看變更</p></div>
+              </div>
+            </div>
           </div>
-          <div class="gg-stash-list" id="gg-stash-list">
-            <div class="gg-empty"><div class="gg-empty-icon">${LucideIcon('package', 32)}</div><p>無 Stash 記錄</p></div>
+
+          <!-- 右側：Diff 預覽 -->
+          <div class="gg-stash-right">
+            <div class="gg-diff-view" id="gg-stash-diff">
+              <div class="gg-diff-placeholder">
+                <div class="gg-empty"><div class="gg-empty-icon">${LucideIcon('file-text', 32)}</div><p>點擊左側檔案查看 diff</p></div>
+              </div>
+            </div>
           </div>
+
         </div>
       </div>
 
@@ -273,6 +333,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const commitBtn = document.getElementById('gg-commit-btn');
   const stashSaveBtn = document.getElementById('gg-stash-save-btn');
   const changesDiffEl = document.getElementById('gg-changes-diff');
+  const changesFilterEl = document.getElementById('gg-changes-filter');
+  const stashListEl = document.getElementById('gg-stash-list');
+  const stashFilterEl = document.getElementById('gg-stash-filter');
+  const stashCountEl = document.getElementById('gg-stash-count');
+  const stashChangesListEl = document.getElementById('gg-stash-changes-list');
+  const stashChangesCountEl = document.getElementById('gg-stash-changes-count');
+  const stashDiffEl = document.getElementById('gg-stash-diff');
+  const stashClearBtn = document.getElementById('gg-stash-clear-btn');
   const branchesContentEl = document.getElementById('gg-branches-content');
   const branchSearchEl = document.getElementById('gg-branch-search');
   const branchSearchClearEl = document.getElementById('gg-branch-search-clear');
@@ -281,7 +349,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const newBranchNameEl = document.getElementById('gg-new-branch-name');
   const createBranchBtn = document.getElementById('gg-create-branch-btn');
   const cancelBranchBtn = document.getElementById('gg-cancel-branch-btn');
-  const stashListEl = document.getElementById('gg-stash-list');
   const stashPushBtn = document.getElementById('gg-stash-push-btn');
   const tagListEl = document.getElementById('gg-tag-list');
   //#endregion
@@ -947,69 +1014,87 @@ document.addEventListener('DOMContentLoaded', () => {
       });
   }
 
-  function RenderChanges(files) {
-    const staged = files.filter(f => f.staged);
-    const unstaged = files.filter(f => !f.staged || f.unstaged);
-    const untracked = files.filter(f => f.untracked);
-    const unstagedAll = files.filter(f => !f.staged);
+  /** 返回 檔案狀態對應的 CSS class 和標籤 */
+  function FileStatusMeta(xy, untracked) {
+    if (untracked) return { cls: 'untracked', label: '?' };
+    const c = xy || ' ';
+    if (c === 'M') return { cls: 'modified', label: 'M' };
+    if (c === 'A') return { cls: 'added', label: 'A' };
+    if (c === 'D') return { cls: 'deleted', label: 'D' };
+    if (c === 'R') return { cls: 'renamed', label: 'R' };
+    if (c === 'C') return { cls: 'copied', label: 'C' };
+    if (c === 'U') return { cls: 'conflict', label: 'U' };
+    return { cls: '', label: c };
+  }
 
-    stagedCount.textContent = `(${staged.length})`;
-    unstagedCount.textContent = `(${unstagedAll.length})`;
+  /** 產生 change item HTML */
+  function ChangeItemHtml(f, mode) {
+    const isSt = mode === 'staged';
+    const statusChar = isSt ? (f.xy ? f.xy[0] : ' ') : (f.xy ? f.xy[1] : ' ');
+    const { cls, label } = FileStatusMeta(statusChar, f.untracked);
+    const fname = f.path.split('/').pop();
+    const fdir = f.path.includes('/') ? f.path.substring(0, f.path.lastIndexOf('/')) : '';
+    const actionIcon = isSt
+      ? `<button class="gg-change-action-btn" data-action="unstage" data-path="${EscHtml(f.path)}" title="Unstage">${LucideIcon('arrow-up', 12)}</button>`
+      : `<button class="gg-change-action-btn" data-action="stage"   data-path="${EscHtml(f.path)}" title="Stage">${LucideIcon('arrow-down', 12)}</button>`;
+    return `<div class="gg-change-item" data-path="${EscHtml(f.path)}" data-mode="${mode}">
+      <span class="gg-change-status ${cls}">${label}</span>
+      <span class="gg-change-filename" title="${EscHtml(f.path)}">${EscHtml(fname)}</span>
+      ${fdir ? `<span class="gg-change-dir">${EscHtml(fdir)}</span>` : ''}
+      <span class="gg-change-actions">${actionIcon}</span>
+    </div>`;
+  }
+
+  function RenderChanges(files) {
+    const filter = changesFilterEl ? changesFilterEl.value.toLowerCase() : '';
+    const staged = files.filter(f => f.staged && (!filter || f.path.toLowerCase().includes(filter)));
+    const unstagedAll = files.filter(f => !f.staged && (!filter || f.path.toLowerCase().includes(filter)));
+
+    stagedCount.textContent = staged.length;
+    unstagedCount.textContent = unstagedAll.length;
 
     const totalChanges = files.length;
     changesBadge.textContent = totalChanges;
     changesBadge.classList.toggle('hidden', totalChanges === 0);
 
+    // Unstaged
+    unstagedListEl.innerHTML = unstagedAll.length === 0
+      ? '<div class="gg-empty" style="padding:12px;font-size:11px;"><p>工作區乾淨</p></div>'
+      : unstagedAll.map(f => ChangeItemHtml(f, 'unstaged')).join('');
+
     // Staged
-    if (staged.length === 0) {
-      stagedListEl.innerHTML = '<div class="gg-empty" style="padding:12px;font-size:11px;"><p>無 Staged 變更</p></div>';
-    } else {
-      stagedListEl.innerHTML = staged.map(f => `
-        <div class="gg-change-item" data-path="${EscHtml(f.path)}" data-mode="staged">
-          <span class="gg-change-xy staged">${f.xy[0]}</span>
-          <span class="gg-change-path" title="${EscHtml(f.path)}">${EscHtml(f.path)}</span>
-          <span class="gg-change-action">
-            <button class="gg-branch-action-btn" data-action="unstage" data-path="${EscHtml(f.path)}">↓</button>
-          </span>
-        </div>
-      `).join('');
-    }
+    stagedListEl.innerHTML = staged.length === 0
+      ? '<div class="gg-empty" style="padding:12px;font-size:11px;"><p>無 Staged 變更</p></div>'
+      : staged.map(f => ChangeItemHtml(f, 'staged')).join('');
 
-    // Unstaged + Untracked
-    if (unstagedAll.length === 0) {
-      unstagedListEl.innerHTML = '<div class="gg-empty" style="padding:12px;font-size:11px;"><p>工作區乾淨</p></div>';
-    } else {
-      unstagedListEl.innerHTML = unstagedAll.map(f => `
-        <div class="gg-change-item" data-path="${EscHtml(f.path)}" data-mode="unstaged">
-          <span class="gg-change-xy ${f.untracked ? 'untracked' : ''}">${f.untracked ? '?' : f.xy[1]}</span>
-          <span class="gg-change-path" title="${EscHtml(f.path)}">${EscHtml(f.path)}</span>
-          <span class="gg-change-action">
-            <button class="gg-branch-action-btn" data-action="stage" data-path="${EscHtml(f.path)}">↑</button>
-          </span>
-        </div>
-      `).join('');
-    }
-
-    // 綁定 stage/unstage 按鈕
-    document.querySelectorAll('#gg-staged-list .gg-branch-action-btn[data-action="unstage"]').forEach(btn => {
-      btn.addEventListener('click', e => { e.stopPropagation(); DoUnstage(btn.dataset.path); });
-    });
-    document.querySelectorAll('#gg-unstaged-list .gg-branch-action-btn[data-action="stage"]').forEach(btn => {
+    // 綁定按鈕
+    unstagedListEl.querySelectorAll('[data-action="stage"]').forEach(btn => {
       btn.addEventListener('click', e => { e.stopPropagation(); DoStage(btn.dataset.path); });
+    });
+    stagedListEl.querySelectorAll('[data-action="unstage"]').forEach(btn => {
+      btn.addEventListener('click', e => { e.stopPropagation(); DoUnstage(btn.dataset.path); });
     });
 
     // 綁定 diff 預覽
-    document.querySelectorAll('.gg-change-item').forEach(item => {
-      item.addEventListener('click', () => {
-        document.querySelectorAll('.gg-change-item').forEach(x => x.classList.remove('active'));
-        item.classList.add('active');
-        const filePath = item.dataset.path;
-        changesDiffEl.innerHTML = '<div class="gg-loading"><div class="gg-spinner"></div></div>';
-        window.electronAPI.gitGuiWorkdirDiff(activeRepo.path, filePath)
-          .then(diff => { changesDiffEl.innerHTML = RenderDiff(diff); })
-          .catch(() => { changesDiffEl.innerHTML = '<div class="gg-empty"><p>載入失敗</p></div>'; });
+    [unstagedListEl, stagedListEl].forEach(container => {
+      container.querySelectorAll('.gg-change-item').forEach(item => {
+        item.addEventListener('click', e => {
+          if (e.target.closest('.gg-change-action-btn')) return;
+          document.querySelectorAll('.gg-change-item').forEach(x => x.classList.remove('active'));
+          item.classList.add('active');
+          const fp = item.dataset.path;
+          changesDiffEl.innerHTML = '<div class="gg-loading"><div class="gg-spinner"></div></div>';
+          window.electronAPI.gitGuiWorkdirDiff(activeRepo.path, fp)
+            .then(diff => { changesDiffEl.innerHTML = RenderDiff(diff); })
+            .catch(() => { changesDiffEl.innerHTML = '<div class="gg-empty"><p>載入失敗</p></div>'; });
+        });
       });
     });
+  }
+
+  // Changes 搜尋過濾
+  if (changesFilterEl) {
+    changesFilterEl.addEventListener('input', () => RenderChanges(changeFiles));
   }
 
   function DoStage(filePath) {
@@ -1417,52 +1502,148 @@ document.addEventListener('DOMContentLoaded', () => {
 
   //#region Stash
 
+  let allStashes = [];
+  let activeStash = null;
+
   function LoadStashes() {
     if (!activeRepo) return;
     stashListEl.innerHTML = '<div class="gg-loading"><div class="gg-spinner"></div></div>';
     window.electronAPI.gitGuiStashes(activeRepo.path)
       .then(stashes => {
-        if (stashes.length === 0) {
-          stashListEl.innerHTML = `<div class="gg-empty"><div class="gg-empty-icon">${LucideIcon('package', 32)}</div><p>無 Stash 記錄</p></div>`;
-          return;
+        allStashes = stashes;
+        stashCountEl.textContent = stashes.length;
+        RenderStashList();
+        // 自動選第一筆
+        if (stashes.length > 0) SelectStash(stashes[0]);
+        else {
+          stashChangesListEl.innerHTML = '<div class="gg-empty" style="padding:12px;font-size:11px"><p>選擇上方 Stash 查看變更</p></div>';
+          stashChangesCountEl.textContent = 0;
+          stashDiffEl.innerHTML = `<div class="gg-diff-placeholder"><div class="gg-empty"><div class="gg-empty-icon">${LucideIcon('file-text', 32)}</div><p>點擊左側檔案查看 diff</p></div></div>`;
         }
-        stashListEl.innerHTML = stashes.map(s => `
-          <div class="gg-stash-item">
-            <span class="gg-stash-ref">${EscHtml(s.ref)}</span>
-            <span class="gg-stash-msg">${EscHtml(s.message)}</span>
-            <span class="gg-stash-date">${s.date ? RelativeTime(s.date) : ''}</span>
-            <div style="display:flex;gap:4px">
-              <button class="gg-branch-action-btn" data-action="pop" data-ref="${EscHtml(s.ref)}">Pop</button>
-              <button class="gg-branch-action-btn danger" data-action="drop" data-ref="${EscHtml(s.ref)}">Drop</button>
-            </div>
-          </div>
-        `).join('');
-
-        stashListEl.querySelectorAll('[data-action="pop"]').forEach(btn => {
-          btn.addEventListener('click', () => {
-            window.electronAPI.gitGuiStashPop(activeRepo.path, btn.dataset.ref)
-              .then(r => {
-                if (r.success) { Toast('Stash Pop 成功', 'success'); LoadStashes(); LoadChanges(); }
-                else Toast(`Pop 失敗：${r.error}`, 'error');
-              })
-              .catch(e => Toast(e.message, 'error'));
-          });
-        });
-
-        stashListEl.querySelectorAll('[data-action="drop"]').forEach(btn => {
-          btn.addEventListener('click', () => {
-            window.electronAPI.gitGuiStashDrop(activeRepo.path, btn.dataset.ref)
-              .then(r => {
-                if (r.success) { Toast('Stash Drop 成功', 'success'); LoadStashes(); }
-                else Toast(`Drop 失敗：${r.error}`, 'error');
-              })
-              .catch(e => Toast(e.message, 'error'));
-          });
-        });
       })
       .catch(() => {
         stashListEl.innerHTML = '<div class="gg-empty"><p>載入失敗</p></div>';
       });
+  }
+
+  function RenderStashList() {
+    const filter = stashFilterEl ? stashFilterEl.value.toLowerCase() : '';
+    const visible = allStashes.filter(s =>
+      !filter || s.ref.toLowerCase().includes(filter) || s.message.toLowerCase().includes(filter)
+    );
+
+    if (visible.length === 0) {
+      stashListEl.innerHTML = `<div class="gg-empty"><div class="gg-empty-icon">${LucideIcon('package', 28)}</div><p>無 Stash 記錄</p></div>`;
+      return;
+    }
+
+    stashListEl.innerHTML = visible.map(s => `
+      <div class="gg-stash-item ${activeStash && activeStash.ref === s.ref ? 'active' : ''}"
+           data-ref="${EscHtml(s.ref)}">
+        <div class="gg-stash-item-top">
+          <span class="gg-stash-ref">${EscHtml(s.ref)}</span>
+          <span class="gg-stash-date">${s.date ? RelativeTime(s.date) : ''}</span>
+        </div>
+        <div class="gg-stash-msg">${EscHtml(s.message)}</div>
+        <div class="gg-stash-item-actions">
+          <button class="gg-branch-action-btn" data-action="apply" data-ref="${EscHtml(s.ref)}" title="Apply（保留 stash）">Apply</button>
+          <button class="gg-branch-action-btn" data-action="pop"   data-ref="${EscHtml(s.ref)}" title="Pop（套用並刪除）">Pop</button>
+          <button class="gg-branch-action-btn danger" data-action="drop" data-ref="${EscHtml(s.ref)}" title="Drop（刪除）">Drop</button>
+        </div>
+      </div>
+    `).join('');
+
+    // 選取
+    stashListEl.querySelectorAll('.gg-stash-item').forEach(el => {
+      el.addEventListener('click', e => {
+        if (e.target.closest('.gg-branch-action-btn')) return;
+        const ref = el.dataset.ref;
+        const s = allStashes.find(x => x.ref === ref);
+        if (s) SelectStash(s);
+      });
+    });
+
+    // Apply
+    stashListEl.querySelectorAll('[data-action="apply"]').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        window.electronAPI.gitGuiStashApply(activeRepo.path, btn.dataset.ref)
+          .then(r => {
+            if (r.success) { Toast('Stash Apply 成功', 'success'); LoadChanges(); }
+            else Toast(`Apply 失敗：${r.error}`, 'error');
+          })
+          .catch(e => Toast(e.message, 'error'));
+      });
+    });
+
+    // Pop
+    stashListEl.querySelectorAll('[data-action="pop"]').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        window.electronAPI.gitGuiStashPop(activeRepo.path, btn.dataset.ref)
+          .then(r => {
+            if (r.success) { Toast('Stash Pop 成功', 'success'); LoadStashes(); LoadChanges(); }
+            else Toast(`Pop 失敗：${r.error}`, 'error');
+          })
+          .catch(e => Toast(e.message, 'error'));
+      });
+    });
+
+    // Drop
+    stashListEl.querySelectorAll('[data-action="drop"]').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        window.electronAPI.gitGuiStashDrop(activeRepo.path, btn.dataset.ref)
+          .then(r => {
+            if (r.success) { Toast('Stash Drop 成功', 'success'); LoadStashes(); }
+            else Toast(`Drop 失敗：${r.error}`, 'error');
+          })
+          .catch(e => Toast(e.message, 'error'));
+      });
+    });
+  }
+
+  function SelectStash(s) {
+    activeStash = s;
+    RenderStashList();
+    // 載入 stash changes
+    stashChangesListEl.innerHTML = '<div class="gg-loading"><div class="gg-spinner"></div></div>';
+    window.electronAPI.gitGuiStashFiles(activeRepo.path, s.ref)
+      .then(files => {
+        stashChangesCountEl.textContent = files.length;
+        if (files.length === 0) {
+          stashChangesListEl.innerHTML = '<div class="gg-empty" style="padding:12px;font-size:11px"><p>無變更</p></div>';
+          return;
+        }
+        stashChangesListEl.innerHTML = files.map(f => {
+          const { cls, label } = FileStatusMeta(f.xy ? f.xy[1] : ' ', f.untracked);
+          const fname = f.path.split('/').pop();
+          const fdir = f.path.includes('/') ? f.path.substring(0, f.path.lastIndexOf('/')) : '';
+          return `<div class="gg-change-item" data-path="${EscHtml(f.path)}">
+            <span class="gg-change-status ${cls}">${label}</span>
+            <span class="gg-change-filename" title="${EscHtml(f.path)}">${EscHtml(fname)}</span>
+            ${fdir ? `<span class="gg-change-dir">${EscHtml(fdir)}</span>` : ''}
+          </div>`;
+        }).join('');
+
+        stashChangesListEl.querySelectorAll('.gg-change-item').forEach(item => {
+          item.addEventListener('click', () => {
+            stashChangesListEl.querySelectorAll('.gg-change-item').forEach(x => x.classList.remove('active'));
+            item.classList.add('active');
+            stashDiffEl.innerHTML = '<div class="gg-loading"><div class="gg-spinner"></div></div>';
+            window.electronAPI.gitGuiStashFileDiff(activeRepo.path, s.ref, item.dataset.path)
+              .then(diff => { stashDiffEl.innerHTML = RenderDiff(diff); })
+              .catch(() => { stashDiffEl.innerHTML = '<div class="gg-empty"><p>載入失敗</p></div>'; });
+          });
+        });
+      })
+      .catch(() => {
+        stashChangesListEl.innerHTML = '<div class="gg-empty"><p>載入失敗</p></div>';
+      });
+  }
+
+  if (stashFilterEl) {
+    stashFilterEl.addEventListener('input', RenderStashList);
   }
 
   stashPushBtn.addEventListener('click', () => {
@@ -1474,6 +1655,19 @@ document.addEventListener('DOMContentLoaded', () => {
       })
       .catch(e => Toast(e.message, 'error'));
   });
+
+  if (stashClearBtn) {
+    stashClearBtn.addEventListener('click', () => {
+      if (!activeRepo || allStashes.length === 0) return;
+      if (!confirm(`確定要清除所有 ${allStashes.length} 個 Stash 嗎？`)) return;
+      window.electronAPI.gitGuiStashClear(activeRepo.path)
+        .then(r => {
+          if (r.success) { Toast('已清除所有 Stash', 'success'); LoadStashes(); }
+          else Toast(`清除失敗：${r.error}`, 'error');
+        })
+        .catch(e => Toast(e.message, 'error'));
+    });
+  }
   //#endregion
 
   //#region Tags

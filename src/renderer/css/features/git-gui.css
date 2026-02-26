@@ -1178,8 +1178,10 @@
   overflow: hidden;
 }
 
+/* 左側：搜尋 + Unstaged + Staged */
 .gg-changes-left {
-  width: 300px;
+  width: 280px;
+  min-width: 200px;
   flex-shrink: 0;
   border-right: 1px solid var(--border-color);
   display: flex;
@@ -1187,18 +1189,63 @@
   overflow: hidden;
 }
 
+/* 右側：Diff + Commit Box */
+.gg-changes-right {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.gg-changes-diff-area {
+  flex: 1;
+  overflow: hidden;
+}
+
+/* 搜尋欄（Changes / Stash 共用） */
+.gg-changes-search-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-primary);
+  flex-shrink: 0;
+}
+
+.gg-changes-search-bar .gg-search-icon {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.gg-changes-search-bar input {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  font-size: 12px;
+  color: var(--text-primary);
+}
+
+.gg-changes-search-bar input::placeholder {
+  color: var(--text-muted);
+}
+
+/* Section（Unstaged / Staged） */
 .gg-changes-section {
   display: flex;
   flex-direction: column;
   overflow: hidden;
   flex: 1;
+  min-height: 60px;
 }
 
 .gg-changes-section-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 7px 12px;
+  gap: 5px;
+  padding: 5px 10px;
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border-subtle);
   font-size: 11px;
@@ -1207,11 +1254,40 @@
   text-transform: uppercase;
   letter-spacing: 0.4px;
   flex-shrink: 0;
+  user-select: none;
 }
 
-.gg-changes-section-header .section-actions {
+.gg-section-count {
+  font-size: 10px;
+  background: var(--bg-active);
+  color: var(--text-muted);
+  border-radius: 8px;
+  padding: 0 5px;
+  font-weight: 400;
+  margin-right: auto;
+}
+
+.gg-section-icon {
+  opacity: 0.7;
+}
+
+.gg-section-actions {
   display: flex;
-  gap: 4px;
+  gap: 3px;
+  margin-left: auto;
+}
+
+/* 上下拖拉分割線 */
+.gg-changes-splitter {
+  height: 4px;
+  background: var(--border-color);
+  cursor: row-resize;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+
+.gg-changes-splitter:hover {
+  background: var(--accent);
 }
 
 .gg-changes-list {
@@ -1219,16 +1295,18 @@
   flex: 1;
 }
 
+/* File item */
 .gg-change-item {
   display: flex;
   align-items: center;
-  gap: 7px;
-  padding: 5px 12px;
+  gap: 6px;
+  padding: 4px 10px 4px 12px;
   cursor: pointer;
   font-size: 12px;
   color: var(--text-secondary);
-  transition: background 0.15s;
+  transition: background 0.12s;
   border-left: 2px solid transparent;
+  min-height: 26px;
 }
 
 .gg-change-item:hover {
@@ -1236,46 +1314,96 @@
 }
 
 .gg-change-item.active {
-  background: var(--bg-hover);
+  background: rgba(0, 132, 255, 0.08);
   border-left-color: var(--accent);
 }
 
-.gg-change-xy {
+/* Status badge */
+.gg-change-status {
   font-family: monospace;
   font-weight: 700;
   font-size: 11px;
-  width: 16px;
+  width: 14px;
+  text-align: center;
   flex-shrink: 0;
   color: var(--warning);
 }
 
-.gg-change-xy.untracked {
-  color: var(--text-muted);
+.gg-change-status.modified {
+  color: #f5a623;
 }
 
-.gg-change-xy.staged {
-  color: var(--success);
+.gg-change-status.added {
+  color: #5cb85c;
 }
 
-.gg-change-path {
+.gg-change-status.deleted {
+  color: #e74c3c;
+}
+
+.gg-change-status.renamed {
+  color: #5bc0de;
+}
+
+.gg-change-status.copied {
+  color: #9b59b6;
+}
+
+.gg-change-status.untracked {
+  color: #7f8c8d;
+}
+
+.gg-change-status.conflict {
+  color: #e74c3c;
+}
+
+.gg-change-filename {
   flex: 1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  color: var(--text-primary);
 }
 
-.gg-change-action {
-  opacity: 0;
-  transition: opacity 0.15s;
+.gg-change-dir {
+  font-size: 10px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 80px;
 }
 
-.gg-change-item:hover .gg-change-action {
-  opacity: 1;
+/* Hover 顯示 Stage/Unstage 按鈕 */
+.gg-change-actions {
+  display: none;
+  gap: 3px;
+  flex-shrink: 0;
 }
 
-/* Commit 訊息框 */
+.gg-change-item:hover .gg-change-actions {
+  display: flex;
+}
+
+.gg-change-action-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px 3px;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+}
+
+.gg-change-action-btn:hover {
+  background: var(--bg-active);
+  color: var(--text-primary);
+}
+
+/* Commit 訊息框（右側底部） */
 .gg-commit-box {
-  padding: 10px 12px;
+  padding: 8px 10px;
   border-top: 1px solid var(--border-color);
   background: var(--bg-secondary);
   flex-shrink: 0;
@@ -1286,7 +1414,7 @@
   background: var(--bg-tertiary);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
-  padding: 8px 10px;
+  padding: 7px 10px;
   font-size: 12px;
   color: var(--text-primary);
   resize: none;
@@ -1294,7 +1422,8 @@
   font-family: inherit;
   box-sizing: border-box;
   transition: border-color 0.2s;
-  min-height: 60px;
+  min-height: 56px;
+  max-height: 120px;
 }
 
 .gg-commit-textarea:focus {
@@ -1308,7 +1437,7 @@
 .gg-commit-actions {
   display: flex;
   gap: 6px;
-  margin-top: 8px;
+  margin-top: 6px;
   align-items: center;
 }
 
@@ -1318,60 +1447,133 @@
 .gg-stash-layout {
   flex: 1;
   display: flex;
+  overflow: hidden;
+}
+
+/* 左側：Stash 列表 + Changes */
+.gg-stash-left {
+  width: 300px;
+  min-width: 200px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--border-color);
+  display: flex;
   flex-direction: column;
   overflow: hidden;
 }
 
-.gg-stash-toolbar {
-  padding: 8px 12px;
-  border-bottom: 1px solid var(--border-color);
+/* 右側：Diff */
+.gg-stash-right {
+  flex: 1;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.gg-stash-top {
+  flex: 1;
   display: flex;
-  gap: 8px;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 100px;
+}
+
+.gg-stash-bottom {
+  flex: 0 0 40%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 80px;
+}
+
+/* Stash section header（列表頂部工具列） */
+.gg-stash-section-header {
+  display: flex;
   align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
   flex-shrink: 0;
+  user-select: none;
+}
+
+.gg-stash-section-header .gg-section-count {
+  margin-right: auto;
+}
+
+.gg-stash-section-header .gg-section-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
 }
 
 .gg-stash-list {
   flex: 1;
   overflow-y: auto;
-  padding: 8px;
 }
 
+/* Stash item */
 .gg-stash-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 14px;
-  border-radius: var(--radius-sm);
+  padding: 8px 12px;
   cursor: pointer;
-  border: 1px solid var(--border-subtle);
-  margin-bottom: 6px;
-  background: var(--bg-secondary);
-  transition: all 0.15s;
+  border-bottom: 1px solid var(--border-subtle);
+  transition: background 0.12s;
+  border-left: 2px solid transparent;
 }
 
 .gg-stash-item:hover {
-  border-color: var(--border-color);
   background: var(--bg-hover);
+}
+
+.gg-stash-item.active {
+  background: rgba(0, 132, 255, 0.08);
+  border-left-color: var(--accent);
+}
+
+.gg-stash-item-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 3px;
 }
 
 .gg-stash-ref {
   font-family: monospace;
   font-size: 11px;
-  color: var(--accent);
+  font-weight: 700;
+  color: darkorange;
   flex-shrink: 0;
 }
 
 .gg-stash-msg {
-  flex: 1;
   font-size: 12px;
   color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 5px;
 }
 
 .gg-stash-date {
-  font-size: 11px;
+  font-size: 10px;
   color: var(--text-muted);
   flex-shrink: 0;
+}
+
+.gg-stash-item-actions {
+  display: none;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.gg-stash-item:hover .gg-stash-item-actions,
+.gg-stash-item.active .gg-stash-item-actions {
+  display: flex;
 }
 
 /* ========================================

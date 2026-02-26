@@ -344,6 +344,47 @@ function registerGitGuiHandlers() {
       return { success: false, error: err.stderr || err.message };
     }
   });
+
+  ipcMain.handle('git-gui-stash-apply', async (event, repoPath, ref) => {
+    try {
+      await runGit(ref ? `git stash apply ${ref}` : 'git stash apply', repoPath);
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err.stderr || err.message };
+    }
+  });
+
+  ipcMain.handle('git-gui-stash-clear', async (event, repoPath) => {
+    try {
+      await runGit('git stash clear', repoPath);
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err.stderr || err.message };
+    }
+  });
+
+  ipcMain.handle('git-gui-stash-files', async (event, repoPath, ref) => {
+    try {
+      const out = await runGitArgs(['stash', 'show', '--name-status', ref], repoPath);
+      return out.trim().split('\n').filter(Boolean).map(line => {
+        const parts = line.split('\t');
+        const xy = parts[0] || ' ';
+        const path = parts[1] || parts[0];
+        return { xy: xy + ' ', path, staged: false, untracked: false };
+      });
+    } catch (err) {
+      return [];
+    }
+  });
+
+  ipcMain.handle('git-gui-stash-file-diff', async (event, repoPath, ref, filePath) => {
+    try {
+      const out = await runGitArgs(['stash', 'show', '-p', '--', filePath, ref], repoPath);
+      return out;
+    } catch (err) {
+      return '';
+    }
+  });
   //#endregion
 
   //#region 取得 Tag 列表

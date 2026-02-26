@@ -83,6 +83,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   gitGuiStashPush: (repoPath, message) => ipcRenderer.invoke('git-gui-stash-push', repoPath, message),
   gitGuiStashPop: (repoPath, ref) => ipcRenderer.invoke('git-gui-stash-pop', repoPath, ref),
   gitGuiStashDrop: (repoPath, ref) => ipcRenderer.invoke('git-gui-stash-drop', repoPath, ref),
+  gitGuiStashApply: (repoPath, ref) => ipcRenderer.invoke('git-gui-stash-apply', repoPath, ref),
+  gitGuiStashClear: (repoPath) => ipcRenderer.invoke('git-gui-stash-clear', repoPath),
+  gitGuiStashFiles: (repoPath, ref) => ipcRenderer.invoke('git-gui-stash-files', repoPath, ref),
+  gitGuiStashFileDiff: (repoPath, ref, filePath) => ipcRenderer.invoke('git-gui-stash-file-diff', repoPath, ref, filePath),
   gitGuiTags: (repoPath) => ipcRenderer.invoke('git-gui-tags', repoPath)
 });
 
