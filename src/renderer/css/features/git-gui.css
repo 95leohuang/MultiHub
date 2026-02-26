@@ -394,7 +394,8 @@
   flex-shrink: 0;
 }
 
-.gg-lbs-group-body.collapsed {
+.gg-lbs-group-body.collapsed,
+.gg-lbs-folder-body.collapsed {
   display: none;
 }
 

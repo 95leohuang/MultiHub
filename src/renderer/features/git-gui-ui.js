@@ -1538,23 +1538,24 @@ document.addEventListener('DOMContentLoaded', () => {
    * @param {boolean} isRemote
    * @param {string|null} currentBranch
    */
-  function RenderLbsTree(node, depth, isRemote, currentBranch) {
+  function RenderLbsTree(node, depth, isRemote, currentBranch, pathPrefix) {
     let html = '';
+    const prefix = pathPrefix || (isRemote ? 'r' : 'l');
     Object.entries(node).forEach(([key, val]) => {
       const hasChildren = val._children && Object.keys(val._children).length > 0;
       const b = val._branch;
+      const fullPath = `${prefix}/${depth}/${key}`;
 
       if (hasChildren) {
-        // Folder node（有子節點）
-        const folderId = `lbs-folder-${depth}-${key}`.replace(/[^a-z0-9-]/gi, '_');
-        html += `<div class="gg-lbs-folder" style="--depth:${depth}" data-folder="${EscHtml(key)}" data-folderid="${folderId}">
-          <span class="gg-lbs-chevron" id="${folderId}-chev">${LucideIcon('chevron-down', 10)}</span>
+        // Folder node（有子節點）— 用 data-attribute 代替 getElementById 找 body
+        html += `<div class="gg-lbs-folder" style="--depth:${depth}" data-folderpath="${EscHtml(fullPath)}">
+          <span class="gg-lbs-chevron">${LucideIcon('chevron-down', 10)}</span>
           ${LucideIcon('folder', 11)}
           <span>${EscHtml(key)}</span>
         </div>
-        <div id="${folderId}-body">
+        <div class="gg-lbs-folder-body" data-bodypath="${EscHtml(fullPath)}">
           ${b ? RenderLbsItem(b, depth + 1, isRemote, currentBranch) : ''}
-          ${RenderLbsTree(val._children, depth + 1, isRemote, currentBranch)}
+          ${RenderLbsTree(val._children, depth + 1, isRemote, currentBranch, fullPath)}
         </div>`;
       } else if (b) {
         // Leaf branch node
@@ -1597,11 +1598,11 @@ document.addEventListener('DOMContentLoaded', () => {
       // Folder 折疊/展開
       const folder = e.target.closest('.gg-lbs-folder');
       if (folder) {
-        const fid = folder.dataset.folderid;
-        const bodyEl = document.getElementById(`${fid}-body`);
-        const chevEl = document.getElementById(`${fid}-chev`);
-        if (!bodyEl) return;
+        // body 是 folder 的下一個相鄰元素
+        const bodyEl = folder.nextElementSibling;
+        if (!bodyEl || !bodyEl.classList.contains('gg-lbs-folder-body')) return;
         const collapsed = bodyEl.classList.toggle('collapsed');
+        const chevEl = folder.querySelector('.gg-lbs-chevron');
         if (chevEl) chevEl.innerHTML = collapsed ? LucideIcon('chevron-right', 10) : LucideIcon('chevron-down', 10);
         return;
       }
