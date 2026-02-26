@@ -572,14 +572,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const results = [];
 
     commits.forEach(c => {
-      // ── 1. 決定此 commit 的 lane ──────────────────────────
+      // ── 1. 先備份目前的 activeLanes（不含將要新分配的）─────────
+      const prevLanes = activeLanes.slice();
+      const alreadyExists = activeLanes.includes(c.hash);
+
       const myLane = assignLane(c.hash);
       const myColor = laneColor[myLane];
 
-      // ── 2. 記錄「上半段」連線（從上一行活躍 lanes 到節點）──
-      // 規則：activeLanes 中所有非 null 的 lane，若其 hash === c.hash → 連到 myLane
+      // ── 2. 記錄「上半段」連線（對上一行已存在的 lanes 才畫）──
       const upLines = [];
-      activeLanes.forEach((h, l) => {
+      prevLanes.forEach((h, l) => {
         if (!h) return;
         if (h === c.hash) {
           upLines.push({ fromLane: l, toLane: myLane, color: laneColor[l] || myColor });
@@ -720,13 +722,13 @@ document.addEventListener('DOMContentLoaded', () => {
         return `<span class="gg-ref-tag ${cls}">${EscHtml(label)}</span>`;
       }).join('');
 
-      return `<div class="gg-commit-item ${activeCommitHash === c.hash ? 'active' : ''}" data-hash="${c.hash}" data-idx="${i}" style="height:${ROW_H}px">
-        <div class="gg-commit-graph" style="width:${SVG_W}px;height:${ROW_H}px">${BuildGraphSvg(g, ROW_H, SVG_W)}</div>
+      const hasRefs = c.refs.length > 0;
+      const rowH = hasRefs ? ROW_H + 18 : ROW_H; // ref 行增加高度
+      return `<div class="gg-commit-item ${activeCommitHash === c.hash ? 'active' : ''}" data-hash="${c.hash}" data-idx="${i}" style="min-height:${rowH}px">
+        <div class="gg-commit-graph" style="width:${SVG_W}px;min-height:${rowH}px">${BuildGraphSvg(g, rowH, SVG_W)}</div>
         <div class="gg-commit-body">
-          <div class="gg-commit-row1">
-            ${refTags}
-            <span class="gg-commit-subject">${EscHtml(c.subject)}</span>
-          </div>
+          ${hasRefs ? `<div class="gg-commit-refs">${refTags}</div>` : ''}
+          <div class="gg-commit-subject">${EscHtml(c.subject)}</div>
           <div class="gg-commit-row2">
             <span class="gg-commit-hash">${c.shortHash}</span>
             <span class="gg-commit-author">${EscHtml(c.authorName)}</span>
