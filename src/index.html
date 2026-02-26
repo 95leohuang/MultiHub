@@ -306,9 +306,19 @@
     <div class="loading-spinner"></div>
   </div>
 
-  <script src="tabs.js"></script>
+  <!-- 渲染層模組（依賴順序載入） -->
+  <script src="renderer/platform-config.js"></script>
+  <script src="renderer/toast.js"></script>
+  <script src="renderer/sidebar.js"></script>
+  <script src="renderer/nav-bar.js"></script>
+  <script src="renderer/tab-manager.js"></script>
+  <script src="renderer/grid-popup.js"></script>
+  <script src="renderer/shortcut-settings.js"></script>
+  <script src="renderer/theme.js"></script>
+  <script src="renderer/quick-notes.js"></script>
   <script src="renderer/features/git-updater-ui.js"></script>
   <script src="renderer/features/skill-sync-ui.js"></script>
+  <script src="renderer/app.js"></script>
 </body>
 
 </html>
