@@ -516,11 +516,15 @@ function registerGitGuiHandlers() {
   //#region 取得 Stash 列表
   ipcMain.handle('git-gui-stashes', async (event, repoPath) => {
     try {
-      const out = await runGitSilent('git stash list --pretty=format:%gd|%s|%ai', repoPath);
+      // 用 NUL 分隔各欄位，避免 message 含特殊字元導致解析錯誤
+      const out = await runGitSilent('git stash list --pretty=format:%gd%x00%gs%x00%ai', repoPath);
       return out.trim().split('\n').filter(Boolean).map(line => {
-        const [ref, message, date] = line.split('|');
+        const parts = line.split('\x00');
+        const ref = (parts[0] || '').trim();
+        const message = (parts[1] || '').trim();
+        const date = (parts[2] || '').trim();
         return { ref, message, date };
-      });
+      }).filter(s => s.ref);
     } catch (err) {
       return [];
     }
