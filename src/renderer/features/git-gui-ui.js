@@ -65,8 +65,8 @@ document.addEventListener('DOMContentLoaded', () => {
   let activeChangeFile = null;
   /** @type {boolean} 是否顯示所有分支 */
   let logShowAll = true;
-  /** @type {{ local: object[], remote: object[], current: string }} */
-  let branchData = { local: [], remote: [], current: '' };
+  /** @type {{ local: object[], remote: object[], tags: object[], currentBranch: string }} */
+  let branchData = null;
   /** @type {'flat'|'tree'|'grouped'} */
   let branchViewMode = 'tree';
   /** @type {string} */
@@ -597,6 +597,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function SelectRepo(repo) {
+    ClearRepoState();
     activeRepo = repo;
     toolbarRepoName.textContent = repo.name;
     toolbarBranchName.textContent = repo.branch || '...';
@@ -667,6 +668,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (tab === 'branches') LoadBranches();
     if (tab === 'stash') LoadStashes();
     if (tab === 'tags') LoadTags();
+  }
+
+  function ClearRepoState() {
+    branchData = null;
+    activeCommitHash = null;
+    activeCommitFiles = [];
   }
   //#endregion
 
@@ -1374,71 +1381,87 @@ document.addEventListener('DOMContentLoaded', () => {
    */
   function RenderLbsTree(node, depth, isRemote, currentBranch) {
     let html = '';
-    // Folder nodes
-    const folders = Object.keys(node).filter(k => k !== '__branches__');
-    for (const key of folders) {
-      const folderId = `lbs-folder-${depth}-${key}`.replace(/[^a-z0-9-]/gi, '_');
-      html += `<div class="gg-lbs-folder" style="--depth:${depth}" data-folder="${EscHtml(key)}" data-folderid="${folderId}">
-        <span class="gg-lbs-chevron" id="${folderId}-chev">${LucideIcon('chevron-down', 10)}</span>
-        ${LucideIcon('folder', 11)}
-        <span>${EscHtml(key)}</span>
-      </div>
-      <div id="${folderId}-body">
-        ${RenderLbsTree(node[key], depth + 1, isRemote, currentBranch)}
-      </div>`;
-    }
-    // Branch leaf nodes
-    const branches = node.__branches__ || [];
-    for (const b of branches) {
-      const isCurrent = !isRemote && b.name === currentBranch;
-      const shortName = b.name.split('/').pop();
-      html += `<div class="gg-lbs-item${isCurrent ? ' current' : ''}" style="--depth:${depth}"
-        data-type="${isRemote ? 'remote' : 'local'}" data-name="${EscHtml(b.name)}">
-        ${isCurrent ? `<span class="gg-lbs-current-dot"></span>` : LucideIcon('git-branch', 11)}
-        <span class="gg-lbs-item-name" title="${EscHtml(b.name)}">${EscHtml(shortName)}</span>
-      </div>`;
-    }
+    Object.entries(node).forEach(([key, val]) => {
+      const hasChildren = val._children && Object.keys(val._children).length > 0;
+      const b = val._branch;
+
+      if (hasChildren) {
+        // Folder node（有子節點）
+        const folderId = `lbs-folder-${depth}-${key}`.replace(/[^a-z0-9-]/gi, '_');
+        html += `<div class="gg-lbs-folder" style="--depth:${depth}" data-folder="${EscHtml(key)}" data-folderid="${folderId}">
+          <span class="gg-lbs-chevron" id="${folderId}-chev">${LucideIcon('chevron-down', 10)}</span>
+          ${LucideIcon('folder', 11)}
+          <span>${EscHtml(key)}</span>
+        </div>
+        <div id="${folderId}-body">
+          ${b ? RenderLbsItem(b, depth + 1, isRemote, currentBranch) : ''}
+          ${RenderLbsTree(val._children, depth + 1, isRemote, currentBranch)}
+        </div>`;
+      } else if (b) {
+        // Leaf branch node
+        html += RenderLbsItem(b, depth, isRemote, currentBranch);
+      }
+    });
     return html;
   }
 
-  /** 綁定 Branch sidebar 的點擊事件 */
-  function BindLbsEvents() {
-    // 群組 header 展開/收縮
-    document.querySelectorAll('.gg-lbs-group-header').forEach(header => {
-      header.addEventListener('click', () => {
+  /** 產生單一 branch item HTML */
+  function RenderLbsItem(b, depth, isRemote, currentBranch) {
+    const isCurrent = !isRemote && b.name === currentBranch;
+    const shortName = b.name.split('/').pop();
+    return `<div class="gg-lbs-item${isCurrent ? ' current' : ''}" style="--depth:${depth}"
+      data-type="${isRemote ? 'remote' : 'local'}" data-name="${EscHtml(b.name)}">
+      ${isCurrent ? `<span class="gg-lbs-current-dot"></span>` : LucideIcon('git-branch', 11)}
+      <span class="gg-lbs-item-name" title="${EscHtml(b.name)}">${EscHtml(shortName)}</span>
+    </div>`;
+  }
+
+  /** 初始化 Branch sidebar 事件（一次性，用 event delegation） */
+  function InitLbsEvents() {
+    const lbsSidebar = document.getElementById('gg-log-branch-sidebar');
+    if (!lbsSidebar || lbsSidebar._lbsInited) return;
+    lbsSidebar._lbsInited = true;
+
+    lbsSidebar.addEventListener('click', e => {
+      // Group header 折疊/展開
+      const header = e.target.closest('.gg-lbs-group-header');
+      if (header) {
         const group = header.dataset.group;
         const bodyEl = document.getElementById(`gg-lbs-${group}-list`);
         const chevEl = document.getElementById(`gg-lbs-chevron-${group}`);
         if (!bodyEl) return;
         const collapsed = bodyEl.classList.toggle('collapsed');
         if (chevEl) chevEl.innerHTML = collapsed ? LucideIcon('chevron-right', 11) : LucideIcon('chevron-down', 11);
-      });
-    });
+        return;
+      }
 
-    // Folder 展開/收縮
-    document.querySelectorAll('.gg-lbs-folder').forEach(folder => {
-      folder.addEventListener('click', e => {
-        e.stopPropagation();
+      // Folder 折疊/展開
+      const folder = e.target.closest('.gg-lbs-folder');
+      if (folder) {
         const fid = folder.dataset.folderid;
         const bodyEl = document.getElementById(`${fid}-body`);
         const chevEl = document.getElementById(`${fid}-chev`);
         if (!bodyEl) return;
         const collapsed = bodyEl.classList.toggle('collapsed');
         if (chevEl) chevEl.innerHTML = collapsed ? LucideIcon('chevron-right', 10) : LucideIcon('chevron-down', 10);
-      });
-    });
+        return;
+      }
 
-    // Branch item 點擊 → 過濾 commit log
-    document.querySelectorAll('#gg-lbs-local-list .gg-lbs-item, #gg-lbs-remote-list .gg-lbs-item').forEach(item => {
-      item.addEventListener('click', () => {
-        document.querySelectorAll('.gg-lbs-item').forEach(x => x.classList.remove('active'));
+      // Branch / Tag item 點擊 → 過濾 commit log
+      const item = e.target.closest('.gg-lbs-item');
+      if (item) {
+        lbsSidebar.querySelectorAll('.gg-lbs-item').forEach(x => x.classList.remove('active'));
         item.classList.add('active');
         const name = item.dataset.name;
         const type = item.dataset.type;
-        // 切換 commit log 顯示（以 branch 為過濾條件）
         if (activeRepo) LoadLogForBranch(name, type);
-      });
+      }
     });
+  }
+
+  /** BindLbsEvents: render 後呼叫，確保 InitLbsEvents 已執行（幂等） */
+  function BindLbsEvents() {
+    InitLbsEvents();
   }
 
   /** 以指定 branch 載入 commit log（filter） */
