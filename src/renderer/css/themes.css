@@ -1,0 +1,101 @@
+/* ========================================
+   淺色主題（Light Theme）
+   ======================================== */
+body.theme-light {
+  --bg-primary: #f0f2f5;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #f5f5f5;
+  --bg-surface: #ebebeb;
+  --bg-hover: rgba(0, 0, 0, 0.05);
+  --bg-active: rgba(0, 0, 0, 0.09);
+  --border-color: rgba(0, 0, 0, 0.1);
+  --border-subtle: rgba(0, 0, 0, 0.06);
+  --text-primary: #1a1a1a;
+  --text-secondary: #555555;
+  --text-muted: #aaaaaa;
+  --shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.15);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+body.theme-light ::-webkit-scrollbar-thumb       { background: rgba(0, 0, 0, 0.15); }
+body.theme-light ::-webkit-scrollbar-thumb:hover { background: rgba(0, 0, 0, 0.25); }
+body.theme-light ::-webkit-scrollbar-track       { background: rgba(0, 0, 0, 0.04); }
+
+/* service-check 淺色補強 */
+body.theme-light .service-check.selected {
+  background: rgba(0, 100, 220, 0.1);
+  border-color: rgba(0, 100, 220, 0.4);
+  color: #0064dc;
+}
+
+/* Dock Trigger 淺色補強 */
+body.theme-light #dock-trigger {
+  background: rgba(255, 255, 255, 0.8);
+}
+
+body.theme-light #dock-trigger:hover {
+  background: rgba(255, 255, 255, 0.95);
+  border-color: rgba(0, 0, 0, 0.15);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Grid Popup 淺色補強 */
+body.theme-light #grid-popup {
+  background: rgba(255, 255, 255, 0.97);
+}
+
+/* Skill Sync 淺色補強 */
+body.theme-light #skill-sync-ui { background: var(--bg-primary); }
+
+body.theme-light .skill-matrix-wrapper {
+  background: var(--bg-secondary);
+  border-color: var(--border-color);
+}
+
+body.theme-light .skill-matrix th {
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+}
+
+body.theme-light .skill-matrix th,
+body.theme-light .skill-matrix td {
+  border-color: var(--border-color);
+}
+
+body.theme-light .skill-matrix .sticky-col    { background: var(--bg-secondary); }
+body.theme-light .skill-matrix td.sticky-col  { background: var(--bg-tertiary);  }
+
+/* Branch tags 淺色補強 */
+body.theme-light .branch-tag.clean {
+  background: rgba(21, 128, 61, 0.12);
+  color: #15803d;
+  border: 1px solid rgba(21, 128, 61, 0.25);
+}
+
+body.theme-light .branch-tag.dirty {
+  background: rgba(180, 83, 9, 0.12);
+  color: #b45309;
+  border: 1px solid rgba(180, 83, 9, 0.25);
+}
+
+body.theme-light .branch-tag.behind {
+  background: rgba(185, 28, 28, 0.12);
+  color: #b91c1c;
+  border: 1px solid rgba(185, 28, 28, 0.25);
+}
+
+/* Quick Notes 淺色補強 */
+body.theme-light #quick-notes-ui        { background: var(--bg-primary); }
+body.theme-light .notes-list-panel      { background: var(--bg-secondary); }
+
+body.theme-light .note-list-item.active {
+  background: rgba(217, 119, 6, 0.08);
+  border-color: rgba(217, 119, 6, 0.25);
+}
+
+body.theme-light .note-list-item.active .note-item-title { color: #d97706; }
+
+body.theme-light .notes-add-btn         { background: #d97706; }
+body.theme-light .notes-add-btn:hover   { background: #b45309; color: #fff; }
+body.theme-light .note-title-input:focus { border-bottom-color: #d97706; }

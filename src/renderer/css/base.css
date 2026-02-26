@@ -1,0 +1,46 @@
+/* ========================================
+   全域樣式重置 & CSS 變數
+   ======================================== */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --sidebar-width: 52px;
+  --nav-bar-height: 36px;
+  --bg-primary: #0f0f0f;
+  --bg-secondary: #161616;
+  --bg-tertiary: #1e1e1e;
+  --bg-surface: #252525;
+  --bg-hover: rgba(255, 255, 255, 0.06);
+  --bg-active: rgba(255, 255, 255, 0.1);
+  --border-color: rgba(255, 255, 255, 0.08);
+  --border-subtle: rgba(255, 255, 255, 0.05);
+  --text-primary: #f0f0f0;
+  --text-secondary: #999;
+  --text-muted: #555;
+  --accent: #0084ff;
+  --accent-hover: #0073e6;
+  --accent-glow: rgba(0, 132, 255, 0.25);
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.6);
+  --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
