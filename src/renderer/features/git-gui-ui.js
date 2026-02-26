@@ -795,8 +795,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function LoadBranches() {
     if (!activeRepo) return;
-    localBranchesEl.innerHTML = '<div class="gg-loading"><div class="gg-spinner"></div></div>';
-    remoteBranchesEl.innerHTML = '';
+    branchesContentEl.innerHTML = '<div class="gg-loading"><div class="gg-spinner"></div></div>';
 
     window.electronAPI.gitGuiBranches(activeRepo.path)
       .then(data => {
@@ -804,7 +803,7 @@ document.addEventListener('DOMContentLoaded', () => {
         RenderBranches(data);
       })
       .catch(() => {
-        localBranchesEl.innerHTML = '<div class="gg-empty"><p>載入失敗</p></div>';
+        branchesContentEl.innerHTML = '<div class="gg-empty"><p>載入失敗</p></div>';
       });
   }
 
