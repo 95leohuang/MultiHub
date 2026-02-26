@@ -1340,21 +1340,22 @@ document.addEventListener('DOMContentLoaded', () => {
     menu.style.left = e.clientX + 'px';
     menu.style.top = e.clientY + 'px';
 
+    const SEP = { sep: true };
     const items = [
       { label: `${LucideIcon('arrow-up-right', 12)} Open`, action: 'open' },
       { label: `${LucideIcon('folder', 12)} Reveal in Explorer`, action: 'reveal' },
-      null,
+      SEP,
       !isStaged ? { label: `${LucideIcon('arrow-down', 12)} Stage`, action: 'stage' } : null,
       isStaged ? { label: `${LucideIcon('arrow-up', 12)} Unstage`, action: 'unstage' } : null,
       { label: `${LucideIcon('trash-2', 12)} Discard...`, action: 'discard', cls: 'danger' },
-      null,
+      SEP,
       { label: `${LucideIcon('package', 12)} Stash...`, action: 'stash' },
-      null,
+      SEP,
       { label: `${LucideIcon('list', 12)} Copy Path`, action: 'copy-path' },
     ].filter(Boolean);
 
     menu.innerHTML = items.map(item =>
-      item === null
+      item.sep
         ? '<div class="gg-ctx-sep"></div>'
         : `<div class="gg-ctx-item${item.cls ? ' ' + item.cls : ''}" data-action="${item.action}">${item.label}</div>`
     ).join('');
