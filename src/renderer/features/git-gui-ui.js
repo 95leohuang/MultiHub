@@ -80,7 +80,6 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="gg-empty"><div class="gg-empty-icon">📋</div><p>選擇左側 Repository</p></div>
           </div>
           </div>
-          </div>
           <div class="gg-log-detail" id="gg-log-detail">
             <div class="gg-diff-placeholder">
               <div class="gg-empty"><div class="gg-empty-icon">🔍</div><p>點擊左側 Commit 查看詳情</p></div>
