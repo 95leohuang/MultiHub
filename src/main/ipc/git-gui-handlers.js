@@ -302,30 +302,64 @@ function registerGitGuiHandlers() {
   //#region 取得本地變更（Working Tree + Staged）
   ipcMain.handle('git-gui-status', async (event, repoPath) => {
     try {
-      const out = await runGitSilent('git status --porcelain=v1 -u', repoPath);
+      // --porcelain=v2 -z: NUL 分隔，正確處理 rename / 空格路徑
+      const out = await runGitSilent('git status --porcelain=v2 -u -z', repoPath);
       const stagedEntries = [];
       const unstagedEntries = [];
 
-      out.trim().split('\n').filter(Boolean).forEach(line => {
-        const x = line[0]; // Index (staged) status
-        const y = line[1]; // Working tree (unstaged) status
-        // 處理 rename: 'old -> new'
-        let filePath = line.substring(3).trim().replace(/^"|"$/g, '');
-        if (filePath.includes(' -> ')) filePath = filePath.split(' -> ')[1];
+      // -z 輸出以 NUL 分隔，rename 的 origPath 緊接在主項目後
+      const tokens = out.split('\0');
+      let i = 0;
+      while (i < tokens.length) {
+        const token = tokens[i];
+        if (!token) { i++; continue; }
 
-        const isUntracked = x === '?' && y === '?';
-        const isIgnored = x === '!' && y === '!';
-        if (isIgnored) return;
+        const type = token[0];
 
-        // Staged 區（Index 有變更）
-        if (!isUntracked && x !== ' ') {
-          stagedEntries.push({ path: filePath, xy: x + y, statusChar: x, staged: true, untracked: false });
+        if (type === '1') {
+          // 一般變更: "1 XY sub mH mI mW hH hI path"
+          const parts = token.split(' ');
+          const xy = parts[1];          // e.g. "M.", ".M", "MM"
+          const filePath = parts.slice(8).join(' ');
+          const x = xy[0]; // Index
+          const y = xy[1]; // Working tree
+          if (x !== '.' && x !== '?') {
+            stagedEntries.push({ path: filePath, xy: x + y, statusChar: x, staged: true, untracked: false });
+          }
+          if (y !== '.') {
+            unstagedEntries.push({ path: filePath, xy: x + y, statusChar: y, staged: false, untracked: false });
+          }
+          i++;
+        } else if (type === '2') {
+          // Rename / Copy: "2 XY sub mH mI mW hH hI X score path\0origPath"
+          const parts = token.split(' ');
+          const xy = parts[1];
+          const filePath = parts.slice(10).join(' ');
+          const x = xy[0];
+          const y = xy[1];
+          if (x !== '.' && x !== '?') {
+            stagedEntries.push({ path: filePath, xy: x + y, statusChar: x, staged: true, untracked: false });
+          }
+          if (y !== '.') {
+            unstagedEntries.push({ path: filePath, xy: x + y, statusChar: y, staged: false, untracked: false });
+          }
+          i += 2; // 跳過 origPath token
+        } else if (type === '?') {
+          // Untracked: "? path"
+          const filePath = token.substring(2);
+          unstagedEntries.push({ path: filePath, xy: '??', statusChar: '?', staged: false, untracked: true });
+          i++;
+        } else if (type === 'u') {
+          // Conflict: "u XY sub ... path"
+          const parts = token.split(' ');
+          const xy = parts[1];
+          const filePath = parts.slice(10).join(' ');
+          stagedEntries.push({ path: filePath, xy: xy, statusChar: 'U', staged: true, untracked: false });
+          i++;
+        } else {
+          i++;
         }
-        // Unstaged 區（Working tree 有變更）or untracked
-        if (y !== ' ') {
-          unstagedEntries.push({ path: filePath, xy: x + y, statusChar: y, staged: false, untracked: isUntracked });
-        }
-      });
+      }
 
       return [...unstagedEntries, ...stagedEntries];
     } catch (err) {
