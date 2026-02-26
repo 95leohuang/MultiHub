@@ -165,6 +165,38 @@ function registerGitGuiHandlers() {
   });
   //#endregion
 
+  //#region 取得 Working Tree 中某檔案的原始內容（圖片 base64 / 文字）
+  ipcMain.handle('git-gui-workdir-blob', async (event, repoPath, filePath) => {
+    try {
+      const path = require('path');
+      const fs = require('fs');
+      const fullPath = path.join(repoPath, filePath);
+      if (!fs.existsSync(fullPath)) return { found: false };
+
+      const buf = fs.readFileSync(fullPath);
+      const ext = filePath.split('.').pop().toLowerCase();
+      const imageExts = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg', 'ico', 'tiff', 'tga'];
+      const isImage = imageExts.includes(ext);
+
+      // 偵測二進制
+      const sample = buf.slice(0, 8000);
+      let isBinary = false;
+      for (let i = 0; i < sample.length; i++) {
+        if (sample[i] === 0) { isBinary = true; break; }
+      }
+
+      if (isImage) {
+        const mimeMap = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp', bmp: 'image/bmp', svg: 'image/svg+xml', ico: 'image/x-icon', tiff: 'image/tiff', tga: 'image/x-tga' };
+        return { found: true, type: 'image', mime: mimeMap[ext] || 'image/png', base64: buf.toString('base64') };
+      }
+      if (isBinary) return { found: true, type: 'binary', size: buf.length };
+      return { found: true, type: 'text', content: buf.toString('utf8') };
+    } catch (err) {
+      return { found: false, error: err.message };
+    }
+  });
+  //#endregion
+
   //#region 取得 Working Tree Diff（未提交變更）
   ipcMain.handle('git-gui-workdir-diff', async (event, repoPath, filePath) => {
     try {
