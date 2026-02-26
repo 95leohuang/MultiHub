@@ -3,7 +3,7 @@
   "productName": "Multi Hub",
   "version": "2.2.0",
   "description": "Multi-service hub desktop app - Messenger, ChatGPT, Gemini, Git Repo Updater, Discord, Telegram",
-  "main": "src/main.js",
+  "main": "src/main/index.js",
   "scripts": {
     "start": "electron .",
     "build": "electron-builder",
