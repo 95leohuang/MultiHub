@@ -369,18 +369,31 @@ function registerGitGuiHandlers() {
   //#endregion
 
   //#region Stage / Unstage 檔案
-  ipcMain.handle('git-gui-stage', async (event, repoPath, filePath) => {
+  ipcMain.handle('git-gui-stage', async (event, repoPath, filePaths) => {
     try {
-      await runGit(`git add -- "${filePath}"`, repoPath);
+      const paths = Array.isArray(filePaths) ? filePaths : [filePaths];
+      if (paths.length === 0) return { success: true };
+      // 避免 command line 過長，分批處理（每次 50 個）
+      for (let i = 0; i < paths.length; i += 50) {
+        const chunk = paths.slice(i, i + 50);
+        const pathArgs = chunk.map(p => `"${p}"`).join(' ');
+        await runGit(`git add -- ${pathArgs}`, repoPath);
+      }
       return { success: true };
     } catch (err) {
       return { success: false, error: err.stderr || err.message };
     }
   });
 
-  ipcMain.handle('git-gui-unstage', async (event, repoPath, filePath) => {
+  ipcMain.handle('git-gui-unstage', async (event, repoPath, filePaths) => {
     try {
-      await runGit(`git restore --staged -- "${filePath}"`, repoPath);
+      const paths = Array.isArray(filePaths) ? filePaths : [filePaths];
+      if (paths.length === 0) return { success: true };
+      for (let i = 0; i < paths.length; i += 50) {
+        const chunk = paths.slice(i, i + 50);
+        const pathArgs = chunk.map(p => `"${p}"`).join(' ');
+        await runGit(`git restore --staged -- ${pathArgs}`, repoPath);
+      }
       return { success: true };
     } catch (err) {
       return { success: false, error: err.stderr || err.message };
@@ -407,21 +420,35 @@ function registerGitGuiHandlers() {
   //#endregion
 
   //#region Discard 檔案變更
-  ipcMain.handle('git-gui-discard', async (event, repoPath, filePath, staged) => {
+  ipcMain.handle('git-gui-discard', async (event, repoPath, filePaths, staged) => {
     try {
+      const paths = Array.isArray(filePaths) ? filePaths : [filePaths];
+      if (paths.length === 0) return { success: true };
+
       if (staged) {
-        await runGit(`git restore --staged -- "${filePath}"`, repoPath);
+        for (let i = 0; i < paths.length; i += 50) {
+          const chunk = paths.slice(i, i + 50);
+          const pathArgs = chunk.map(p => `"${p}"`).join(' ');
+          await runGit(`git restore --staged -- ${pathArgs}`, repoPath);
+        }
       }
       // 恢復工作區
-      await runGit(`git restore -- "${filePath}"`, repoPath);
+      for (let i = 0; i < paths.length; i += 50) {
+        const chunk = paths.slice(i, i + 50);
+        const pathArgs = chunk.map(p => `"${p}"`).join(' ');
+        await runGit(`git restore -- ${pathArgs}`, repoPath);
+      }
       return { success: true };
     } catch (err) {
       // 如果是 untracked 則刪除檔案
       try {
         const path = require('path');
         const fs = require('fs');
-        const fullPath = path.join(repoPath, filePath);
-        if (fs.existsSync(fullPath)) fs.unlinkSync(fullPath);
+        const paths = Array.isArray(filePaths) ? filePaths : [filePaths];
+        for (const fp of paths) {
+          const fullPath = path.join(repoPath, fp);
+          if (fs.existsSync(fullPath)) fs.unlinkSync(fullPath);
+        }
         return { success: true };
       } catch (e) {
         return { success: false, error: e.message };

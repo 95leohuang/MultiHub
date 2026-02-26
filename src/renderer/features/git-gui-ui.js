@@ -1270,6 +1270,20 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!panel || panel._changesInited) return;
     panel._changesInited = true;
 
+    // Shift/Ctrl 複選狀態管理
+    let lastSelectedPath = null;
+    let selectedPaths = new Set(); // 記錄當前選取的所有路徑
+
+    function updateSelectionUI() {
+      panel.querySelectorAll('.gg-change-item').forEach(x => {
+        if (selectedPaths.has(x.dataset.path)) {
+          x.classList.add('active');
+        } else {
+          x.classList.remove('active');
+        }
+      });
+    }
+
     // 單一 click listener 處理所有子元素
     panel.addEventListener('click', e => {
       // 顯示模式切換（優先判斷）
@@ -1302,12 +1316,44 @@ document.addEventListener('DOMContentLoaded', () => {
         if (chevEl) chevEl.innerHTML = collapsed ? LucideIcon('chevron-right', 10) : LucideIcon('chevron-down', 10);
         return;
       }
-      // Item click → diff
+      // Item click → 處理單選/複選與 diff
       const item = e.target.closest('.gg-change-item');
       if (item) {
-        panel.querySelectorAll('.gg-change-item').forEach(x => x.classList.remove('active'));
-        item.classList.add('active');
-        ShowChangeDiff(item.dataset.path, item.dataset.staged === 'true');
+        const path = item.dataset.path;
+
+        if (e.ctrlKey || e.metaKey) {
+          // Ctrl/Cmd-click: toggle selection
+          if (selectedPaths.has(path)) {
+            selectedPaths.delete(path);
+          } else {
+            selectedPaths.add(path);
+          }
+          lastSelectedPath = path;
+        } else if (e.shiftKey && lastSelectedPath) {
+          // Shift-click: select range
+          const sectionId = item.closest('.gg-changes-section').id;
+          const allItems = Array.from(document.querySelectorAll(`#${sectionId} .gg-change-item`)).map(el => el.dataset.path);
+          const startIndex = allItems.indexOf(lastSelectedPath);
+          const endIndex = allItems.indexOf(path);
+
+          if (startIndex !== -1 && endIndex !== -1) {
+            const start = Math.min(startIndex, endIndex);
+            const end = Math.max(startIndex, endIndex);
+            selectedPaths.clear();
+            for (let i = start; i <= end; i++) {
+              selectedPaths.add(allItems[i]);
+            }
+          }
+        } else {
+          // Normal click: single selection
+          selectedPaths.clear();
+          selectedPaths.add(path);
+          lastSelectedPath = path;
+          // Normal click 才會立即預覽 diff
+          ShowChangeDiff(path, item.dataset.staged === 'true');
+        }
+
+        updateSelectionUI();
       }
     });
 
@@ -1316,7 +1362,18 @@ document.addEventListener('DOMContentLoaded', () => {
       const item = e.target.closest('.gg-change-item');
       if (!item) return;
       e.preventDefault();
-      ShowChangesContextMenu(e, item.dataset.path, item.dataset.staged === 'true', item.dataset.mode);
+
+      const path = item.dataset.path;
+      // 如果右鍵點擊的項目不在目前選取清單中，則單選該項目
+      if (!selectedPaths.has(path)) {
+        selectedPaths.clear();
+        selectedPaths.add(path);
+        lastSelectedPath = path;
+        updateSelectionUI();
+      }
+
+      const isStaged = item.dataset.staged === 'true';
+      ShowChangesContextMenu(e, Array.from(selectedPaths), isStaged, item.dataset.mode);
     });
   }
 
@@ -1334,26 +1391,29 @@ document.addEventListener('DOMContentLoaded', () => {
       .catch(() => { changesDiffEl.innerHTML = '<div class="gg-empty"><p>載入失敗</p></div>'; });
   }
 
-  /** 右鍵選單 */
-  function ShowChangesContextMenu(e, filePath, isStaged, mode) {
+  /** 右鍵選單支援多選 */
+  function ShowChangesContextMenu(e, filePaths, isStaged, mode) {
     document.querySelectorAll('.gg-ctx-menu').forEach(m => m.remove());
     const menu = document.createElement('div');
     menu.className = 'gg-ctx-menu';
     menu.style.left = e.clientX + 'px';
     menu.style.top = e.clientY + 'px';
 
+    const isMulti = filePaths.length > 1;
+    const labelSuffix = isMulti ? ` (${filePaths.length} 個檔案)` : '';
+
     const SEP = { sep: true };
     const items = [
-      { label: `${LucideIcon('arrow-up-right', 12)} Open`, action: 'open' },
-      { label: `${LucideIcon('folder', 12)} Reveal in Explorer`, action: 'reveal' },
+      !isMulti ? { label: `${LucideIcon('arrow-up-right', 12)} Open`, action: 'open' } : null,
+      !isMulti ? { label: `${LucideIcon('folder', 12)} Reveal in Explorer`, action: 'reveal' } : null,
+      !isMulti ? SEP : null,
+      !isStaged ? { label: `${LucideIcon('arrow-down', 12)} Stage${labelSuffix}`, action: 'stage' } : null,
+      isStaged ? { label: `${LucideIcon('arrow-up', 12)} Unstage${labelSuffix}`, action: 'unstage' } : null,
+      { label: `${LucideIcon('trash-2', 12)} Discard...${labelSuffix}`, action: 'discard', cls: 'danger' },
       SEP,
-      !isStaged ? { label: `${LucideIcon('arrow-down', 12)} Stage`, action: 'stage' } : null,
-      isStaged ? { label: `${LucideIcon('arrow-up', 12)} Unstage`, action: 'unstage' } : null,
-      { label: `${LucideIcon('trash-2', 12)} Discard...`, action: 'discard', cls: 'danger' },
-      SEP,
-      { label: `${LucideIcon('package', 12)} Stash...`, action: 'stash' },
-      SEP,
-      { label: `${LucideIcon('list', 12)} Copy Path`, action: 'copy-path' },
+      !isMulti ? { label: `${LucideIcon('package', 12)} Stash...`, action: 'stash' } : null,
+      !isMulti ? SEP : null,
+      !isMulti ? { label: `${LucideIcon('list', 12)} Copy Path`, action: 'copy-path' } : null,
     ].filter(Boolean);
 
     menu.innerHTML = items.map(item =>
@@ -1364,26 +1424,35 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.body.appendChild(menu);
 
-    menu.addEventListener('click', e => {
-      const action = e.target.closest('[data-action]')?.dataset.action;
+    const closeMenu = () => { menu.remove(); document.removeEventListener('click', closeMenu); };
+    setTimeout(() => document.addEventListener('click', closeMenu), 0);
+
+    menu.addEventListener('click', ev => {
+      const action = ev.target.closest('[data-action]')?.dataset.action;
       menu.remove();
       if (!action || !activeRepo) return;
-      if (action === 'stage') { DoStage(filePath); return; }
-      if (action === 'unstage') { DoUnstage(filePath); return; }
-      if (action === 'open') { window.electronAPI.gitGuiOpenFile(activeRepo.path, filePath); return; }
-      if (action === 'reveal') { window.electronAPI.gitGuiRevealFile(activeRepo.path, filePath); return; }
-      if (action === 'copy-path') { navigator.clipboard.writeText(filePath); Toast('路徑已複製', 'success'); return; }
-      if (action === 'stash') {
-        const msg = prompt('Stash message（可留空）：', '');
-        if (msg === null) return;
-        window.electronAPI.gitGuiStashPush(activeRepo.path, msg || '')
-          .then(r => { if (r.success) { Toast('Stash 成功', 'success'); LoadChanges(); } else Toast(r.error, 'error'); });
+
+      const firstPath = filePaths[0];
+
+      if (action === 'stage') { DoStage(filePaths); return; }
+      if (action === 'unstage') { DoUnstage(filePaths); return; }
+      if (action === 'open' && !isMulti) { window.electronAPI.gitGuiOpenFile(activeRepo.path, firstPath); return; }
+      if (action === 'reveal' && !isMulti) { window.electronAPI.gitGuiRevealFile(activeRepo.path, firstPath); return; }
+      if (action === 'copy-path' && !isMulti) { navigator.clipboard.writeText(firstPath); Toast('路徑已複製', 'success'); return; }
+      if (action === 'stash' && !isMulti) {
+        document.getElementById('gg-stash-msg-input').value = `Stash file: ${firstPath}`;
+        document.getElementById('gg-stash-modal').style.display = 'flex';
         return;
       }
       if (action === 'discard') {
-        if (!confirm(`確定要 Discard「${filePath}」的所有變更？\n此操作無法復原。`)) return;
-        window.electronAPI.gitGuiDiscard(activeRepo.path, filePath, isStaged)
-          .then(r => { if (r.success) { Toast('已 Discard', 'success'); LoadChanges(); } else Toast(r.error, 'error'); });
+        const msg = isMulti ? `確定要還原這 ${filePaths.length} 個檔案的變更嗎？這將無法復原。` : `確定要還原 ${firstPath} 的變更嗎？這將無法復原。`;
+        if (confirm(msg)) {
+          window.electronAPI.gitGuiDiscard(activeRepo.path, filePaths, isStaged)
+            .then(r => {
+              if (r.success) { Toast('已還原變更', 'success'); LoadChanges(); }
+              else Toast(`還原失敗：${r.error}`, 'error');
+            });
+        }
       }
     });
 
@@ -1582,6 +1651,20 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!lbsSidebar || lbsSidebar._lbsInited) return;
     lbsSidebar._lbsInited = true;
 
+    // Shift/Ctrl 複選狀態管理
+    let lastSelectedBranch = null;
+    let selectedBranches = new Set();
+
+    function updateLbsSelectionUI() {
+      lbsSidebar.querySelectorAll('.gg-lbs-item').forEach(x => {
+        if (selectedBranches.has(x.dataset.name)) {
+          x.classList.add('active');
+        } else {
+          x.classList.remove('active');
+        }
+      });
+    }
+
     lbsSidebar.addEventListener('click', e => {
       // Group header 折疊/展開
       const header = e.target.closest('.gg-lbs-group-header');
@@ -1607,16 +1690,129 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      // Branch / Tag item 點擊 → 過濾 commit log
+      // Branch / Tag item 點擊 → 過濾 commit log & 支援複選
       const item = e.target.closest('.gg-lbs-item');
       if (item) {
-        lbsSidebar.querySelectorAll('.gg-lbs-item').forEach(x => x.classList.remove('active'));
-        item.classList.add('active');
         const name = item.dataset.name;
         const type = item.dataset.type;
-        if (activeRepo) LoadLogForBranch(name, type);
+
+        if (e.ctrlKey || e.metaKey) {
+          // Ctrl/Cmd-click
+          if (selectedBranches.has(name)) {
+            selectedBranches.delete(name);
+          } else {
+            selectedBranches.add(name);
+          }
+          lastSelectedBranch = name;
+        } else if (e.shiftKey && lastSelectedBranch) {
+          // Shift-click
+          const allItems = Array.from(lbsSidebar.querySelectorAll('.gg-lbs-item')).map(el => el.dataset.name);
+          const startIndex = allItems.indexOf(lastSelectedBranch);
+          const endIndex = allItems.indexOf(name);
+
+          if (startIndex !== -1 && endIndex !== -1) {
+            const start = Math.min(startIndex, endIndex);
+            const end = Math.max(startIndex, endIndex);
+            selectedBranches.clear();
+            for (let i = start; i <= end; i++) {
+              selectedBranches.add(allItems[i]);
+            }
+          }
+        } else {
+          // Normal click
+          selectedBranches.clear();
+          selectedBranches.add(name);
+          lastSelectedBranch = name;
+          if (activeRepo) LoadLogForBranch(name, type);
+        }
+
+        updateLbsSelectionUI();
       }
     });
+
+    // 右鍵選單支援多選
+    lbsSidebar.addEventListener('contextmenu', e => {
+      const item = e.target.closest('.gg-lbs-item');
+      if (!item) return;
+      e.preventDefault();
+
+      const name = item.dataset.name;
+      if (!selectedBranches.has(name)) {
+        selectedBranches.clear();
+        selectedBranches.add(name);
+        lastSelectedBranch = name;
+        updateLbsSelectionUI();
+      }
+
+      ShowLbsContextMenu(e, Array.from(selectedBranches), item.dataset.type);
+    });
+  }
+
+  /** Branch sidebar 右鍵選單 */
+  function ShowLbsContextMenu(e, branchNames, primaryType) {
+    document.querySelectorAll('.gg-ctx-menu').forEach(m => m.remove());
+    const menu = document.createElement('div');
+    menu.className = 'gg-ctx-menu';
+    menu.style.left = e.clientX + 'px';
+    menu.style.top = e.clientY + 'px';
+
+    const isMulti = branchNames.length > 1;
+    const isTag = primaryType === 'tag';
+    const firstBranch = branchNames[0];
+    const labelSuffix = isMulti ? ` (${branchNames.length} 個)` : '';
+    const SEP = { sep: true };
+
+    const items = [
+      !isMulti && !isTag ? { label: `${LucideIcon('check', 12)} Checkout`, action: 'checkout' } : null,
+      !isMulti && !isTag ? { label: `${LucideIcon('plus', 12)} Create Branch Here`, action: 'create' } : null,
+      !isMulti && !isTag ? SEP : null,
+      !isTag ? { label: `${LucideIcon('trash-2', 12)} Delete${labelSuffix}`, action: 'delete', cls: 'danger' } : null,
+      !isMulti && isTag ? { label: `${LucideIcon('trash-2', 12)} Delete Tag`, action: 'delete-tag', cls: 'danger' } : null,
+      SEP,
+      !isMulti ? { label: `${LucideIcon('list', 12)} Copy Name`, action: 'copy' } : null,
+    ].filter(Boolean);
+
+    menu.innerHTML = items.map(item =>
+      item.sep
+        ? '<div class="gg-ctx-sep"></div>'
+        : `<div class="gg-ctx-item${item.cls ? ' ' + item.cls : ''}" data-action="${item.action}">${item.label}</div>`
+    ).join('');
+
+    document.body.appendChild(menu);
+
+    const closeMenu = () => { menu.remove(); document.removeEventListener('click', closeMenu); };
+    setTimeout(() => document.addEventListener('click', closeMenu), 0);
+
+    menu.addEventListener('click', ev => {
+      const action = ev.target.closest('[data-action]')?.dataset.action;
+      menu.remove();
+      if (!action || !activeRepo) return;
+
+      if (action === 'checkout') { DoCheckout(firstBranch); return; }
+      if (action === 'create') {
+        const newName = prompt(`從 ${firstBranch} 建立新分支：`, '');
+        if (newName) {
+          window.electronAPI.gitGuiCreateBranch(activeRepo.path, newName, firstBranch)
+            .then(r => {
+              if (r.success) { Toast(`已建立 ${newName}`, 'success'); LoadBranches(); }
+              else Toast(`建立失敗：${r.error}`, 'error');
+            });
+        }
+        return;
+      }
+      if (action === 'delete') {
+        const msg = isMulti ? `確定要刪除這 ${branchNames.length} 個分支嗎？` : `確定要刪除分支 ${firstBranch} 嗎？`;
+        if (confirm(msg)) {
+          Promise.all(branchNames.map(b => window.electronAPI.gitGuiDeleteBranch(activeRepo.path, b, false)))
+            .then(() => { Toast('已刪除分支', 'success'); LoadBranches(); });
+        }
+        return;
+      }
+      if (action === 'copy') { navigator.clipboard.writeText(firstBranch); Toast('已複製分支名稱', 'success'); return; }
+    });
+
+    const close = ev => { if (!menu.contains(ev.target)) { menu.remove(); document.removeEventListener('mousedown', close); } };
+    setTimeout(() => document.addEventListener('mousedown', close), 0);
   }
 
   /** BindLbsEvents: render 後呼叫，確保 InitLbsEvents 已執行（幂等） */
