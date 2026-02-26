@@ -351,12 +351,13 @@
   overflow: hidden;
 }
 
-/* 上半：commit table（佔 55%）*/
+/* 上半：commit table */
 .gg-log-top {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  flex: 0 0 55%;
+  flex: 1 1 0;
+  min-height: 120px;
   border-bottom: 2px solid var(--border-color);
 }
 
@@ -1369,7 +1370,18 @@
 
 .gg-empty-icon {
   font-size: 36px;
-  opacity: 0.4;
+  opacity: 0.35;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 6px;
+  color: var(--text-muted);
+}
+
+/* Lucide icon 通用樣式 */
+.lucide-icon {
+  display: inline-block;
+  vertical-align: middle;
+  flex-shrink: 0;
 }
 
 .gg-empty p {

@@ -3,6 +3,47 @@
  * 功能：Repo 列表、Commit Log、Diff、Branch 管理、Local Changes / Staging、Stash、Tags
  */
 
+/**
+ * 常用 Lucide icon 內嵌 SVG path map
+ * 每個 value 是 SVG 內部 path/circle 等元素的 innerHTML
+ */
+const ICONS = {
+  'git-branch': '<line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/>',
+  'git-commit': '<circle cx="12" cy="12" r="3"/><line x1="3" y1="12" x2="9" y2="12"/><line x1="15" y1="12" x2="21" y2="12"/>',
+  'arrow-down': '<line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/>',
+  'arrow-up': '<line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/>',
+  'arrow-up-right': '<polyline points="7 7 17 7 17 17"/><line x1="7" y1="17" x2="17" y2="7"/>',
+  'refresh-cw': '<polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>',
+  'search': '<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>',
+  'folder': '<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>',
+  'file-text': '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>',
+  'package': '<path d="M16.5 9.4l-9-5.19M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>',
+  'check': '<polyline points="20 6 9 17 4 12"/>',
+  'check-circle': '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>',
+  'list': '<line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>',
+  'git-merge': '<circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M6 21V9a9 9 0 0 0 9 9"/>',
+  'tag': '<path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/>',
+  'layers': '<polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/>',
+  'plus': '<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',
+  'trash-2': '<polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/>',
+  'log-in': '<path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/>',
+  'git-pull-request': '<circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7"/><line x1="6" y1="9" x2="6" y2="21"/>',
+  'inbox': '<polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>',
+  'alert-circle': '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>',
+  'x': '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>',
+};
+
+/**
+ * 產生 Lucide icon 的 inline SVG HTML 字串
+ * @param {string} name - icon 名稱（kebab-case，如 'git-branch'）
+ * @param {number} size - 圖示尺寸（預設 14）
+ * @param {string} cls  - 額外 CSS class
+ */
+function LucideIcon(name, size = 14, cls = '') {
+  const inner = ICONS[name] || '';
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide-icon${cls ? ' ' + cls : ''}" aria-hidden="true">${inner}</svg>`;
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   const ui = document.getElementById('git-gui-ui');
   if (!ui) return;
@@ -52,11 +93,11 @@ document.addEventListener('DOMContentLoaded', () => {
           <span>⎇</span><span id="gg-toolbar-branch-name">—</span>
         </span>
         <div class="gg-toolbar-sep"></div>
-        <button class="gg-toolbar-btn" id="gg-btn-fetch">⬇ Fetch</button>
-        <button class="gg-toolbar-btn" id="gg-btn-pull">↙ Pull</button>
-        <button class="gg-toolbar-btn" id="gg-btn-push">↗ Push</button>
+        <button class="gg-toolbar-btn" id="gg-btn-fetch">${LucideIcon('arrow-down', 13)} Fetch</button>
+        <button class="gg-toolbar-btn" id="gg-btn-pull">${LucideIcon('log-in', 13)} Pull</button>
+        <button class="gg-toolbar-btn" id="gg-btn-push">${LucideIcon('arrow-up-right', 13)} Push</button>
         <div class="gg-toolbar-spacer"></div>
-        <button class="gg-toolbar-btn" id="gg-btn-refresh">↺ 重新整理</button>
+        <button class="gg-toolbar-btn" id="gg-btn-refresh">${LucideIcon('refresh-cw', 13)} 重新整理</button>
       </div>
 
       <!-- Tab 列 -->
@@ -78,7 +119,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="gg-log-header">
               <div class="gg-log-toolbar">
                 <button class="gg-log-filter-btn active" id="gg-log-all-btn">All Branches</button>
-                <button class="gg-log-filter-btn" id="gg-log-current-btn">⎇ Current</button>
+                <button class="gg-log-filter-btn" id="gg-log-current-btn">${LucideIcon('git-branch', 12)} Current</button>
               </div>
               <div class="gg-log-cols-header">
                 <div class="gg-col-graph-subject">GRAPH &amp; SUBJECT</div>
@@ -89,14 +130,14 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
             <!-- Commit 列表 -->
             <div class="gg-log-list" id="gg-log-list">
-              <div class="gg-empty"><div class="gg-empty-icon">📋</div><p>選擇左側 Repository</p></div>
+              <div class="gg-empty"><div class="gg-empty-icon">${LucideIcon('git-commit', 32)}</div><p>選擇左側 Repository</p></div>
             </div>
           </div>
 
           <!-- 下半：Commit Detail -->
           <div class="gg-log-detail" id="gg-log-detail">
             <div class="gg-diff-placeholder">
-              <div class="gg-empty"><div class="gg-empty-icon">🔍</div><p>點擊上方 Commit 查看詳情</p></div>
+              <div class="gg-empty"><div class="gg-empty-icon">${LucideIcon('search', 32)}</div><p>點擊上方 Commit 查看詳情</p></div>
             </div>
           </div>
 
@@ -112,7 +153,7 @@ document.addEventListener('DOMContentLoaded', () => {
               <div class="gg-changes-section-header">
                 Staged <span id="gg-staged-count" style="font-weight:400">(0)</span>
                 <div class="section-actions">
-                  <button class="gg-icon-btn" id="gg-unstage-all-btn" title="Unstage All">↓全</button>
+                  <button class="gg-icon-btn" id="gg-unstage-all-btn" title="Unstage All">${LucideIcon('arrow-down', 13)}</button>
                 </div>
               </div>
               <div class="gg-changes-list" id="gg-staged-list"></div>
@@ -122,7 +163,7 @@ document.addEventListener('DOMContentLoaded', () => {
               <div class="gg-changes-section-header">
                 Changes <span id="gg-unstaged-count" style="font-weight:400">(0)</span>
                 <div class="section-actions">
-                  <button class="gg-icon-btn" id="gg-stage-all-btn" title="Stage All">↑全</button>
+                  <button class="gg-icon-btn" id="gg-stage-all-btn" title="Stage All">${LucideIcon('arrow-up', 13)}</button>
                 </div>
               </div>
               <div class="gg-changes-list" id="gg-unstaged-list"></div>
@@ -131,8 +172,8 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="gg-commit-box">
               <textarea class="gg-commit-textarea" id="gg-commit-msg" placeholder="輸入 commit message..."></textarea>
               <div class="gg-commit-actions">
-                <button class="gg-toolbar-btn primary" id="gg-commit-btn" style="flex:1">✔ Commit</button>
-                <button class="gg-toolbar-btn" id="gg-stash-save-btn" title="Stash 所有變更">📦 Stash</button>
+                <button class="gg-toolbar-btn primary" id="gg-commit-btn" style="flex:1">${LucideIcon('check', 13)} Commit</button>
+                <button class="gg-toolbar-btn" id="gg-stash-save-btn" title="Stash 所有變更">${LucideIcon('package', 13)} Stash</button>
               </div>
             </div>
           </div>
@@ -140,7 +181,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="gg-log-detail" style="flex:1;">
             <div class="gg-diff-view" id="gg-changes-diff">
               <div class="gg-diff-placeholder">
-                <div class="gg-empty"><div class="gg-empty-icon">📝</div><p>點擊檔案查看 diff</p></div>
+                <div class="gg-empty"><div class="gg-empty-icon">${LucideIcon('file-text', 32)}</div><p>點擊檔案查看 diff</p></div>
               </div>
             </div>
           </div>
@@ -151,7 +192,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="gg-panel" id="gg-panel-branches">
         <div class="gg-branches-layout">
           <div class="gg-branches-toolbar">
-            <button class="gg-toolbar-btn primary" id="gg-new-branch-btn">＋ New Branch</button>
+            <button class="gg-toolbar-btn primary" id="gg-new-branch-btn">${LucideIcon('plus', 13)} New Branch</button>
             <div id="gg-new-branch-form" style="display:none; gap:6px; align-items:center; flex:1">
               <input type="text" class="gg-inline-input" id="gg-new-branch-name" placeholder="branch-name" style="flex:1">
               <button class="gg-toolbar-btn primary" id="gg-create-branch-btn">建立</button>
@@ -189,10 +230,10 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="gg-panel" id="gg-panel-stash">
         <div class="gg-stash-layout">
           <div class="gg-stash-toolbar">
-            <button class="gg-toolbar-btn primary" id="gg-stash-push-btn">📦 Stash Push</button>
+            <button class="gg-toolbar-btn primary" id="gg-stash-push-btn">${LucideIcon('package', 13)} Stash Push</button>
           </div>
           <div class="gg-stash-list" id="gg-stash-list">
-            <div class="gg-empty"><div class="gg-empty-icon">📦</div><p>無 Stash 記錄</p></div>
+            <div class="gg-empty"><div class="gg-empty-icon">${LucideIcon('package', 32)}</div><p>無 Stash 記錄</p></div>
           </div>
         </div>
       </div>
@@ -200,7 +241,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <!-- === Tags 面板 === -->
       <div class="gg-panel" id="gg-panel-tags">
         <div class="gg-tag-list" id="gg-tag-list">
-          <div class="gg-empty"><div class="gg-empty-icon">🏷</div><p>無 Tags</p></div>
+          <div class="gg-empty"><div class="gg-empty-icon">${LucideIcon('tag', 32)}</div><p>無 Tags</p></div>
         </div>
       </div>
     </div>
@@ -524,14 +565,14 @@ document.addEventListener('DOMContentLoaded', () => {
   function LoadLog() {
     if (!activeRepo) return;
     SetLoading(logListEl);
-    logDetailEl.innerHTML = '<div class="gg-diff-placeholder"><div class="gg-empty"><div class="gg-empty-icon">🔍</div><p>點擊左側 Commit 查看詳情</p></div></div>';
+    logDetailEl.innerHTML = `<div class="gg-diff-placeholder"><div class="gg-empty"><div class="gg-empty-icon">${LucideIcon('search', 32)}</div><p>點擊上方 Commit 查看詳情</p></div></div>`;
 
     const opts = { limit: 300, showAll: logShowAll };
     window.electronAPI.gitGuiLog(activeRepo.path, opts)
       .then(commits => {
         logCommits = commits;
         if (commits.length === 0) {
-          logListEl.innerHTML = '<div class="gg-empty"><div class="gg-empty-icon">📋</div><p>無 Commit 記錄</p></div>';
+          logListEl.innerHTML = `<div class="gg-empty"><div class="gg-empty-icon">${LucideIcon('git-commit', 32)}</div><p>無 Commit 記錄</p></div>`;
           return;
         }
         RenderLogList(commits);
@@ -1341,7 +1382,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.electronAPI.gitGuiStashes(activeRepo.path)
       .then(stashes => {
         if (stashes.length === 0) {
-          stashListEl.innerHTML = '<div class="gg-empty"><div class="gg-empty-icon">📦</div><p>無 Stash 記錄</p></div>';
+          stashListEl.innerHTML = `<div class="gg-empty"><div class="gg-empty-icon">${LucideIcon('package', 32)}</div><p>無 Stash 記錄</p></div>`;
           return;
         }
         stashListEl.innerHTML = stashes.map(s => `
