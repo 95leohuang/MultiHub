@@ -82,12 +82,20 @@ function registerGitGuiHandlers() {
   //#region 取得單一 Commit 的 Diff
   ipcMain.handle('git-gui-commit-diff', async (event, repoPath, hash) => {
     try {
-      // 取得變更的檔案列表
-      const statOut = await runGitSilent(`git diff-tree --no-commit-id -r --name-status ${hash}`, repoPath);
-      const files = statOut.trim().split('\n').filter(Boolean).map(line => {
-        const parts = line.split('\t');
-        return { status: parts[0], path: parts[parts.length - 1] };
-      });
+      // -m 旗標使 merge commit 也能正確列出相對於第一個 parent 的變更
+      const statOut = await runGitSilent(`git diff-tree -m --no-commit-id -r --name-status ${hash}`, repoPath);
+      // 去重複（-m 可能輸出重複行）
+      const seen = new Set();
+      const files = statOut.trim().split('\n').filter(Boolean)
+        .map(line => {
+          const parts = line.split('\t');
+          return { status: parts[0], path: parts[parts.length - 1] };
+        })
+        .filter(f => {
+          if (seen.has(f.path)) return false;
+          seen.add(f.path);
+          return true;
+        });
       return { files };
     } catch (err) {
       return { files: [] };
@@ -98,7 +106,16 @@ function registerGitGuiHandlers() {
   //#region 取得單一 Commit 中某檔案的 Diff 內容
   ipcMain.handle('git-gui-file-diff', async (event, repoPath, hash, filePath) => {
     try {
-      const out = await runGitSilent(`git show ${hash} -- "${filePath}"`, repoPath);
+      // 先取得 parents，若是 merge commit 則 diff 第一個 parent
+      const parentsOut = await runGitSilent(`git log -1 --pretty=format:%P ${hash}`, repoPath);
+      const parents = parentsOut.trim().split(/\s+/).filter(Boolean);
+      let out;
+      if (parents.length >= 2) {
+        // merge commit：與第一個 parent diff
+        out = await runGitArgs(['diff', parents[0], hash, '--', filePath], repoPath);
+      } else {
+        out = await runGitSilent(`git show ${hash} -- "${filePath}"`, repoPath);
+      }
       return out;
     } catch (err) {
       return '';
