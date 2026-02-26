@@ -15,6 +15,7 @@
   <link rel="stylesheet" href="renderer/css/features/skill-sync.css">
   <link rel="stylesheet" href="renderer/css/features/git-updater.css">
   <link rel="stylesheet" href="renderer/css/features/quick-notes.css">
+  <link rel="stylesheet" href="renderer/css/features/git-gui.css">
   <link rel="stylesheet" href="renderer/css/themes.css">
 </head>
 
@@ -136,6 +137,10 @@
         <webview id="telegram-webview" data-src="https://web.telegram.org" class="webview" partition="persist:telegram"
           allowpopups>
         </webview>
+        <!-- Git GUI UI -->
+        <div id="git-gui-ui" class="webview">
+          <!-- Git GUI UI 會由 git-gui-ui.js 動態注入 -->
+        </div>
         <!-- Quick Notes UI -->
         <div id="quick-notes-ui" class="webview">
           <div class="notes-toolbar">
@@ -326,6 +331,7 @@
   <script src="renderer/quick-notes.js"></script>
   <script src="renderer/features/git-updater-ui.js"></script>
   <script src="renderer/features/skill-sync-ui.js"></script>
+  <script src="renderer/features/git-gui-ui.js"></script>
   <script src="renderer/app.js"></script>
 </body>
 

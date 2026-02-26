@@ -59,7 +59,31 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Git Repo Info
   getRepoInfo: (repoPath) => ipcRenderer.invoke('get-repo-info', repoPath),
   // Toast 通知監聽
-  onToast: (callback) => ipcRenderer.on('toast', (event, { message, type }) => callback(message, type))
+  onToast: (callback) => ipcRenderer.on('toast', (event, { message, type }) => callback(message, type)),
+  // Git GUI API
+  gitGuiLog: (repoPath, options) => ipcRenderer.invoke('git-gui-log', repoPath, options),
+  gitGuiCommitDiff: (repoPath, hash) => ipcRenderer.invoke('git-gui-commit-diff', repoPath, hash),
+  gitGuiFileDiff: (repoPath, hash, filePath) => ipcRenderer.invoke('git-gui-file-diff', repoPath, hash, filePath),
+  gitGuiWorkdirDiff: (repoPath, filePath) => ipcRenderer.invoke('git-gui-workdir-diff', repoPath, filePath),
+  gitGuiBranches: (repoPath) => ipcRenderer.invoke('git-gui-branches', repoPath),
+  gitGuiCheckout: (repoPath, branch) => ipcRenderer.invoke('git-gui-checkout', repoPath, branch),
+  gitGuiCreateBranch: (repoPath, name, from) => ipcRenderer.invoke('git-gui-create-branch', repoPath, name, from),
+  gitGuiDeleteBranch: (repoPath, name, force) => ipcRenderer.invoke('git-gui-delete-branch', repoPath, name, force),
+  gitGuiStatus: (repoPath) => ipcRenderer.invoke('git-gui-status', repoPath),
+  gitGuiStage: (repoPath, filePath) => ipcRenderer.invoke('git-gui-stage', repoPath, filePath),
+  gitGuiUnstage: (repoPath, filePath) => ipcRenderer.invoke('git-gui-unstage', repoPath, filePath),
+  gitGuiStageAll: (repoPath) => ipcRenderer.invoke('git-gui-stage-all', repoPath),
+  gitGuiUnstageAll: (repoPath) => ipcRenderer.invoke('git-gui-unstage-all', repoPath),
+  gitGuiCommit: (repoPath, message) => ipcRenderer.invoke('git-gui-commit', repoPath, message),
+  gitGuiFetch: (repoPath) => ipcRenderer.invoke('git-gui-fetch', repoPath),
+  gitGuiPull: (repoPath) => ipcRenderer.invoke('git-gui-pull', repoPath),
+  gitGuiPush: (repoPath, force) => ipcRenderer.invoke('git-gui-push', repoPath, force),
+  gitGuiCommitDetail: (repoPath, hash) => ipcRenderer.invoke('git-gui-commit-detail', repoPath, hash),
+  gitGuiStashes: (repoPath) => ipcRenderer.invoke('git-gui-stashes', repoPath),
+  gitGuiStashPush: (repoPath, message) => ipcRenderer.invoke('git-gui-stash-push', repoPath, message),
+  gitGuiStashPop: (repoPath, ref) => ipcRenderer.invoke('git-gui-stash-pop', repoPath, ref),
+  gitGuiStashDrop: (repoPath, ref) => ipcRenderer.invoke('git-gui-stash-drop', repoPath, ref),
+  gitGuiTags: (repoPath) => ipcRenderer.invoke('git-gui-tags', repoPath)
 });
 
 // 快捷键增强

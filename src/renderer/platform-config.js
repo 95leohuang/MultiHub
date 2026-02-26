@@ -52,8 +52,14 @@ const platformConfig = {
     favicon: 'https://web.telegram.org/favicon.ico',
     homeUrl: 'https://web.telegram.org',
     color: '#0088cc'
+  },
+  gitgui: {
+    label: 'Git GUI',
+    favicon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23e84c3d" stroke-width="2"><circle cx="12" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><circle cx="18" cy="6" r="3"/><path d="M18 9v1a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V9"/><line x1="12" y1="12" x2="12" y2="15"/></svg>',
+    homeUrl: null,
+    color: '#e84c3d'
   }
 };
 
 /** 預設 Tab 順序 */
-const tabOrder = ['messenger', 'chatgpt', 'gemini', 'git', 'skills', 'notes', 'discord', 'telegram'];
+const tabOrder = ['messenger', 'chatgpt', 'gemini', 'git', 'skills', 'notes', 'discord', 'telegram', 'gitgui'];

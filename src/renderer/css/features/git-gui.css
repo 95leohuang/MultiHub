@@ -1,0 +1,901 @@
+/* ========================================
+   Git GUI — 整體佈局
+   ======================================== */
+#git-gui-ui {
+  display: none;
+  flex-direction: row;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  overflow: hidden;
+  height: 100%;
+  user-select: none;
+}
+
+#git-gui-ui.active { display: flex; }
+
+/* ========================================
+   左側 Repo 列表面板
+   ======================================== */
+.gg-sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-secondary);
+  overflow: hidden;
+}
+
+.gg-sidebar-header {
+  padding: 10px 12px 6px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.gg-sidebar-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.gg-icon-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 3px 5px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.18s;
+  font-size: 13px;
+}
+
+.gg-icon-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.gg-repo-search {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.gg-repo-search input {
+  width: 100%;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 5px 8px;
+  font-size: 12px;
+  color: var(--text-primary);
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.gg-repo-search input:focus { border-color: var(--accent); }
+.gg-repo-search input::placeholder { color: var(--text-muted); }
+
+.gg-repo-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px;
+}
+
+.gg-repo-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.15s;
+  border: 1px solid transparent;
+}
+
+.gg-repo-item:hover { background: var(--bg-hover); }
+
+.gg-repo-item.active {
+  background: rgba(0, 132, 255, 0.1);
+  border-color: rgba(0, 132, 255, 0.3);
+}
+
+.gg-repo-icon {
+  font-size: 14px;
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.gg-repo-item.active .gg-repo-icon { opacity: 1; }
+
+.gg-repo-info { flex: 1; min-width: 0; }
+
+.gg-repo-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.gg-repo-item.active .gg-repo-name { color: #5badff; }
+
+.gg-repo-branch {
+  font-size: 10px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 1px;
+}
+
+.gg-repo-dirty-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--warning);
+  flex-shrink: 0;
+  opacity: 0;
+}
+
+.gg-repo-item.dirty .gg-repo-dirty-dot { opacity: 1; }
+
+.gg-sidebar-add {
+  padding: 8px;
+  border-top: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.gg-add-btn {
+  width: 100%;
+  background: var(--bg-tertiary);
+  border: 1px dashed var(--border-color);
+  color: var(--text-muted);
+  border-radius: var(--radius-sm);
+  padding: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.18s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
+.gg-add-btn:hover {
+  background: var(--bg-hover);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* ========================================
+   主內容區
+   ======================================== */
+.gg-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* 頂部工具列 */
+.gg-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  flex-shrink: 0;
+}
+
+.gg-toolbar-repo-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-right: 4px;
+}
+
+.gg-toolbar-branch {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--accent);
+  background: rgba(0, 132, 255, 0.1);
+  border: 1px solid rgba(0, 132, 255, 0.25);
+  border-radius: 12px;
+  padding: 2px 8px;
+  margin-right: 8px;
+}
+
+.gg-toolbar-sep {
+  width: 1px;
+  height: 16px;
+  background: var(--border-color);
+  margin: 0 2px;
+}
+
+.gg-toolbar-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.18s;
+  white-space: nowrap;
+}
+
+.gg-toolbar-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+
+.gg-toolbar-btn.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.gg-toolbar-btn.primary:hover { background: #0073e6; }
+
+.gg-toolbar-btn.danger:hover {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.gg-toolbar-spacer { flex: 1; }
+
+/* Tab 列 */
+.gg-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  padding: 0 12px;
+  flex-shrink: 0;
+}
+
+.gg-tab {
+  padding: 8px 14px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.18s;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.gg-tab:hover { color: var(--text-secondary); }
+
+.gg-tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+.gg-tab-badge {
+  background: var(--danger);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  border-radius: 8px;
+  padding: 1px 5px;
+  min-width: 16px;
+  text-align: center;
+}
+
+/* Tab 內容面板 */
+.gg-panel { display: none; flex: 1; overflow: hidden; }
+.gg-panel.active { display: flex; }
+
+/* ========================================
+   Commit Log 面板
+   ======================================== */
+.gg-log-layout {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.gg-log-list {
+  width: 380px;
+  flex-shrink: 0;
+  overflow-y: auto;
+  border-right: 1px solid var(--border-color);
+  background: var(--bg-primary);
+}
+
+.gg-commit-item {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border-subtle);
+  cursor: pointer;
+  transition: background 0.15s;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.gg-commit-item:hover { background: var(--bg-hover); }
+.gg-commit-item.active { background: rgba(0, 132, 255, 0.08); border-left: 2px solid var(--accent); }
+
+.gg-commit-subject {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.gg-commit-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.gg-commit-hash {
+  font-family: 'Consolas', monospace;
+  color: var(--accent);
+  font-size: 10px;
+}
+
+.gg-commit-refs {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-top: 2px;
+}
+
+.gg-ref-tag {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-weight: 500;
+}
+
+.gg-ref-tag.head   { background: rgba(34, 197, 94, 0.2);  color: #4ade80;  border: 1px solid rgba(34, 197, 94, 0.3); }
+.gg-ref-tag.local  { background: rgba(0, 132, 255, 0.15); color: #5badff;  border: 1px solid rgba(0, 132, 255, 0.25); }
+.gg-ref-tag.remote { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.25); }
+.gg-ref-tag.tag    { background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.25); }
+
+/* 右側 Commit 詳細 / Diff */
+.gg-log-detail {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bg-primary);
+}
+
+.gg-detail-header {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.gg-detail-subject {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.gg-detail-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.gg-detail-meta span { display: flex; align-items: center; gap: 4px; }
+
+.gg-detail-body-text {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 8px;
+  white-space: pre-wrap;
+  font-family: 'Consolas', monospace;
+}
+
+.gg-detail-layout {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.gg-detail-files {
+  width: 240px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--border-color);
+  overflow-y: auto;
+  background: var(--bg-secondary);
+}
+
+.gg-file-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text-secondary);
+  border-left: 2px solid transparent;
+  transition: all 0.15s;
+}
+
+.gg-file-item:hover { background: var(--bg-hover); }
+.gg-file-item.active { background: var(--bg-hover); border-left-color: var(--accent); }
+
+.gg-file-status {
+  font-weight: 700;
+  font-size: 11px;
+  width: 12px;
+  flex-shrink: 0;
+}
+
+.gg-file-status.A { color: var(--success); }
+.gg-file-status.M { color: var(--warning); }
+.gg-file-status.D { color: var(--danger);  }
+.gg-file-status.R { color: var(--accent);  }
+
+.gg-file-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Diff 檢視器 */
+.gg-diff-view {
+  flex: 1;
+  overflow: auto;
+  background: #0d0d0d;
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 12px;
+}
+
+.gg-diff-hunk {
+  border-top: 1px solid #2a2a2a;
+  margin-top: 8px;
+}
+
+.gg-diff-hunk:first-child { border-top: none; margin-top: 0; }
+
+.gg-diff-hunk-header {
+  background: rgba(0, 132, 255, 0.08);
+  color: #5badff;
+  padding: 3px 12px;
+  font-size: 11px;
+}
+
+.gg-diff-line {
+  display: flex;
+  min-width: 100%;
+}
+
+.gg-diff-line-nums {
+  display: flex;
+  gap: 0;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.gg-diff-lnum {
+  width: 44px;
+  padding: 0 8px;
+  text-align: right;
+  color: #444;
+  font-size: 11px;
+  background: #111;
+  border-right: 1px solid #222;
+  line-height: 20px;
+}
+
+.gg-diff-line-content {
+  flex: 1;
+  padding: 0 12px;
+  line-height: 20px;
+  white-space: pre;
+  color: #d4d4d4;
+}
+
+.gg-diff-line.added   .gg-diff-line-content { background: rgba(76, 175, 80, 0.1);  color: #b5f3b5;  }
+.gg-diff-line.removed .gg-diff-line-content { background: rgba(244, 67, 54, 0.1);  color: #ffb3ae;  }
+.gg-diff-line.added   .gg-diff-lnum         { background: rgba(76, 175, 80, 0.05); }
+.gg-diff-line.removed .gg-diff-lnum         { background: rgba(244, 67, 54, 0.05); }
+
+.gg-diff-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 13px;
+}
+
+/* ========================================
+   Branch 管理面板
+   ======================================== */
+.gg-branches-layout {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.gg-branches-toolbar {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.gg-branches-content {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.gg-branch-section {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+  border-right: 1px solid var(--border-color);
+}
+
+.gg-branch-section:last-child { border-right: none; }
+
+.gg-branch-section-title {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 4px 8px 8px;
+}
+
+.gg-branch-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.gg-branch-item:hover { background: var(--bg-hover); }
+
+.gg-branch-item.current {
+  background: rgba(34, 197, 94, 0.08);
+  border: 1px solid rgba(34, 197, 94, 0.2);
+}
+
+.gg-branch-name {
+  flex: 1;
+  font-size: 12px;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.gg-branch-item.current .gg-branch-name { color: #4ade80; font-weight: 600; }
+
+.gg-branch-hash {
+  font-family: 'Consolas', monospace;
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.gg-branch-actions {
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.gg-branch-item:hover .gg-branch-actions { opacity: 1; }
+
+.gg-branch-action-btn {
+  background: none;
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+  border-radius: 3px;
+  padding: 2px 6px;
+  font-size: 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.gg-branch-action-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+.gg-branch-action-btn.danger:hover { background: rgba(239, 68, 68, 0.1); border-color: var(--danger); color: var(--danger); }
+
+/* ========================================
+   Local Changes / Staging 面板
+   ======================================== */
+.gg-changes-layout {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.gg-changes-left {
+  width: 300px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.gg-changes-section {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  flex: 1;
+}
+
+.gg-changes-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 12px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  flex-shrink: 0;
+}
+
+.gg-changes-section-header .section-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.gg-changes-list { overflow-y: auto; flex: 1; }
+
+.gg-change-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 12px;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text-secondary);
+  transition: background 0.15s;
+  border-left: 2px solid transparent;
+}
+
+.gg-change-item:hover { background: var(--bg-hover); }
+.gg-change-item.active { background: var(--bg-hover); border-left-color: var(--accent); }
+
+.gg-change-xy {
+  font-family: monospace;
+  font-weight: 700;
+  font-size: 11px;
+  width: 16px;
+  flex-shrink: 0;
+  color: var(--warning);
+}
+
+.gg-change-xy.untracked { color: var(--text-muted); }
+.gg-change-xy.staged    { color: var(--success); }
+
+.gg-change-path {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.gg-change-action {
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.gg-change-item:hover .gg-change-action { opacity: 1; }
+
+/* Commit 訊息框 */
+.gg-commit-box {
+  padding: 10px 12px;
+  border-top: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  flex-shrink: 0;
+}
+
+.gg-commit-textarea {
+  width: 100%;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  font-size: 12px;
+  color: var(--text-primary);
+  resize: none;
+  outline: none;
+  font-family: inherit;
+  box-sizing: border-box;
+  transition: border-color 0.2s;
+  min-height: 60px;
+}
+
+.gg-commit-textarea:focus { border-color: var(--accent); }
+.gg-commit-textarea::placeholder { color: var(--text-muted); }
+
+.gg-commit-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  align-items: center;
+}
+
+/* ========================================
+   Stash 面板
+   ======================================== */
+.gg-stash-layout {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.gg-stash-toolbar {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.gg-stash-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.gg-stash-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  border: 1px solid var(--border-subtle);
+  margin-bottom: 6px;
+  background: var(--bg-secondary);
+  transition: all 0.15s;
+}
+
+.gg-stash-item:hover { border-color: var(--border-color); background: var(--bg-hover); }
+
+.gg-stash-ref {
+  font-family: monospace;
+  font-size: 11px;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.gg-stash-msg { flex: 1; font-size: 12px; color: var(--text-primary); }
+.gg-stash-date { font-size: 11px; color: var(--text-muted); flex-shrink: 0; }
+
+/* ========================================
+   Tag 面板
+   ======================================== */
+.gg-tag-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.gg-tag-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+  margin-bottom: 5px;
+  background: var(--bg-secondary);
+}
+
+.gg-tag-name  { font-weight: 600; font-size: 12px; color: #c084fc; min-width: 80px; }
+.gg-tag-date  { font-size: 11px; color: var(--text-muted); }
+.gg-tag-msg   { flex: 1; font-size: 12px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ========================================
+   空狀態
+   ======================================== */
+.gg-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: var(--text-muted);
+  font-size: 13px;
+  padding: 32px;
+  text-align: center;
+}
+
+.gg-empty-icon { font-size: 36px; opacity: 0.4; }
+.gg-empty p    { margin: 0; opacity: 0.6; }
+
+/* ========================================
+   Loading 狀態
+   ======================================== */
+.gg-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  gap: 10px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.gg-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--border-color);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+/* ========================================
+   New Branch Dialog
+   ======================================== */
+.gg-inline-input {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 5px 8px;
+  font-size: 12px;
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.gg-inline-input:focus { border-color: var(--accent); }
+
+/* ========================================
+   淺色主題補強
+   ======================================== */
+body.theme-light .gg-sidebar       { background: var(--bg-secondary); }
+body.theme-light .gg-diff-view     { background: #f8f8f8; }
+body.theme-light .gg-diff-line-content { color: #333; }
+body.theme-light .gg-diff-lnum     { background: #eee; color: #999; border-color: #ddd; }
+body.theme-light .gg-diff-hunk-header { background: rgba(0, 100, 220, 0.05); }
+body.theme-light .gg-diff-line.added   .gg-diff-line-content { background: rgba(76, 175, 80, 0.08);  color: #1a5c1a; }
+body.theme-light .gg-diff-line.removed .gg-diff-line-content { background: rgba(244, 67, 54, 0.08);  color: #7a0000; }

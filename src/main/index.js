@@ -44,11 +44,13 @@ app.whenReady().then(async () => {
   const { registerShortcuts } = require('./shortcuts');
   const { registerStoreHandlers } = require('./ipc/store-handlers');
   const { registerGitHandlers } = require('./ipc/git-handlers');
+  const { registerGitGuiHandlers } = require('./ipc/git-gui-handlers');
   const { registerSkillHandlers } = require('./ipc/skill-handlers');
 
   // 註冊所有 IPC handlers
   registerStoreHandlers();
   registerGitHandlers();
+  registerGitGuiHandlers();
   registerSkillHandlers();
 
   // 設定 Google 服務 User-Agent

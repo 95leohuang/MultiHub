@@ -5,13 +5,14 @@
 /** @type {Record<string, HTMLElement>} */
 const webviews = {
   messenger: null,
-  chatgpt:   null,
-  gemini:    null,
-  git:       null,
-  skills:    null,
-  notes:     null,
-  discord:   null,
-  telegram:  null
+  chatgpt: null,
+  gemini: null,
+  git: null,
+  skills: null,
+  notes: null,
+  discord: null,
+  telegram: null,
+  gitgui: null
 };
 
 /**
@@ -19,10 +20,11 @@ const webviews = {
  */
 function initWebviews() {
   Object.keys(webviews).forEach(key => {
-    const id = key === 'git'    ? 'git-updater-ui'  :
-               key === 'skills' ? 'skill-sync-ui'   :
-               key === 'notes'  ? 'quick-notes-ui'  :
-               `${key}-webview`;
+    const id = key === 'git' ? 'git-updater-ui' :
+      key === 'skills' ? 'skill-sync-ui' :
+        key === 'notes' ? 'quick-notes-ui' :
+          key === 'gitgui' ? 'git-gui-ui' :
+            `${key}-webview`;
     webviews[key] = document.getElementById(id);
   });
 }
