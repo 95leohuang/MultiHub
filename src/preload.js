@@ -64,7 +64,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   gitGuiLog: (repoPath, options) => ipcRenderer.invoke('git-gui-log', repoPath, options),
   gitGuiCommitDiff: (repoPath, hash) => ipcRenderer.invoke('git-gui-commit-diff', repoPath, hash),
   gitGuiFileDiff: (repoPath, hash, filePath) => ipcRenderer.invoke('git-gui-file-diff', repoPath, hash, filePath),
-  gitGuiWorkdirDiff: (repoPath, filePath) => ipcRenderer.invoke('git-gui-workdir-diff', repoPath, filePath),
+  gitGuiWorkdirDiff: (repoPath, filePath, staged) => ipcRenderer.invoke('git-gui-workdir-diff', repoPath, filePath, staged),
   gitGuiBranches: (repoPath) => ipcRenderer.invoke('git-gui-branches', repoPath),
   gitGuiCheckout: (repoPath, branch) => ipcRenderer.invoke('git-gui-checkout', repoPath, branch),
   gitGuiCreateBranch: (repoPath, name, from) => ipcRenderer.invoke('git-gui-create-branch', repoPath, name, from),
@@ -89,7 +89,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   gitGuiStashFileDiff: (repoPath, ref, filePath) => ipcRenderer.invoke('git-gui-stash-file-diff', repoPath, ref, filePath),
   gitGuiFileBlob: (repoPath, hash, filePath) => ipcRenderer.invoke('git-gui-file-blob', repoPath, hash, filePath),
   gitGuiWorkdirBlob: (repoPath, filePath) => ipcRenderer.invoke('git-gui-workdir-blob', repoPath, filePath),
-  gitGuiTags: (repoPath) => ipcRenderer.invoke('git-gui-tags', repoPath)
+  gitGuiTags: (repoPath) => ipcRenderer.invoke('git-gui-tags', repoPath),
+  gitGuiDiscard: (repoPath, filePath, staged) => ipcRenderer.invoke('git-gui-discard', repoPath, filePath, staged),
+  gitGuiOpenFile: (repoPath, filePath) => ipcRenderer.invoke('git-gui-open-file', repoPath, filePath),
+  gitGuiRevealFile: (repoPath, filePath) => ipcRenderer.invoke('git-gui-reveal-file', repoPath, filePath)
 });
 
 // 快捷键增强

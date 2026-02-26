@@ -219,9 +219,11 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="gg-changes-section" id="gg-section-unstaged">
               <div class="gg-changes-section-header">
                 <span class="gg-section-icon">${LucideIcon('file-text', 12)}</span>
-                <span>Changes</span>
+                <span>UNSTAGED</span>
                 <span class="gg-section-count" id="gg-unstaged-count">0</span>
-                <div class="gg-section-actions">
+                <div class="gg-section-actions" style="margin-left:auto">
+                  <button class="gg-icon-btn gg-view-mode-btn active" data-section="unstaged" data-mode="list" title="Path List">${LucideIcon('list', 12)}</button>
+                  <button class="gg-icon-btn gg-view-mode-btn" data-section="unstaged" data-mode="tree" title="Dir Tree">${LucideIcon('folder', 12)}</button>
                   <button class="gg-icon-btn" id="gg-stage-all-btn" title="Stage All">${LucideIcon('arrow-down', 13)}</button>
                 </div>
               </div>
@@ -235,9 +237,11 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="gg-changes-section" id="gg-section-staged">
               <div class="gg-changes-section-header">
                 <span class="gg-section-icon">${LucideIcon('check-circle', 12)}</span>
-                <span>Staged</span>
+                <span>STAGED</span>
                 <span class="gg-section-count" id="gg-staged-count">0</span>
-                <div class="gg-section-actions">
+                <div class="gg-section-actions" style="margin-left:auto">
+                  <button class="gg-icon-btn gg-view-mode-btn active" data-section="staged" data-mode="list" title="Path List">${LucideIcon('list', 12)}</button>
+                  <button class="gg-icon-btn gg-view-mode-btn" data-section="staged" data-mode="tree" title="Dir Tree">${LucideIcon('folder', 12)}</button>
                   <button class="gg-icon-btn" id="gg-unstage-all-btn" title="Unstage All">${LucideIcon('arrow-up', 13)}</button>
                 </div>
               </div>
@@ -1155,90 +1159,237 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /** 返回 檔案狀態對應的 CSS class 和標籤 */
-  function FileStatusMeta(xy, untracked) {
+  function FileStatusMeta(statusChar, untracked) {
     if (untracked) return { cls: 'untracked', label: '?' };
-    const c = xy || ' ';
+    const c = statusChar || ' ';
     if (c === 'M') return { cls: 'modified', label: 'M' };
     if (c === 'A') return { cls: 'added', label: 'A' };
     if (c === 'D') return { cls: 'deleted', label: 'D' };
     if (c === 'R') return { cls: 'renamed', label: 'R' };
     if (c === 'C') return { cls: 'copied', label: 'C' };
     if (c === 'U') return { cls: 'conflict', label: 'U' };
-    return { cls: '', label: c };
+    if (c === 'T') return { cls: 'modified', label: 'T' };
+    return { cls: 'modified', label: c };
   }
+
+  /** 顯示模式：list | tree */
+  let changesViewMode = { unstaged: 'list', staged: 'list' };
 
   /** 產生 change item HTML */
   function ChangeItemHtml(f, mode) {
-    const isSt = mode === 'staged';
-    const statusChar = isSt ? (f.xy ? f.xy[0] : ' ') : (f.xy ? f.xy[1] : ' ');
-    const { cls, label } = FileStatusMeta(statusChar, f.untracked);
+    const { cls, label } = FileStatusMeta(f.statusChar, f.untracked);
     const fname = f.path.split('/').pop();
     const fdir = f.path.includes('/') ? f.path.substring(0, f.path.lastIndexOf('/')) : '';
-    const actionIcon = isSt
+    const actionIcon = mode === 'staged'
       ? `<button class="gg-change-action-btn" data-action="unstage" data-path="${EscHtml(f.path)}" title="Unstage">${LucideIcon('arrow-up', 12)}</button>`
       : `<button class="gg-change-action-btn" data-action="stage"   data-path="${EscHtml(f.path)}" title="Stage">${LucideIcon('arrow-down', 12)}</button>`;
-    return `<div class="gg-change-item" data-path="${EscHtml(f.path)}" data-mode="${mode}">
-      <span class="gg-change-status ${cls}">${label}</span>
+    return `<div class="gg-change-item" data-path="${EscHtml(f.path)}" data-mode="${mode}" data-staged="${mode === 'staged'}">
+      <span class="gg-change-status ${cls}" title="${EscHtml(f.path)}">${label}</span>
       <span class="gg-change-filename" title="${EscHtml(f.path)}">${EscHtml(fname)}</span>
       ${fdir ? `<span class="gg-change-dir">${EscHtml(fdir)}</span>` : ''}
       <span class="gg-change-actions">${actionIcon}</span>
     </div>`;
   }
 
+  /** 建立目錄樹 HTML */
+  function RenderChangeTree(files, mode) {
+    const tree = {};
+    files.forEach(f => {
+      const parts = f.path.split('/');
+      let node = tree;
+      parts.forEach((part, i) => {
+        if (i === parts.length - 1) {
+          if (!node.__files__) node.__files__ = [];
+          node.__files__.push(f);
+        } else {
+          if (!node[part]) node[part] = {};
+          node = node[part];
+        }
+      });
+    });
+    return RenderTreeNodes(tree, mode, 0);
+  }
+
+  function RenderTreeNodes(node, mode, depth) {
+    let html = '';
+    // Folders
+    Object.keys(node).filter(k => k !== '__files__').sort().forEach(key => {
+      const fid = `ctree-${depth}-${key}`.replace(/[^a-z0-9-]/gi, '_');
+      html += `<div class="gg-change-tree-folder" style="--depth:${depth}" data-folderid="${fid}">
+        <span class="gg-lbs-chevron" id="${fid}-chev">${LucideIcon('chevron-down', 10)}</span>
+        ${LucideIcon('folder', 11)}
+        <span>${EscHtml(key)}</span>
+      </div>
+      <div id="${fid}-body">${RenderTreeNodes(node[key], mode, depth + 1)}</div>`;
+    });
+    // Files
+    (node.__files__ || []).forEach(f => { html += ChangeItemHtml(f, mode); });
+    return html;
+  }
+
   function RenderChanges(files) {
     const filter = changesFilterEl ? changesFilterEl.value.toLowerCase() : '';
     const staged = files.filter(f => f.staged && (!filter || f.path.toLowerCase().includes(filter)));
-    const unstagedAll = files.filter(f => !f.staged && (!filter || f.path.toLowerCase().includes(filter)));
+    const unstaged = files.filter(f => !f.staged && (!filter || f.path.toLowerCase().includes(filter)));
 
     stagedCount.textContent = staged.length;
-    unstagedCount.textContent = unstagedAll.length;
+    unstagedCount.textContent = unstaged.length;
 
-    const totalChanges = files.length;
-    changesBadge.textContent = totalChanges;
-    changesBadge.classList.toggle('hidden', totalChanges === 0);
+    // Badge：只計算唯一路徑
+    const uniquePaths = new Set(files.map(f => f.path));
+    changesBadge.textContent = uniquePaths.size;
+    changesBadge.classList.toggle('hidden', uniquePaths.size === 0);
 
     // Unstaged
-    unstagedListEl.innerHTML = unstagedAll.length === 0
-      ? '<div class="gg-empty" style="padding:12px;font-size:11px;"><p>工作區乾淨</p></div>'
-      : unstagedAll.map(f => ChangeItemHtml(f, 'unstaged')).join('');
+    if (unstaged.length === 0) {
+      unstagedListEl.innerHTML = '<div class="gg-empty" style="padding:12px;font-size:11px;"><p>工作區乾淨</p></div>';
+    } else if (changesViewMode.unstaged === 'tree') {
+      unstagedListEl.innerHTML = RenderChangeTree(unstaged, 'unstaged');
+    } else {
+      unstagedListEl.innerHTML = unstaged.map(f => ChangeItemHtml(f, 'unstaged')).join('');
+    }
 
     // Staged
-    stagedListEl.innerHTML = staged.length === 0
-      ? '<div class="gg-empty" style="padding:12px;font-size:11px;"><p>無 Staged 變更</p></div>'
-      : staged.map(f => ChangeItemHtml(f, 'staged')).join('');
+    if (staged.length === 0) {
+      stagedListEl.innerHTML = '<div class="gg-empty" style="padding:12px;font-size:11px;"><p>無 Staged 變更</p></div>';
+    } else if (changesViewMode.staged === 'tree') {
+      stagedListEl.innerHTML = RenderChangeTree(staged, 'staged');
+    } else {
+      stagedListEl.innerHTML = staged.map(f => ChangeItemHtml(f, 'staged')).join('');
+    }
 
-    // 綁定按鈕
-    unstagedListEl.querySelectorAll('[data-action="stage"]').forEach(btn => {
-      btn.addEventListener('click', e => { e.stopPropagation(); DoStage(btn.dataset.path); });
-    });
-    stagedListEl.querySelectorAll('[data-action="unstage"]').forEach(btn => {
-      btn.addEventListener('click', e => { e.stopPropagation(); DoUnstage(btn.dataset.path); });
+    BindChangesEvents();
+  }
+
+  /** 一次性 event delegation 初始化 */
+  function InitChangesEvents() {
+    const panel = document.getElementById('gg-panel-changes');
+    if (!panel || panel._changesInited) return;
+    panel._changesInited = true;
+
+    // 單一 click listener 處理所有子元素
+    panel.addEventListener('click', e => {
+      // 顯示模式切換（優先判斷）
+      const viewBtn = e.target.closest('.gg-view-mode-btn');
+      if (viewBtn) {
+        const section = viewBtn.dataset.section;
+        const mode = viewBtn.dataset.mode;
+        changesViewMode[section] = mode;
+        panel.querySelectorAll(`.gg-view-mode-btn[data-section="${section}"]`).forEach(b => b.classList.remove('active'));
+        viewBtn.classList.add('active');
+        if (changeFiles.length) RenderChanges(changeFiles);
+        return;
+      }
+      // Stage / Unstage 按鈕
+      const actionBtn = e.target.closest('.gg-change-action-btn');
+      if (actionBtn) {
+        e.stopPropagation();
+        if (actionBtn.dataset.action === 'stage') DoStage(actionBtn.dataset.path);
+        if (actionBtn.dataset.action === 'unstage') DoUnstage(actionBtn.dataset.path);
+        return;
+      }
+      // Tree folder 折疊
+      const folder = e.target.closest('.gg-change-tree-folder');
+      if (folder) {
+        const fid = folder.dataset.folderid;
+        const bodyEl = document.getElementById(`${fid}-body`);
+        const chevEl = document.getElementById(`${fid}-chev`);
+        if (!bodyEl) return;
+        const collapsed = bodyEl.classList.toggle('collapsed');
+        if (chevEl) chevEl.innerHTML = collapsed ? LucideIcon('chevron-right', 10) : LucideIcon('chevron-down', 10);
+        return;
+      }
+      // Item click → diff
+      const item = e.target.closest('.gg-change-item');
+      if (item) {
+        panel.querySelectorAll('.gg-change-item').forEach(x => x.classList.remove('active'));
+        item.classList.add('active');
+        ShowChangeDiff(item.dataset.path, item.dataset.staged === 'true');
+      }
     });
 
-    // 綁定 diff 預覽
-    [unstagedListEl, stagedListEl].forEach(container => {
-      container.querySelectorAll('.gg-change-item').forEach(item => {
-        item.addEventListener('click', e => {
-          if (e.target.closest('.gg-change-action-btn')) return;
-          document.querySelectorAll('.gg-change-item').forEach(x => x.classList.remove('active'));
-          item.classList.add('active');
-          const fp = item.dataset.path;
-          changesDiffEl.innerHTML = '<div class="gg-loading"><div class="gg-spinner"></div></div>';
-          window.electronAPI.gitGuiWorkdirDiff(activeRepo.path, fp)
-            .then(diff => {
-              const hasDiff = diff && /^[+\-@]/m.test(diff);
-              if (hasDiff) { changesDiffEl.innerHTML = RenderDiff(diff); }
-              else { ShowFileBlob(changesDiffEl, activeRepo.path, 'workdir', fp); }
-            })
-            .catch(() => { changesDiffEl.innerHTML = '<div class="gg-empty"><p>載入失敗</p></div>'; });
-        });
-      });
+    // 右鍵選單
+    panel.addEventListener('contextmenu', e => {
+      const item = e.target.closest('.gg-change-item');
+      if (!item) return;
+      e.preventDefault();
+      ShowChangesContextMenu(e, item.dataset.path, item.dataset.staged === 'true', item.dataset.mode);
     });
+  }
+
+  function BindChangesEvents() { InitChangesEvents(); }
+
+  /** 顯示 diff（staged 或 unstaged） */
+  function ShowChangeDiff(fp, isStagedFile) {
+    changesDiffEl.innerHTML = '<div class="gg-loading"><div class="gg-spinner"></div></div>';
+    window.electronAPI.gitGuiWorkdirDiff(activeRepo.path, fp, isStagedFile)
+      .then(diff => {
+        const hasDiff = diff && /^[+\-@]/m.test(diff);
+        if (hasDiff) { changesDiffEl.innerHTML = RenderDiff(diff); }
+        else { ShowFileBlob(changesDiffEl, activeRepo.path, 'workdir', fp); }
+      })
+      .catch(() => { changesDiffEl.innerHTML = '<div class="gg-empty"><p>載入失敗</p></div>'; });
+  }
+
+  /** 右鍵選單 */
+  function ShowChangesContextMenu(e, filePath, isStaged, mode) {
+    document.querySelectorAll('.gg-ctx-menu').forEach(m => m.remove());
+    const menu = document.createElement('div');
+    menu.className = 'gg-ctx-menu';
+    menu.style.left = e.clientX + 'px';
+    menu.style.top = e.clientY + 'px';
+
+    const items = [
+      { label: `${LucideIcon('arrow-up-right', 12)} Open`, action: 'open' },
+      { label: `${LucideIcon('folder', 12)} Reveal in Explorer`, action: 'reveal' },
+      null,
+      !isStaged ? { label: `${LucideIcon('arrow-down', 12)} Stage`, action: 'stage' } : null,
+      isStaged ? { label: `${LucideIcon('arrow-up', 12)} Unstage`, action: 'unstage' } : null,
+      { label: `${LucideIcon('trash-2', 12)} Discard...`, action: 'discard', cls: 'danger' },
+      null,
+      { label: `${LucideIcon('package', 12)} Stash...`, action: 'stash' },
+      null,
+      { label: `${LucideIcon('list', 12)} Copy Path`, action: 'copy-path' },
+    ].filter(Boolean);
+
+    menu.innerHTML = items.map(item =>
+      item === null
+        ? '<div class="gg-ctx-sep"></div>'
+        : `<div class="gg-ctx-item${item.cls ? ' ' + item.cls : ''}" data-action="${item.action}">${item.label}</div>`
+    ).join('');
+
+    document.body.appendChild(menu);
+
+    menu.addEventListener('click', e => {
+      const action = e.target.closest('[data-action]')?.dataset.action;
+      menu.remove();
+      if (!action || !activeRepo) return;
+      if (action === 'stage') { DoStage(filePath); return; }
+      if (action === 'unstage') { DoUnstage(filePath); return; }
+      if (action === 'open') { window.electronAPI.gitGuiOpenFile(activeRepo.path, filePath); return; }
+      if (action === 'reveal') { window.electronAPI.gitGuiRevealFile(activeRepo.path, filePath); return; }
+      if (action === 'copy-path') { navigator.clipboard.writeText(filePath); Toast('路徑已複製', 'success'); return; }
+      if (action === 'stash') {
+        const msg = prompt('Stash message（可留空）：', '');
+        if (msg === null) return;
+        window.electronAPI.gitGuiStashPush(activeRepo.path, msg || '')
+          .then(r => { if (r.success) { Toast('Stash 成功', 'success'); LoadChanges(); } else Toast(r.error, 'error'); });
+        return;
+      }
+      if (action === 'discard') {
+        if (!confirm(`確定要 Discard「${filePath}」的所有變更？\n此操作無法復原。`)) return;
+        window.electronAPI.gitGuiDiscard(activeRepo.path, filePath, isStaged)
+          .then(r => { if (r.success) { Toast('已 Discard', 'success'); LoadChanges(); } else Toast(r.error, 'error'); });
+      }
+    });
+
+    const close = ev => { if (!menu.contains(ev.target)) { menu.remove(); document.removeEventListener('mousedown', close); } };
+    setTimeout(() => document.addEventListener('mousedown', close), 0);
   }
 
   // Changes 搜尋過濾
   if (changesFilterEl) {
-    changesFilterEl.addEventListener('input', () => RenderChanges(changeFiles));
+    changesFilterEl.addEventListener('input', () => { if (changeFiles.length) RenderChanges(changeFiles); });
   }
 
   function DoStage(filePath) {
@@ -1853,62 +2004,87 @@ document.addEventListener('DOMContentLoaded', () => {
           <span class="gg-stash-date">${s.date ? RelativeTime(s.date) : ''}</span>
         </div>
         <div class="gg-stash-msg">${EscHtml(s.message)}</div>
-        <div class="gg-stash-item-actions">
-          <button class="gg-branch-action-btn" data-action="apply" data-ref="${EscHtml(s.ref)}" title="Apply（保留 stash）">Apply</button>
-          <button class="gg-branch-action-btn" data-action="pop"   data-ref="${EscHtml(s.ref)}" title="Pop（套用並刪除）">Pop</button>
-          <button class="gg-branch-action-btn danger" data-action="drop" data-ref="${EscHtml(s.ref)}" title="Drop（刪除）">Drop</button>
-        </div>
       </div>
     `).join('');
 
-    // 選取
-    stashListEl.querySelectorAll('.gg-stash-item').forEach(el => {
-      el.addEventListener('click', e => {
-        if (e.target.closest('.gg-branch-action-btn')) return;
-        const ref = el.dataset.ref;
-        const s = allStashes.find(x => x.ref === ref);
-        if (s) SelectStash(s);
-      });
+    InitStashEvents();
+  }
+
+  /** 一次性 event delegation 初始化 Stash 面板 */
+  function InitStashEvents() {
+    const panel = document.getElementById('gg-panel-stash');
+    if (!panel || panel._stashInited) return;
+    panel._stashInited = true;
+
+    // Stash 選取 + 右鍵
+    stashListEl.addEventListener('click', e => {
+      const item = e.target.closest('.gg-stash-item');
+      if (!item) return;
+      const ref = item.dataset.ref;
+      const s = allStashes.find(x => x.ref === ref);
+      if (s) SelectStash(s);
     });
 
-    // Apply
-    stashListEl.querySelectorAll('[data-action="apply"]').forEach(btn => {
-      btn.addEventListener('click', e => {
-        e.stopPropagation();
-        window.electronAPI.gitGuiStashApply(activeRepo.path, btn.dataset.ref)
-          .then(r => {
-            if (r.success) { Toast('Stash Apply 成功', 'success'); LoadChanges(); }
-            else Toast(`Apply 失敗：${r.error}`, 'error');
-          })
-          .catch(e => Toast(e.message, 'error'));
-      });
+    stashListEl.addEventListener('contextmenu', e => {
+      const item = e.target.closest('.gg-stash-item');
+      if (!item) return;
+      e.preventDefault();
+      const ref = item.dataset.ref;
+      ShowStashContextMenu(e, ref);
     });
 
-    // Pop
-    stashListEl.querySelectorAll('[data-action="pop"]').forEach(btn => {
-      btn.addEventListener('click', e => {
-        e.stopPropagation();
-        window.electronAPI.gitGuiStashPop(activeRepo.path, btn.dataset.ref)
-          .then(r => {
-            if (r.success) { Toast('Stash Pop 成功', 'success'); LoadStashes(); LoadChanges(); }
-            else Toast(`Pop 失敗：${r.error}`, 'error');
-          })
-          .catch(e => Toast(e.message, 'error'));
-      });
+    // Stash changes 選取→ diff
+    stashChangesListEl.addEventListener('click', e => {
+      const item = e.target.closest('.gg-change-item');
+      if (!item || !activeStash) return;
+      stashChangesListEl.querySelectorAll('.gg-change-item').forEach(x => x.classList.remove('active'));
+      item.classList.add('active');
+      stashDiffEl.innerHTML = '<div class="gg-loading"><div class="gg-spinner"></div></div>';
+      window.electronAPI.gitGuiStashFileDiff(activeRepo.path, activeStash.ref, item.dataset.path)
+        .then(diff => {
+          if (diff && /^[+\-@]/m.test(diff)) stashDiffEl.innerHTML = RenderDiff(diff);
+          else stashDiffEl.innerHTML = '<div class="gg-empty"><p>無差異</p></div>';
+        })
+        .catch(() => { stashDiffEl.innerHTML = '<div class="gg-empty"><p>載入失敗</p></div>'; });
+    });
+  }
+
+  /** Stash 右鍵選單 */
+  function ShowStashContextMenu(e, ref) {
+    document.querySelectorAll('.gg-ctx-menu').forEach(m => m.remove());
+    const menu = document.createElement('div');
+    menu.className = 'gg-ctx-menu';
+    menu.style.left = e.clientX + 'px';
+    menu.style.top = e.clientY + 'px';
+    menu.innerHTML = [
+      `<div class="gg-ctx-item" data-action="apply">${LucideIcon('check', 12)} Apply（保留 stash）</div>`,
+      `<div class="gg-ctx-item" data-action="pop">${LucideIcon('arrow-down', 12)} Pop（套用並刪除）</div>`,
+      '<div class="gg-ctx-sep"></div>',
+      `<div class="gg-ctx-item danger" data-action="drop">${LucideIcon('trash-2', 12)} Drop（刪除）</div>`,
+    ].join('');
+    document.body.appendChild(menu);
+
+    menu.addEventListener('click', ev => {
+      const action = ev.target.closest('[data-action]')?.dataset.action;
+      menu.remove();
+      if (!action || !activeRepo) return;
+      if (action === 'apply') {
+        window.electronAPI.gitGuiStashApply(activeRepo.path, ref)
+          .then(r => { if (r.success) { Toast('Apply 成功', 'success'); LoadChanges(); } else Toast(r.error, 'error'); });
+      }
+      if (action === 'pop') {
+        window.electronAPI.gitGuiStashPop(activeRepo.path, ref)
+          .then(r => { if (r.success) { Toast('Pop 成功', 'success'); LoadStashes(); LoadChanges(); } else Toast(r.error, 'error'); });
+      }
+      if (action === 'drop') {
+        if (!confirm(`確定要刪除 ${ref}？`)) return;
+        window.electronAPI.gitGuiStashDrop(activeRepo.path, ref)
+          .then(r => { if (r.success) { Toast('Drop 成功', 'success'); LoadStashes(); } else Toast(r.error, 'error'); });
+      }
     });
 
-    // Drop
-    stashListEl.querySelectorAll('[data-action="drop"]').forEach(btn => {
-      btn.addEventListener('click', e => {
-        e.stopPropagation();
-        window.electronAPI.gitGuiStashDrop(activeRepo.path, btn.dataset.ref)
-          .then(r => {
-            if (r.success) { Toast('Stash Drop 成功', 'success'); LoadStashes(); }
-            else Toast(`Drop 失敗：${r.error}`, 'error');
-          })
-          .catch(e => Toast(e.message, 'error'));
-      });
-    });
+    const close = ev => { if (!menu.contains(ev.target)) { menu.remove(); document.removeEventListener('mousedown', close); } };
+    setTimeout(() => document.addEventListener('mousedown', close), 0);
   }
 
   function SelectStash(s) {
@@ -1924,7 +2100,8 @@ document.addEventListener('DOMContentLoaded', () => {
           return;
         }
         stashChangesListEl.innerHTML = files.map(f => {
-          const { cls, label } = FileStatusMeta(f.xy ? f.xy[1] : ' ', f.untracked);
+          const statusChar = f.xy ? f.xy[0] : 'M';
+          const { cls, label } = FileStatusMeta(statusChar, false);
           const fname = f.path.split('/').pop();
           const fdir = f.path.includes('/') ? f.path.substring(0, f.path.lastIndexOf('/')) : '';
           return `<div class="gg-change-item" data-path="${EscHtml(f.path)}">
@@ -1933,17 +2110,6 @@ document.addEventListener('DOMContentLoaded', () => {
             ${fdir ? `<span class="gg-change-dir">${EscHtml(fdir)}</span>` : ''}
           </div>`;
         }).join('');
-
-        stashChangesListEl.querySelectorAll('.gg-change-item').forEach(item => {
-          item.addEventListener('click', () => {
-            stashChangesListEl.querySelectorAll('.gg-change-item').forEach(x => x.classList.remove('active'));
-            item.classList.add('active');
-            stashDiffEl.innerHTML = '<div class="gg-loading"><div class="gg-spinner"></div></div>';
-            window.electronAPI.gitGuiStashFileDiff(activeRepo.path, s.ref, item.dataset.path)
-              .then(diff => { stashDiffEl.innerHTML = RenderDiff(diff); })
-              .catch(() => { stashDiffEl.innerHTML = '<div class="gg-empty"><p>載入失敗</p></div>'; });
-          });
-        });
       })
       .catch(() => {
         stashChangesListEl.innerHTML = '<div class="gg-empty"><p>載入失敗</p></div>';

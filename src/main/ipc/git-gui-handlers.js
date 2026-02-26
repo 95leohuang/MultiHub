@@ -203,13 +203,16 @@ function registerGitGuiHandlers() {
   //#endregion
 
   //#region 取得 Working Tree Diff（未提交變更）
-  ipcMain.handle('git-gui-workdir-diff', async (event, repoPath, filePath) => {
+  ipcMain.handle('git-gui-workdir-diff', async (event, repoPath, filePath, staged) => {
     try {
-      // 嘗試取得 staged diff，若無則取 unstaged diff
-      let out = await runGitSilent(`git diff --cached -- "${filePath}"`, repoPath);
-      if (!out.trim()) {
-        out = await runGitSilent(`git diff -- "${filePath}"`, repoPath);
+      if (staged) {
+        // Staged diff（Index vs HEAD）
+        const out = await runGitSilent(`git diff --cached -- "${filePath}"`, repoPath);
+        return out;
       }
+      // Unstaged diff（Working tree vs Index）
+      let out = await runGitSilent(`git diff -- "${filePath}"`, repoPath);
+      // untracked 檔案：直接讀取內容回傳空（由前端 ShowFileBlob 處理）
       return out;
     } catch (err) {
       return '';
@@ -299,16 +302,32 @@ function registerGitGuiHandlers() {
   //#region 取得本地變更（Working Tree + Staged）
   ipcMain.handle('git-gui-status', async (event, repoPath) => {
     try {
-      const out = await runGitSilent('git status --porcelain -u', repoPath);
-      const files = out.trim().split('\n').filter(Boolean).map(line => {
-        const xy = line.substring(0, 2);
-        const filePath = line.substring(3).trim().replace(/^"|"$/g, '');
-        const staged = xy[0] !== ' ' && xy[0] !== '?';
-        const unstaged = xy[1] !== ' ';
-        const untracked = xy === '??';
-        return { path: filePath, xy, staged, unstaged, untracked };
+      const out = await runGitSilent('git status --porcelain=v1 -u', repoPath);
+      const stagedEntries = [];
+      const unstagedEntries = [];
+
+      out.trim().split('\n').filter(Boolean).forEach(line => {
+        const x = line[0]; // Index (staged) status
+        const y = line[1]; // Working tree (unstaged) status
+        // 處理 rename: 'old -> new'
+        let filePath = line.substring(3).trim().replace(/^"|"$/g, '');
+        if (filePath.includes(' -> ')) filePath = filePath.split(' -> ')[1];
+
+        const isUntracked = x === '?' && y === '?';
+        const isIgnored = x === '!' && y === '!';
+        if (isIgnored) return;
+
+        // Staged 區（Index 有變更）
+        if (!isUntracked && x !== ' ') {
+          stagedEntries.push({ path: filePath, xy: x + y, statusChar: x, staged: true, untracked: false });
+        }
+        // Unstaged 區（Working tree 有變更）or untracked
+        if (y !== ' ') {
+          unstagedEntries.push({ path: filePath, xy: x + y, statusChar: y, staged: false, untracked: isUntracked });
+        }
       });
-      return files;
+
+      return [...unstagedEntries, ...stagedEntries];
     } catch (err) {
       return [];
     }
@@ -349,6 +368,58 @@ function registerGitGuiHandlers() {
       return { success: true };
     } catch (err) {
       return { success: false, error: err.stderr || err.message };
+    }
+  });
+  //#endregion
+
+  //#region Discard 檔案變更
+  ipcMain.handle('git-gui-discard', async (event, repoPath, filePath, staged) => {
+    try {
+      if (staged) {
+        await runGit(`git restore --staged -- "${filePath}"`, repoPath);
+      }
+      // 恢復工作區
+      await runGit(`git restore -- "${filePath}"`, repoPath);
+      return { success: true };
+    } catch (err) {
+      // 如果是 untracked 則刪除檔案
+      try {
+        const path = require('path');
+        const fs = require('fs');
+        const fullPath = path.join(repoPath, filePath);
+        if (fs.existsSync(fullPath)) fs.unlinkSync(fullPath);
+        return { success: true };
+      } catch (e) {
+        return { success: false, error: e.message };
+      }
+    }
+  });
+  //#endregion
+
+  //#region 開啟檔案（系統預設程式）
+  ipcMain.handle('git-gui-open-file', async (event, repoPath, filePath) => {
+    try {
+      const path = require('path');
+      const { shell } = require('electron');
+      const fullPath = path.join(repoPath, filePath);
+      await shell.openPath(fullPath);
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  });
+  //#endregion
+
+  //#region 在檔案總管開啟檔案位置
+  ipcMain.handle('git-gui-reveal-file', async (event, repoPath, filePath) => {
+    try {
+      const path = require('path');
+      const { shell } = require('electron');
+      const fullPath = path.join(repoPath, filePath);
+      shell.showItemInFolder(fullPath);
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err.message };
     }
   });
   //#endregion

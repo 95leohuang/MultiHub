@@ -411,11 +411,31 @@
   cursor: pointer;
   user-select: none;
   flex-shrink: 0;
+  border-top: 1px solid var(--border-subtle);
   border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-secondary);
+  position: sticky;
+  top: 31px;
+  z-index: 1;
+}
+
+.gg-lbs-group:first-child .gg-lbs-group-header {
+  border-top: none;
 }
 
 .gg-lbs-group-header:hover {
   color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+/* New branch 按鈕預設隱藏，指測 hover 時顯示 */
+.gg-lbs-action {
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.gg-lbs-group-header:hover .gg-lbs-action {
+  opacity: 1;
 }
 
 .gg-lbs-chevron {
@@ -491,9 +511,12 @@
   color: var(--text-muted);
   cursor: pointer;
   user-select: none;
+  transition: background 0.1s;
+  min-height: 22px;
 }
 
 .gg-lbs-folder:hover {
+  background: var(--bg-hover);
   color: var(--text-primary);
 }
 
@@ -1700,6 +1723,87 @@
 .gg-change-action-btn:hover {
   background: var(--bg-active);
   color: var(--text-primary);
+}
+
+/* 顯示模式切換按鈕（active 狀態） */
+.gg-view-mode-btn.active {
+  color: var(--accent);
+  background: rgba(0, 132, 255, 0.1);
+}
+
+/* Changes tree folder row */
+.gg-change-tree-folder {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px 3px calc(8px + var(--depth, 0) * 14px);
+  font-size: 11px;
+  color: var(--text-muted);
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.1s;
+  min-height: 22px;
+}
+
+.gg-change-tree-folder:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.gg-change-tree-folder+div.collapsed {
+  display: none;
+}
+
+/* Change item tree 縮排 */
+.gg-change-item {
+  padding-left: calc(10px + var(--depth, 0) * 14px);
+}
+
+/* ========================================
+   右鍵選單 (Context Menu)
+   ======================================== */
+.gg-ctx-menu {
+  position: fixed;
+  z-index: 9999;
+  min-width: 180px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  padding: 4px 0;
+  font-size: 12px;
+  overflow: hidden;
+}
+
+.gg-ctx-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 14px;
+  color: var(--text-primary);
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.1s;
+  white-space: nowrap;
+}
+
+.gg-ctx-item:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.gg-ctx-item.danger {
+  color: #e74c3c;
+}
+
+.gg-ctx-item.danger:hover {
+  background: rgba(231, 76, 60, 0.12);
+}
+
+.gg-ctx-sep {
+  height: 1px;
+  background: var(--border-subtle);
+  margin: 3px 0;
 }
 
 /* Commit 訊息框（右側底部） */
