@@ -123,6 +123,48 @@ function registerGitGuiHandlers() {
   });
   //#endregion
 
+  //#region 取得 Commit 中某檔案的原始內容（base64）
+  ipcMain.handle('git-gui-file-blob', async (event, repoPath, hash, filePath) => {
+    try {
+      // 取得 blob hash
+      const treeOut = await runGitSilent(`git ls-tree ${hash} -- "${filePath}"`, repoPath);
+      if (!treeOut.trim()) return { found: false };
+      const blobHash = treeOut.trim().split(/\s+/)[2];
+      if (!blobHash) return { found: false };
+
+      // 以 Buffer 讀取 blob 內容
+      const buf = await new Promise((resolve, reject) => {
+        const { execFile } = require('child_process');
+        execFile('git', ['cat-file', 'blob', blobHash], { cwd: repoPath, maxBuffer: 1024 * 1024 * 20, encoding: 'buffer' }, (err, stdout) => {
+          if (err) reject(err); else resolve(stdout);
+        });
+      });
+
+      // 偵測是否為二進制（前 8000 bytes 中有 null byte）
+      const sample = buf.slice(0, 8000);
+      let isBinary = false;
+      for (let i = 0; i < sample.length; i++) {
+        if (sample[i] === 0) { isBinary = true; break; }
+      }
+
+      const ext = filePath.split('.').pop().toLowerCase();
+      const imageExts = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg', 'ico', 'tiff', 'tga'];
+      const isImage = imageExts.includes(ext);
+
+      if (isImage) {
+        const mimeMap = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp', bmp: 'image/bmp', svg: 'image/svg+xml', ico: 'image/x-icon', tiff: 'image/tiff', tga: 'image/x-tga' };
+        return { found: true, type: 'image', mime: mimeMap[ext] || 'image/png', base64: buf.toString('base64') };
+      }
+      if (isBinary) {
+        return { found: true, type: 'binary', size: buf.length };
+      }
+      return { found: true, type: 'text', content: buf.toString('utf8') };
+    } catch (err) {
+      return { found: false, error: err.message };
+    }
+  });
+  //#endregion
+
   //#region 取得 Working Tree Diff（未提交變更）
   ipcMain.handle('git-gui-workdir-diff', async (event, repoPath, filePath) => {
     try {

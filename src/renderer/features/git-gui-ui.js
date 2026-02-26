@@ -992,8 +992,58 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!diffEl) return;
     diffEl.innerHTML = '<div class="gg-loading"><div class="gg-spinner"></div></div>';
     window.electronAPI.gitGuiFileDiff(activeRepo.path, hash, filePath)
-      .then(diff => { diffEl.innerHTML = RenderDiff(diff); })
+      .then(diff => {
+        const hasDiffContent = diff && /^[+\-@]/m.test(diff);
+        if (hasDiffContent) {
+          diffEl.innerHTML = RenderDiff(diff);
+        } else {
+          // diff 無內容（新增二進制 / 圖片 / 文字檔），嘗試顯示 blob
+          ShowFileBlob(diffEl, activeRepo.path, hash, filePath);
+        }
+      })
       .catch(() => { diffEl.innerHTML = '<div class="gg-empty"><p>載入失敗</p></div>'; });
+  }
+
+  /**
+   * 取得並顯示 blob 內容：圖片預覽 / 文字查看 / binary 提示
+   * @param {HTMLElement} el 目標容器
+   * @param {string} repoPath
+   * @param {string} hash  commit hash（或 'workdir' 代表工作目錄）
+   * @param {string} filePath
+   */
+  function ShowFileBlob(el, repoPath, hash, filePath) {
+    if (!el) return;
+    if (hash === 'workdir') {
+      el.innerHTML = '<div class="gg-diff-placeholder"><div class="gg-empty"><p>工作目錄二進制/圖片預覽暫不支援</p></div></div>';
+      return;
+    }
+    window.electronAPI.gitGuiFileBlob(repoPath, hash, filePath)
+      .then(res => {
+        if (!res || !res.found) {
+          el.innerHTML = '<div class="gg-diff-placeholder"><div class="gg-empty"><p>找不到檔案內容</p></div></div>';
+          return;
+        }
+        if (res.type === 'image') {
+          el.innerHTML = `
+            <div class="gg-blob-image-wrap">
+              <img src="data:${res.mime};base64,${res.base64}" class="gg-blob-image" alt="${EscHtml(filePath.split('/').pop())}">
+              <div class="gg-blob-image-info">${EscHtml(filePath.split('/').pop())}</div>
+            </div>`;
+        } else if (res.type === 'binary') {
+          const kb = (res.size / 1024).toFixed(1);
+          el.innerHTML = `<div class="gg-diff-placeholder"><div class="gg-empty">${LucideIcon('package', 28)}<p>二進制檔案 (${kb} KB)</p></div></div>`;
+        } else {
+          // 文字內容
+          const lines = (res.content || '').split('\n');
+          const linesHtml = lines.map((line, i) => `
+            <div class="gg-diff-line">
+              <div class="gg-diff-line-nums"><span class="gg-diff-lnum">${i + 1}</span><span class="gg-diff-lnum"></span></div>
+              <div class="gg-diff-line-content">${EscHtml(line)}</div>
+            </div>`).join('');
+          el.innerHTML = `<div class="gg-blob-text-header">${EscHtml(filePath)} <span class="gg-blob-line-count">${lines.length} 行</span></div>${linesHtml}`;
+        }
+      })
+      .catch(() => { el.innerHTML = '<div class="gg-empty"><p>載入失敗</p></div>'; });
   }
   //#endregion
 
