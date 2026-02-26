@@ -20,21 +20,63 @@
    ======================================== */
 .gg-sidebar {
   width: 220px;
+  min-width: 160px;
   flex-shrink: 0;
-  border-right: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
   background: var(--bg-secondary);
   overflow: hidden;
+  transition: width 0.2s ease;
+}
+
+.gg-sidebar.collapsed {
+  width: 42px;
+  min-width: 42px;
+}
+
+.gg-sidebar.collapsed .gg-sidebar-body {
+  display: none;
+}
+
+.gg-sidebar.collapsed .gg-sidebar-title {
+  display: none;
+}
+
+.gg-sidebar.collapsed #gg-open-folder-btn {
+  display: none;
+}
+
+/* Repo sidebar resize 分隔線 */
+.gg-sidebar-resizer {
+  width: 4px;
+  flex-shrink: 0;
+  cursor: col-resize;
+  background: var(--border-color);
+  transition: background 0.15s;
+  position: relative;
+  z-index: 10;
+}
+
+.gg-sidebar-resizer:hover,
+.gg-sidebar-resizer.dragging {
+  background: var(--accent);
 }
 
 .gg-sidebar-header {
-  padding: 10px 12px 6px;
+  padding: 8px 8px 8px 12px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid var(--border-color);
   flex-shrink: 0;
+  min-height: 36px;
+}
+
+.gg-sidebar-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
 }
 
 .gg-sidebar-title {
@@ -255,6 +297,190 @@
   background: var(--bg-hover);
   border-color: var(--accent);
   color: var(--accent);
+}
+
+/* ========================================
+   Commit Log 左側 Branch 側邊欄
+   ======================================== */
+#gg-panel-log {
+  flex-direction: row;
+}
+
+.gg-log-branch-sidebar {
+  width: 220px;
+  min-width: 150px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bg-secondary);
+}
+
+/* Branch sidebar resize 分隔線 */
+.gg-log-branch-resizer {
+  width: 4px;
+  flex-shrink: 0;
+  cursor: col-resize;
+  background: var(--border-color);
+  transition: background 0.15s;
+  z-index: 10;
+}
+
+.gg-log-branch-resizer:hover,
+.gg-log-branch-resizer.dragging {
+  background: var(--accent);
+}
+
+/* Branch sidebar 搜尋欄 */
+.gg-lbs-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+}
+
+.gg-lbs-search-icon {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.gg-lbs-search input {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  font-size: 12px;
+  color: var(--text-primary);
+}
+
+.gg-lbs-search input::placeholder {
+  color: var(--text-muted);
+}
+
+/* Group 區塊 */
+.gg-lbs-group {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+.gg-lbs-group-body {
+  overflow-y: auto;
+}
+
+.gg-lbs-group-body.collapsed {
+  display: none;
+}
+
+/* Group header */
+.gg-lbs-group-header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 0.4px;
+  cursor: pointer;
+  user-select: none;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.gg-lbs-group-header:hover {
+  color: var(--text-primary);
+}
+
+.gg-lbs-chevron {
+  display: flex;
+  align-items: center;
+  color: var(--text-muted);
+  transition: transform 0.15s;
+}
+
+.gg-lbs-group-label {
+  flex: 1;
+}
+
+.gg-lbs-count {
+  font-size: 10px;
+  background: var(--bg-active);
+  color: var(--text-muted);
+  border-radius: 8px;
+  padding: 0 5px;
+  font-weight: 400;
+}
+
+/* Branch item */
+.gg-lbs-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px 4px calc(8px + var(--depth, 0) * 12px);
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 0.1s;
+  border-left: 2px solid transparent;
+  min-height: 24px;
+}
+
+.gg-lbs-item:hover {
+  background: var(--bg-hover);
+}
+
+.gg-lbs-item.current {
+  color: var(--accent);
+  font-weight: 600;
+  border-left-color: var(--accent);
+}
+
+.gg-lbs-item.active {
+  background: rgba(0, 132, 255, 0.08);
+}
+
+.gg-lbs-item-name {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.gg-lbs-current-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+}
+
+/* Folder item in tree */
+.gg-lbs-folder {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px 3px calc(8px + var(--depth, 0) * 12px);
+  font-size: 11px;
+  color: var(--text-muted);
+  cursor: pointer;
+  user-select: none;
+}
+
+.gg-lbs-folder:hover {
+  color: var(--text-primary);
+}
+
+/* gg-log-layout 占滿右側（上下分割） */
+.gg-log-layout {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 /* ========================================

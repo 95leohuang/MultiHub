@@ -32,6 +32,11 @@ const ICONS = {
   'alert-circle': '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>',
   'x': '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>',
   'more-vertical': '<circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/>',
+  'chevron-down': '<polyline points="6 9 12 15 18 9"/>',
+  'chevron-right': '<polyline points="9 18 15 12 9 6"/>',
+  'arrow-left': '<line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>',
+  'arrow-right': '<line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>',
+  'git-remote': '<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>',
 };
 
 /**
@@ -72,19 +77,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
   //#region DOM 骨架注入
   ui.innerHTML = `
-    <div class="gg-sidebar">
+    <div class="gg-sidebar" id="gg-sidebar">
       <div class="gg-sidebar-header">
         <span class="gg-sidebar-title">Repositories</span>
-        <button class="gg-icon-btn" id="gg-open-folder-btn" title="開啟資料夾搜尋">＋</button>
+        <div style="display:flex;gap:2px;align-items:center">
+          <button class="gg-icon-btn" id="gg-open-folder-btn" title="開啟資料夾搜尋">${LucideIcon('plus', 13)}</button>
+          <button class="gg-icon-btn" id="gg-sidebar-collapse-btn" title="收縮側邊欄">${LucideIcon('arrow-left', 13)}</button>
+        </div>
       </div>
-      <div class="gg-repo-search">
-        <input type="text" id="gg-repo-filter" placeholder="篩選 repo..." />
-      </div>
-      <div class="gg-repo-list" id="gg-repo-list"></div>
-      <div class="gg-sidebar-add">
-        <button class="gg-add-btn" id="gg-add-repo-btn">＋ 新增 Repository</button>
+      <div class="gg-sidebar-body">
+        <div class="gg-repo-search">
+          <input type="text" id="gg-repo-filter" placeholder="篩選 repo..." />
+        </div>
+        <div class="gg-repo-list" id="gg-repo-list"></div>
+        <div class="gg-sidebar-add">
+          <button class="gg-add-btn" id="gg-add-repo-btn">${LucideIcon('plus', 13)} 新增 Repository</button>
+        </div>
       </div>
     </div>
+    <!-- Repo sidebar resize 分隔線 -->
+    <div class="gg-sidebar-resizer" id="gg-sidebar-resizer"></div>
 
     <div class="gg-main">
       <!-- 頂部工具列 -->
@@ -112,7 +124,49 @@ document.addEventListener('DOMContentLoaded', () => {
 
       <!-- === Commit Log 面板 === -->
       <div class="gg-panel active" id="gg-panel-log">
-        <div class="gg-log-layout">
+        <!-- Branch 側邊欄 -->
+        <div class="gg-log-branch-sidebar" id="gg-log-branch-sidebar">
+          <!-- 頂部搜尋 -->
+          <div class="gg-lbs-search">
+            ${LucideIcon('search', 12, 'gg-lbs-search-icon')}
+            <input type="text" id="gg-lbs-filter" placeholder="Search Branches/Tags..." />
+          </div>
+          <!-- Local Branches -->
+          <div class="gg-lbs-group" id="gg-lbs-group-local">
+            <div class="gg-lbs-group-header" data-group="local">
+              <span class="gg-lbs-chevron" id="gg-lbs-chevron-local">${LucideIcon('chevron-down', 11)}</span>
+              ${LucideIcon('git-branch', 11)}
+              <span class="gg-lbs-group-label">LOCAL BRANCHES</span>
+              <span class="gg-lbs-count" id="gg-lbs-local-count">0</span>
+              <button class="gg-icon-btn gg-lbs-action" id="gg-lbs-new-branch" title="New Branch" style="margin-left:auto">${LucideIcon('plus', 11)}</button>
+            </div>
+            <div class="gg-lbs-group-body" id="gg-lbs-local-list"></div>
+          </div>
+          <!-- Remote Branches -->
+          <div class="gg-lbs-group" id="gg-lbs-group-remote">
+            <div class="gg-lbs-group-header" data-group="remote">
+              <span class="gg-lbs-chevron" id="gg-lbs-chevron-remote">${LucideIcon('chevron-down', 11)}</span>
+              ${LucideIcon('arrow-up-right', 11)}
+              <span class="gg-lbs-group-label">REMOTES</span>
+              <span class="gg-lbs-count" id="gg-lbs-remote-count">0</span>
+            </div>
+            <div class="gg-lbs-group-body" id="gg-lbs-remote-list"></div>
+          </div>
+          <!-- Tags -->
+          <div class="gg-lbs-group" id="gg-lbs-group-tags">
+            <div class="gg-lbs-group-header" data-group="tags">
+              <span class="gg-lbs-chevron" id="gg-lbs-chevron-tags">${LucideIcon('chevron-right', 11)}</span>
+              ${LucideIcon('tag', 11)}
+              <span class="gg-lbs-group-label">TAGS</span>
+              <span class="gg-lbs-count" id="gg-lbs-tags-count">0</span>
+            </div>
+            <div class="gg-lbs-group-body collapsed" id="gg-lbs-tags-list"></div>
+          </div>
+        </div>
+        <!-- Branch sidebar resize 分隔線 -->
+        <div class="gg-log-branch-resizer" id="gg-log-branch-resizer"></div>
+        <!-- 右側：Commit Log -->
+        <div class="gg-log-layout" id="gg-log-layout">
 
           <!-- 上半：Commit Table -->
           <div class="gg-log-top">
@@ -351,6 +405,20 @@ document.addEventListener('DOMContentLoaded', () => {
   const cancelBranchBtn = document.getElementById('gg-cancel-branch-btn');
   const stashPushBtn = document.getElementById('gg-stash-push-btn');
   const tagListEl = document.getElementById('gg-tag-list');
+  // Repo sidebar
+  const sidebarEl = document.getElementById('gg-sidebar');
+  const sidebarCollapseBtn = document.getElementById('gg-sidebar-collapse-btn');
+  const sidebarResizerEl = document.getElementById('gg-sidebar-resizer');
+  // Log Branch sidebar
+  const lbsLocalList = document.getElementById('gg-lbs-local-list');
+  const lbsRemoteList = document.getElementById('gg-lbs-remote-list');
+  const lbsTagsList = document.getElementById('gg-lbs-tags-list');
+  const lbsFilterEl = document.getElementById('gg-lbs-filter');
+  const lbsLocalCount = document.getElementById('gg-lbs-local-count');
+  const lbsRemoteCount = document.getElementById('gg-lbs-remote-count');
+  const lbsTagsCount = document.getElementById('gg-lbs-tags-count');
+  const lbsNewBranchBtn = document.getElementById('gg-lbs-new-branch');
+  const logBranchResizerEl = document.getElementById('gg-log-branch-resizer');
   //#endregion
 
   //#region 工具函式
@@ -688,6 +756,18 @@ document.addEventListener('DOMContentLoaded', () => {
       .catch(() => {
         logListEl.innerHTML = '<div class="gg-empty"><p>載入失敗</p></div>';
       });
+
+    // 同步更新 Branch sidebar（若 branchData 已有就直接 re-render，否則發一次請求）
+    if (branchData) {
+      RenderLogBranchSidebar(branchData);
+    } else {
+      window.electronAPI.gitGuiBranches(activeRepo.path)
+        .then(data => {
+          if (!data.currentBranch && data.current) data.currentBranch = data.current;
+          branchData = data;
+          RenderLogBranchSidebar(data);
+        });
+    }
   }
 
   //#region Graph Lane 演算法
@@ -1233,16 +1313,164 @@ document.addEventListener('DOMContentLoaded', () => {
   function LoadBranches() {
     if (!activeRepo) return;
     branchesContentEl.innerHTML = '<div class="gg-loading"><div class="gg-spinner"></div></div>';
+    if (lbsLocalList) lbsLocalList.innerHTML = '<div class="gg-loading" style="padding:8px;font-size:11px"><div class="gg-spinner"></div></div>';
 
     window.electronAPI.gitGuiBranches(activeRepo.path)
       .then(data => {
+        // 兼容舊格式（current）和新格式（currentBranch）
+        if (!data.currentBranch && data.current) data.currentBranch = data.current;
         branchData = data;
         RenderBranches(data);
+        RenderLogBranchSidebar(data);
       })
       .catch(() => {
         branchesContentEl.innerHTML = '<div class="gg-empty"><p>載入失敗</p></div>';
       });
   }
+
+  //#region Log Branch Sidebar 渲染
+
+  /** 渲染 Commit Log 左側的 Branch 側邊欄 */
+  function RenderLogBranchSidebar(data) {
+    if (!lbsLocalList) return;
+    const kw = (lbsFilterEl ? lbsFilterEl.value : '').toLowerCase();
+    const local = (data.local || []).filter(b => !kw || b.name.toLowerCase().includes(kw));
+    const remote = (data.remote || []).filter(b => !kw || b.name.toLowerCase().includes(kw));
+    const tags = (data.tags || []).filter(t => !kw || t.name.toLowerCase().includes(kw));
+
+    if (lbsLocalCount) lbsLocalCount.textContent = local.length;
+    if (lbsRemoteCount) lbsRemoteCount.textContent = remote.length;
+    if (lbsTagsCount) lbsTagsCount.textContent = tags.length;
+
+    // Local branches — tree view
+    const localTree = BuildTree(local);
+    lbsLocalList.innerHTML = local.length === 0
+      ? '<div class="gg-empty" style="padding:10px 12px;font-size:11px">無本地分支</div>'
+      : RenderLbsTree(localTree, 0, false, data.currentBranch);
+
+    // Remote branches — tree view
+    lbsRemoteList.innerHTML = remote.length === 0
+      ? '<div class="gg-empty" style="padding:10px 12px;font-size:11px">無遠端分支</div>'
+      : RenderLbsTree(BuildTree(remote), 0, true, null);
+
+    // Tags — flat list
+    lbsTagsList.innerHTML = tags.length === 0
+      ? '<div class="gg-empty" style="padding:10px 12px;font-size:11px">無 Tags</div>'
+      : tags.map(t => `
+          <div class="gg-lbs-item" data-type="tag" data-name="${EscHtml(t.name)}">
+            ${LucideIcon('tag', 11)}
+            <span class="gg-lbs-item-name" title="${EscHtml(t.name)}">${EscHtml(t.name)}</span>
+          </div>`).join('');
+
+    BindLbsEvents();
+  }
+
+  /**
+   * 遞迴渲染 Branch sidebar 樹節點
+   * @param {object} node
+   * @param {number} depth
+   * @param {boolean} isRemote
+   * @param {string|null} currentBranch
+   */
+  function RenderLbsTree(node, depth, isRemote, currentBranch) {
+    let html = '';
+    // Folder nodes
+    const folders = Object.keys(node).filter(k => k !== '__branches__');
+    for (const key of folders) {
+      const folderId = `lbs-folder-${depth}-${key}`.replace(/[^a-z0-9-]/gi, '_');
+      html += `<div class="gg-lbs-folder" style="--depth:${depth}" data-folder="${EscHtml(key)}" data-folderid="${folderId}">
+        <span class="gg-lbs-chevron" id="${folderId}-chev">${LucideIcon('chevron-down', 10)}</span>
+        ${LucideIcon('folder', 11)}
+        <span>${EscHtml(key)}</span>
+      </div>
+      <div id="${folderId}-body">
+        ${RenderLbsTree(node[key], depth + 1, isRemote, currentBranch)}
+      </div>`;
+    }
+    // Branch leaf nodes
+    const branches = node.__branches__ || [];
+    for (const b of branches) {
+      const isCurrent = !isRemote && b.name === currentBranch;
+      const shortName = b.name.split('/').pop();
+      html += `<div class="gg-lbs-item${isCurrent ? ' current' : ''}" style="--depth:${depth}"
+        data-type="${isRemote ? 'remote' : 'local'}" data-name="${EscHtml(b.name)}">
+        ${isCurrent ? `<span class="gg-lbs-current-dot"></span>` : LucideIcon('git-branch', 11)}
+        <span class="gg-lbs-item-name" title="${EscHtml(b.name)}">${EscHtml(shortName)}</span>
+      </div>`;
+    }
+    return html;
+  }
+
+  /** 綁定 Branch sidebar 的點擊事件 */
+  function BindLbsEvents() {
+    // 群組 header 展開/收縮
+    document.querySelectorAll('.gg-lbs-group-header').forEach(header => {
+      header.addEventListener('click', () => {
+        const group = header.dataset.group;
+        const bodyEl = document.getElementById(`gg-lbs-${group}-list`);
+        const chevEl = document.getElementById(`gg-lbs-chevron-${group}`);
+        if (!bodyEl) return;
+        const collapsed = bodyEl.classList.toggle('collapsed');
+        if (chevEl) chevEl.innerHTML = collapsed ? LucideIcon('chevron-right', 11) : LucideIcon('chevron-down', 11);
+      });
+    });
+
+    // Folder 展開/收縮
+    document.querySelectorAll('.gg-lbs-folder').forEach(folder => {
+      folder.addEventListener('click', e => {
+        e.stopPropagation();
+        const fid = folder.dataset.folderid;
+        const bodyEl = document.getElementById(`${fid}-body`);
+        const chevEl = document.getElementById(`${fid}-chev`);
+        if (!bodyEl) return;
+        const collapsed = bodyEl.classList.toggle('collapsed');
+        if (chevEl) chevEl.innerHTML = collapsed ? LucideIcon('chevron-right', 10) : LucideIcon('chevron-down', 10);
+      });
+    });
+
+    // Branch item 點擊 → 過濾 commit log
+    document.querySelectorAll('#gg-lbs-local-list .gg-lbs-item, #gg-lbs-remote-list .gg-lbs-item').forEach(item => {
+      item.addEventListener('click', () => {
+        document.querySelectorAll('.gg-lbs-item').forEach(x => x.classList.remove('active'));
+        item.classList.add('active');
+        const name = item.dataset.name;
+        const type = item.dataset.type;
+        // 切換 commit log 顯示（以 branch 為過濾條件）
+        if (activeRepo) LoadLogForBranch(name, type);
+      });
+    });
+  }
+
+  /** 以指定 branch 載入 commit log（filter） */
+  function LoadLogForBranch(branchName, type) {
+    if (!activeRepo) return;
+    const btnAll = document.getElementById('gg-log-all-btn');
+    const btnCurrent = document.getElementById('gg-log-current-btn');
+    if (btnAll) btnAll.classList.remove('active');
+    if (btnCurrent) btnCurrent.classList.remove('active');
+    SetLoading(logListEl);
+    // git-gui-log 透過 options.branch 指定分支
+    window.electronAPI.gitGuiLog(activeRepo.path, { showAll: false, branch: branchName })
+      .then(commits => RenderLogList(commits))
+      .catch(() => { logListEl.innerHTML = '<div class="gg-empty"><p>載入失敗</p></div>'; });
+  }
+
+  // Branch sidebar 搜尋過濾
+  if (lbsFilterEl) {
+    lbsFilterEl.addEventListener('input', () => {
+      if (branchData) RenderLogBranchSidebar(branchData);
+    });
+  }
+
+  // New branch 按鈕（sidebar 版）
+  if (lbsNewBranchBtn) {
+    lbsNewBranchBtn.addEventListener('click', () => {
+      const tabBranches = document.querySelector('.gg-tab[data-tab="branches"]');
+      if (tabBranches) tabBranches.click();
+      setTimeout(() => { if (newBranchBtn) newBranchBtn.click(); }, 100);
+    });
+  }
+  //#endregion
 
   //#region Branch 渲染輔助
 
@@ -1746,6 +1974,67 @@ document.addEventListener('DOMContentLoaded', () => {
         tagListEl.innerHTML = '<div class="gg-empty"><p>載入失敗</p></div>';
       });
   }
+  //#endregion
+
+  //#region Repo Sidebar 收縮 / Resizer
+
+  /** Repo sidebar 收縮/展開 */
+  let sidebarCollapsed = false;
+  if (sidebarCollapseBtn) {
+    sidebarCollapseBtn.addEventListener('click', () => {
+      sidebarCollapsed = !sidebarCollapsed;
+      sidebarEl.classList.toggle('collapsed', sidebarCollapsed);
+      sidebarCollapseBtn.innerHTML = sidebarCollapsed
+        ? LucideIcon('arrow-right', 13)
+        : LucideIcon('arrow-left', 13);
+      sidebarCollapseBtn.title = sidebarCollapsed ? '展開側邊欄' : '收縮側邊欄';
+    });
+  }
+
+  /** 通用水平 resizer 拖拉工廠 */
+  function MakeHorizResizer(resizerEl, getTargetEl, minW, maxW, onDone) {
+    if (!resizerEl) return;
+    resizerEl.addEventListener('mousedown', e => {
+      e.preventDefault();
+      const targetEl = typeof getTargetEl === 'function' ? getTargetEl() : getTargetEl;
+      const startX = e.clientX;
+      const startW = targetEl.offsetWidth;
+      resizerEl.classList.add('dragging');
+      document.body.style.cursor = 'col-resize';
+
+      const onMove = mv => {
+        const delta = mv.clientX - startX;
+        const newW = Math.min(maxW, Math.max(minW, startW + delta));
+        targetEl.style.width = newW + 'px';
+        targetEl.style.minWidth = newW + 'px';
+      };
+      const onUp = () => {
+        resizerEl.classList.remove('dragging');
+        document.body.style.cursor = '';
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+        if (onDone) onDone();
+      };
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+    });
+  }
+
+  // Repo sidebar resizer（只在非收縮時有效）
+  MakeHorizResizer(
+    sidebarResizerEl,
+    () => sidebarEl,
+    160, 400,
+    null
+  );
+
+  // Log Branch sidebar resizer
+  MakeHorizResizer(
+    logBranchResizerEl,
+    () => document.getElementById('gg-log-branch-sidebar'),
+    150, 500,
+    null
+  );
   //#endregion
 
   // 初始載入

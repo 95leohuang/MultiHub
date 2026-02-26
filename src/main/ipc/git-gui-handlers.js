@@ -57,10 +57,15 @@ function registerGitGuiHandlers() {
   ipcMain.handle('git-gui-log', async (event, repoPath, options = {}) => {
     const limit = options.limit || 300;
     const showAll = options.showAll !== false; // 預設 true
+    const branch = options.branch || null;     // 指定分支（覆寫 showAll）
     // %P=父節點（空格分隔）
     const format = '%H%x00%h%x00%s%x00%an%x00%ai%x00%D%x00%P';
     const args = ['log'];
-    if (showAll) args.push('--all');
+    if (branch) {
+      args.push(branch); // 只顯示指定分支
+    } else if (showAll) {
+      args.push('--all');
+    }
     args.push(`--pretty=format:${format}`, `--max-count=${limit}`);
     try {
       const out = await runGitArgs(args, repoPath);
@@ -239,9 +244,19 @@ function registerGitGuiHandlers() {
           return { name: name.trim(), hash: hash?.trim() };
         });
 
-      return { local, remote, current };
+      // Tags
+      const tagOut = await runGitArgs(
+        ['for-each-ref', '--sort=-creatordate', '--format=%(refname:short)|%(objectname:short)', 'refs/tags/'],
+        repoPath
+      );
+      const tags = tagOut.trim().split('\n').filter(Boolean).map(line => {
+        const [name, hash] = line.split('|');
+        return { name: name.trim(), hash: hash?.trim() };
+      });
+
+      return { local, remote, tags, currentBranch: current };
     } catch (err) {
-      return { local: [], remote: [], current: '' };
+      return { local: [], remote: [], tags: [], currentBranch: '' };
     }
   });
   //#endregion
