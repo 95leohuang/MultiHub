@@ -121,7 +121,6 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="gg-tabs">
         <div class="gg-tab active" data-tab="log">Commits</div>
         <div class="gg-tab" data-tab="changes">Changes <span class="gg-tab-badge hidden" id="gg-changes-badge">0</span></div>
-        <div class="gg-tab" data-tab="branches">Branches</div>
         <div class="gg-tab" data-tab="stash">Stashes</div>
         <div class="gg-tab" data-tab="tags">Tags</div>
       </div>
@@ -208,7 +207,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="gg-changes-layout">
 
           <!-- 左側：Unstaged + Staged + 搜尋 -->
-          <div class="gg-changes-left">
+          <div class="gg-changes-left" id="gg-changes-left">
             <!-- 搜尋欄 -->
             <div class="gg-changes-search-bar">
               ${LucideIcon('search', 12, 'gg-search-icon')}
@@ -249,8 +248,11 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
           </div>
 
+          <!-- 左右 resizer -->
+          <div class="gg-changes-resizer" id="gg-changes-resizer"></div>
+
           <!-- 右側：Diff + Commit Box -->
-          <div class="gg-changes-right">
+          <div class="gg-changes-right" id="gg-changes-right">
             <!-- Diff 預覽 -->
             <div class="gg-changes-diff-area">
               <div class="gg-diff-view" id="gg-changes-diff">
@@ -1476,7 +1478,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function LoadBranches() {
     if (!activeRepo) return;
-    branchesContentEl.innerHTML = '<div class="gg-loading"><div class="gg-spinner"></div></div>';
+    if (branchesContentEl) branchesContentEl.innerHTML = '<div class="gg-loading"><div class="gg-spinner"></div></div>';
     if (lbsLocalList) lbsLocalList.innerHTML = '<div class="gg-loading" style="padding:8px;font-size:11px"><div class="gg-spinner"></div></div>';
 
     window.electronAPI.gitGuiBranches(activeRepo.path)
@@ -1488,7 +1490,7 @@ document.addEventListener('DOMContentLoaded', () => {
         RenderLogBranchSidebar(data);
       })
       .catch(() => {
-        branchesContentEl.innerHTML = '<div class="gg-empty"><p>載入失敗</p></div>';
+        if (branchesContentEl) branchesContentEl.innerHTML = '<div class="gg-empty"><p>載入失敗</p></div>';
       });
   }
 
@@ -1645,9 +1647,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // New branch 按鈕（sidebar 版）
   if (lbsNewBranchBtn) {
     lbsNewBranchBtn.addEventListener('click', () => {
-      const tabBranches = document.querySelector('.gg-tab[data-tab="branches"]');
-      if (tabBranches) tabBranches.click();
-      setTimeout(() => { if (newBranchBtn) newBranchBtn.click(); }, 100);
+      // Branches tab 已移除，直接使用 lbs inline 創建分支（展開式 input）
+      const lbsFilter = document.getElementById('gg-lbs-filter');
+      if (lbsFilter) lbsFilter.focus();
     });
   }
   //#endregion
@@ -1774,16 +1776,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const remoteHtml = remote.length === 0
       ? '<div class="gg-empty" style="padding:12px;font-size:11px;"><p>無遠端分支</p></div>'
       : remote.map(b => BranchItemHtml(b, true)).join('');
-    branchesContentEl.innerHTML = `
-      <div class="gg-branch-section">
-        <div class="gg-branch-section-title">本地分支 <span class="gg-branch-count">${local.length}</span></div>
-        <div>${localHtml}</div>
-      </div>
-      <div class="gg-branch-section">
-        <div class="gg-branch-section-title">遠端分支 <span class="gg-branch-count">${remote.length}</span></div>
-        <div>${remoteHtml}</div>
-      </div>`;
-    BindBranchEvents(branchesContentEl);
+    if (branchesContentEl) {
+      branchesContentEl.innerHTML = `
+        <div class="gg-branch-section">
+          <div class="gg-branch-section-title">本地分支 <span class="gg-branch-count">${local.length}</span></div>
+          <div>${localHtml}</div>
+        </div>
+        <div class="gg-branch-section">
+          <div class="gg-branch-section-title">遠端分支 <span class="gg-branch-count">${remote.length}</span></div>
+          <div>${remoteHtml}</div>
+        </div>`;
+      BindBranchEvents(branchesContentEl);
+    }
   }
 
   function RenderBranchesTree(local, remote) {
@@ -1791,23 +1795,24 @@ document.addEventListener('DOMContentLoaded', () => {
     const remoteTree = BuildTree(remote);
     const localHtml = local.length === 0 ? '<div class="gg-empty" style="padding:12px;font-size:11px;"><p>無本地分支</p></div>' : RenderTreeNode(localTree, 0, false);
     const remoteHtml = remote.length === 0 ? '<div class="gg-empty" style="padding:12px;font-size:11px;"><p>無遠端分支</p></div>' : RenderTreeNode(remoteTree, 0, true);
-    branchesContentEl.innerHTML = `
-      <div class="gg-branch-section">
-        <div class="gg-branch-section-title">本地分支 <span class="gg-branch-count">${local.length}</span></div>
-        <div class="gg-tree-root">${localHtml}</div>
-      </div>
-      <div class="gg-branch-section">
-        <div class="gg-branch-section-title">遠端分支 <span class="gg-branch-count">${remote.length}</span></div>
-        <div class="gg-tree-root">${remoteHtml}</div>
-      </div>`;
-    BindBranchEvents(branchesContentEl);
-    // 樹狀折疊切換
-    branchesContentEl.querySelectorAll('.gg-tree-folder').forEach(folder => {
-      folder.addEventListener('click', () => {
-        const group = folder.closest('.gg-tree-group');
-        group.classList.toggle('collapsed');
+    if (branchesContentEl) {
+      branchesContentEl.innerHTML = `
+        <div class="gg-branch-section">
+          <div class="gg-branch-section-title">本地分支 <span class="gg-branch-count">${local.length}</span></div>
+          <div class="gg-tree-root">${localHtml}</div>
+        </div>
+        <div class="gg-branch-section">
+          <div class="gg-branch-section-title">遠端分支 <span class="gg-branch-count">${remote.length}</span></div>
+          <div class="gg-tree-root">${remoteHtml}</div>
+        </div>`;
+      BindBranchEvents(branchesContentEl);
+      branchesContentEl.querySelectorAll('.gg-tree-folder').forEach(folder => {
+        folder.addEventListener('click', () => {
+          const group = folder.closest('.gg-tree-group');
+          group.classList.toggle('collapsed');
+        });
       });
-    });
+    }
   }
 
   function RenderBranchesGrouped(local, remote) {
@@ -1827,19 +1832,21 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
         </div>`).join('');
     };
-    branchesContentEl.innerHTML = `
-      <div class="gg-branch-section">
-        <div class="gg-branch-section-title">本地分支 <span class="gg-branch-count">${local.length}</span></div>
-        <div>${renderGroups(localGroups, false)}</div>
-      </div>
-      <div class="gg-branch-section">
-        <div class="gg-branch-section-title">遠端分支 <span class="gg-branch-count">${remote.length}</span></div>
-        <div>${renderGroups(remoteGroups, true)}</div>
-      </div>`;
-    BindBranchEvents(branchesContentEl);
-    branchesContentEl.querySelectorAll('.gg-grouped-header').forEach(h => {
-      h.addEventListener('click', () => h.closest('.gg-grouped-section').classList.toggle('collapsed'));
-    });
+    if (branchesContentEl) {
+      branchesContentEl.innerHTML = `
+        <div class="gg-branch-section">
+          <div class="gg-branch-section-title">本地分支 <span class="gg-branch-count">${local.length}</span></div>
+          <div>${renderGroups(localGroups, false)}</div>
+        </div>
+        <div class="gg-branch-section">
+          <div class="gg-branch-section-title">遠端分支 <span class="gg-branch-count">${remote.length}</span></div>
+          <div>${renderGroups(remoteGroups, true)}</div>
+        </div>`;
+      BindBranchEvents(branchesContentEl);
+      branchesContentEl.querySelectorAll('.gg-grouped-header').forEach(h => {
+        h.addEventListener('click', () => h.closest('.gg-grouped-section').classList.toggle('collapsed'));
+      });
+    }
   }
 
   function DoCheckout(branchName) {
@@ -2242,6 +2249,50 @@ document.addEventListener('DOMContentLoaded', () => {
     () => document.getElementById('gg-log-branch-sidebar'),
     150, 500,
     null
+  );
+
+  // Changes 左右 resizer
+  MakeHorizResizer(
+    document.getElementById('gg-changes-resizer'),
+    () => document.getElementById('gg-changes-left'),
+    160, 600,
+    null
+  );
+
+  /** 通用垂直 resizer 拖拉工廠 */
+  function MakeVertResizer(resizerEl, getTopEl, minH, maxH) {
+    if (!resizerEl) return;
+    resizerEl.addEventListener('mousedown', e => {
+      e.preventDefault();
+      const topEl = typeof getTopEl === 'function' ? getTopEl() : getTopEl;
+      const startY = e.clientY;
+      const startH = topEl.offsetHeight;
+      resizerEl.classList.add('dragging');
+      document.body.style.cursor = 'row-resize';
+
+      const onMove = mv => {
+        const delta = mv.clientY - startY;
+        const newH = Math.min(maxH, Math.max(minH, startH + delta));
+        topEl.style.height = newH + 'px';
+        topEl.style.flexBasis = newH + 'px';
+        topEl.style.flexShrink = '0';
+      };
+      const onUp = () => {
+        resizerEl.classList.remove('dragging');
+        document.body.style.cursor = '';
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+      };
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+    });
+  }
+
+  // Changes Unstaged/Staged 上下 resizer
+  MakeVertResizer(
+    document.getElementById('gg-changes-splitter'),
+    () => document.getElementById('gg-section-unstaged'),
+    60, 2000
   );
   //#endregion
 

@@ -1505,12 +1505,25 @@
 /* 左側：搜尋 + Unstaged + Staged */
 .gg-changes-left {
   width: 280px;
-  min-width: 200px;
+  min-width: 160px;
   flex-shrink: 0;
-  border-right: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+
+/* 左右拖拉分割線 */
+.gg-changes-resizer {
+  width: 4px;
+  background: var(--border-color);
+  cursor: col-resize;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+
+.gg-changes-resizer:hover,
+.gg-changes-resizer.dragging {
+  background: var(--accent);
 }
 
 /* 右側：Diff + Commit Box */
@@ -1565,6 +1578,17 @@
   min-height: 60px;
 }
 
+/* Unstaged 預設高度，可被上下 resizer 調整 */
+#gg-section-unstaged {
+  flex: 0 0 240px;
+}
+
+/* Staged 占剩餘空間 */
+#gg-section-staged {
+  flex: 1 1 0;
+  min-height: 60px;
+}
+
 .gg-changes-section-header {
   display: flex;
   align-items: center;
@@ -1603,14 +1627,17 @@
 
 /* 上下拖拉分割線 */
 .gg-changes-splitter {
-  height: 4px;
+  height: 5px;
   background: var(--border-color);
   cursor: row-resize;
   flex-shrink: 0;
   transition: background 0.15s;
+  position: relative;
+  z-index: 1;
 }
 
-.gg-changes-splitter:hover {
+.gg-changes-splitter:hover,
+.gg-changes-splitter.dragging {
   background: var(--accent);
 }
 
