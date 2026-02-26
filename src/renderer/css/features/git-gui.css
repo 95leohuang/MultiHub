@@ -509,7 +509,7 @@
   gap: 4px;
   padding: 3px 8px 3px calc(8px + var(--depth, 0) * 12px);
   font-size: 11px;
-  color: var(--text-muted);
+  color: var(--text-secondary);
   cursor: pointer;
   user-select: none;
   transition: background 0.1s;
@@ -1764,9 +1764,9 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 3px 8px 3px calc(8px + var(--depth, 0) * 14px);
+  padding: 3px 10px 3px calc(10px + var(--depth, 0) * 12px);
   font-size: 11px;
-  color: var(--text-muted);
+  color: var(--text-secondary);
   cursor: pointer;
   user-select: none;
   transition: background 0.1s;
