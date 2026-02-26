@@ -18,6 +18,10 @@ document.addEventListener('DOMContentLoaded', () => {
   let activeChangeFile = null;
   /** @type {{ local: object[], remote: object[], current: string }} */
   let branchData = { local: [], remote: [], current: '' };
+  /** @type {'flat'|'tree'|'grouped'} */
+  let branchViewMode = 'tree';
+  /** @type {string} */
+  let branchFilter = '';
   /** @type {object[]} */
   let changeFiles = [];
   //#endregion
@@ -125,21 +129,35 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="gg-branches-layout">
           <div class="gg-branches-toolbar">
             <button class="gg-toolbar-btn primary" id="gg-new-branch-btn">＋ New Branch</button>
-            <div id="gg-new-branch-form" style="display:none; display:flex; gap:6px; align-items:center; flex:1">
+            <div id="gg-new-branch-form" style="display:none; gap:6px; align-items:center; flex:1">
               <input type="text" class="gg-inline-input" id="gg-new-branch-name" placeholder="branch-name" style="flex:1">
               <button class="gg-toolbar-btn primary" id="gg-create-branch-btn">建立</button>
               <button class="gg-toolbar-btn" id="gg-cancel-branch-btn">取消</button>
             </div>
           </div>
-          <div class="gg-branches-content">
-            <div class="gg-branch-section">
-              <div class="gg-branch-section-title">本地分支</div>
-              <div id="gg-local-branches"></div>
+          <div class="gg-branches-search-bar">
+            <div class="gg-branches-search-wrap">
+              <svg class="gg-search-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="text" class="gg-branches-search-input" id="gg-branch-search" placeholder="搜尋分支...">
+              <button class="gg-search-clear hidden" id="gg-branch-search-clear" title="清除">✕</button>
             </div>
-            <div class="gg-branch-section">
-              <div class="gg-branch-section-title">遠端分支</div>
-              <div id="gg-remote-branches"></div>
+            <div class="gg-branch-view-btns">
+              <button class="gg-view-btn active" id="gg-view-tree" data-mode="tree" title="樹狀結構">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                Tree
+              </button>
+              <button class="gg-view-btn" id="gg-view-flat" data-mode="flat" title="平面列表">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                Flat
+              </button>
+              <button class="gg-view-btn" id="gg-view-grouped" data-mode="grouped" title="依前綴分群">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+                Grouped
+              </button>
             </div>
+          </div>
+          <div class="gg-branches-content" id="gg-branches-content">
+            <!-- 由 RenderBranches 動態生成 -->
           </div>
         </div>
       </div>
@@ -167,39 +185,40 @@ document.addEventListener('DOMContentLoaded', () => {
   //#endregion
 
   //#region DOM 元素參考
-  const repoListEl      = document.getElementById('gg-repo-list');
-  const repoFilterEl    = document.getElementById('gg-repo-filter');
-  const addRepoBtn      = document.getElementById('gg-add-repo-btn');
-  const openFolderBtn   = document.getElementById('gg-open-folder-btn');
+  const repoListEl = document.getElementById('gg-repo-list');
+  const repoFilterEl = document.getElementById('gg-repo-filter');
+  const addRepoBtn = document.getElementById('gg-add-repo-btn');
+  const openFolderBtn = document.getElementById('gg-open-folder-btn');
   const toolbarRepoName = document.getElementById('gg-toolbar-repo-name');
   const toolbarBranchName = document.getElementById('gg-toolbar-branch-name');
-  const btnFetch        = document.getElementById('gg-btn-fetch');
-  const btnPull         = document.getElementById('gg-btn-pull');
-  const btnPush         = document.getElementById('gg-btn-push');
-  const btnRefresh      = document.getElementById('gg-btn-refresh');
-  const logListEl       = document.getElementById('gg-log-list');
-  const logDetailEl     = document.getElementById('gg-log-detail');
-  const changesBadge    = document.getElementById('gg-changes-badge');
-  const stagedListEl    = document.getElementById('gg-staged-list');
-  const unstagedListEl  = document.getElementById('gg-unstaged-list');
-  const stagedCount     = document.getElementById('gg-staged-count');
-  const unstagedCount   = document.getElementById('gg-unstaged-count');
-  const stageAllBtn     = document.getElementById('gg-stage-all-btn');
-  const unstageAllBtn   = document.getElementById('gg-unstage-all-btn');
-  const commitMsgEl     = document.getElementById('gg-commit-msg');
-  const commitBtn       = document.getElementById('gg-commit-btn');
-  const stashSaveBtn    = document.getElementById('gg-stash-save-btn');
-  const changesDiffEl   = document.getElementById('gg-changes-diff');
-  const localBranchesEl = document.getElementById('gg-local-branches');
-  const remoteBranchesEl = document.getElementById('gg-remote-branches');
-  const newBranchBtn    = document.getElementById('gg-new-branch-btn');
-  const newBranchForm   = document.getElementById('gg-new-branch-form');
+  const btnFetch = document.getElementById('gg-btn-fetch');
+  const btnPull = document.getElementById('gg-btn-pull');
+  const btnPush = document.getElementById('gg-btn-push');
+  const btnRefresh = document.getElementById('gg-btn-refresh');
+  const logListEl = document.getElementById('gg-log-list');
+  const logDetailEl = document.getElementById('gg-log-detail');
+  const changesBadge = document.getElementById('gg-changes-badge');
+  const stagedListEl = document.getElementById('gg-staged-list');
+  const unstagedListEl = document.getElementById('gg-unstaged-list');
+  const stagedCount = document.getElementById('gg-staged-count');
+  const unstagedCount = document.getElementById('gg-unstaged-count');
+  const stageAllBtn = document.getElementById('gg-stage-all-btn');
+  const unstageAllBtn = document.getElementById('gg-unstage-all-btn');
+  const commitMsgEl = document.getElementById('gg-commit-msg');
+  const commitBtn = document.getElementById('gg-commit-btn');
+  const stashSaveBtn = document.getElementById('gg-stash-save-btn');
+  const changesDiffEl = document.getElementById('gg-changes-diff');
+  const branchesContentEl = document.getElementById('gg-branches-content');
+  const branchSearchEl = document.getElementById('gg-branch-search');
+  const branchSearchClearEl = document.getElementById('gg-branch-search-clear');
+  const newBranchBtn = document.getElementById('gg-new-branch-btn');
+  const newBranchForm = document.getElementById('gg-new-branch-form');
   const newBranchNameEl = document.getElementById('gg-new-branch-name');
   const createBranchBtn = document.getElementById('gg-create-branch-btn');
   const cancelBranchBtn = document.getElementById('gg-cancel-branch-btn');
-  const stashListEl     = document.getElementById('gg-stash-list');
-  const stashPushBtn    = document.getElementById('gg-stash-push-btn');
-  const tagListEl       = document.getElementById('gg-tag-list');
+  const stashListEl = document.getElementById('gg-stash-list');
+  const stashPushBtn = document.getElementById('gg-stash-push-btn');
+  const tagListEl = document.getElementById('gg-tag-list');
   //#endregion
 
   //#region 工具函式
@@ -208,15 +227,15 @@ document.addEventListener('DOMContentLoaded', () => {
   function RelativeTime(dateStr) {
     const diff = Date.now() - new Date(dateStr).getTime();
     const secs = Math.floor(diff / 1000);
-    if (secs < 60)    return `${secs}s 前`;
+    if (secs < 60) return `${secs}s 前`;
     const mins = Math.floor(secs / 60);
-    if (mins < 60)    return `${mins}m 前`;
+    if (mins < 60) return `${mins}m 前`;
     const hrs = Math.floor(mins / 60);
-    if (hrs < 24)     return `${hrs}h 前`;
+    if (hrs < 24) return `${hrs}h 前`;
     const days = Math.floor(hrs / 24);
-    if (days < 30)    return `${days}d 前`;
+    if (days < 30) return `${days}d 前`;
     const months = Math.floor(days / 30);
-    if (months < 12)  return `${months}mo 前`;
+    if (months < 12) return `${months}mo 前`;
     return `${Math.floor(months / 12)}y 前`;
   }
 
@@ -362,7 +381,7 @@ document.addEventListener('DOMContentLoaded', () => {
         repo.isDirty = info.isDirty || false;
         RenderRepoList();
       })
-      .catch(() => {});
+      .catch(() => { });
     RenderRepoList();
     SelectRepo(repo);
   }
@@ -372,13 +391,13 @@ document.addEventListener('DOMContentLoaded', () => {
   addRepoBtn.addEventListener('click', () => {
     window.electronAPI.selectDirectory()
       .then(p => { if (p) AddRepo(p); })
-      .catch(() => {});
+      .catch(() => { });
   });
 
   openFolderBtn.addEventListener('click', () => {
     window.electronAPI.selectDirectory()
       .then(p => { if (p) AddRepo(p); })
-      .catch(() => {});
+      .catch(() => { });
   });
   //#endregion
 
@@ -403,11 +422,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function LoadTab(tab) {
     if (!activeRepo) return;
-    if (tab === 'log')      LoadLog();
-    if (tab === 'changes')  LoadChanges();
+    if (tab === 'log') LoadLog();
+    if (tab === 'changes') LoadChanges();
     if (tab === 'branches') LoadBranches();
-    if (tab === 'stash')    LoadStashes();
-    if (tab === 'tags')     LoadTags();
+    if (tab === 'stash') LoadStashes();
+    if (tab === 'tags') LoadTags();
   }
   //#endregion
 
@@ -471,7 +490,7 @@ document.addEventListener('DOMContentLoaded', () => {
         SaveRepos();
         RenderRepoList();
       })
-      .catch(() => {});
+      .catch(() => { });
     RefreshActiveTab();
     Toast('已重新整理', 'info');
   });
@@ -630,12 +649,12 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function RenderChanges(files) {
-    const staged   = files.filter(f => f.staged);
+    const staged = files.filter(f => f.staged);
     const unstaged = files.filter(f => !f.staged || f.unstaged);
     const untracked = files.filter(f => f.untracked);
     const unstagedAll = files.filter(f => !f.staged);
 
-    stagedCount.textContent   = `(${staged.length})`;
+    stagedCount.textContent = `(${staged.length})`;
     unstagedCount.textContent = `(${unstagedAll.length})`;
 
     const totalChanges = files.length;
@@ -753,7 +772,7 @@ document.addEventListener('DOMContentLoaded', () => {
               SaveRepos();
               RenderRepoList();
             })
-            .catch(() => {});
+            .catch(() => { });
         } else {
           Toast(`Commit 失敗：${r.error}`, 'error');
         }
@@ -789,54 +808,194 @@ document.addEventListener('DOMContentLoaded', () => {
       });
   }
 
+  //#region Branch 渲染輔助
+
+  /** 產生單一 branch item HTML */
+  function BranchItemHtml(b, isRemote) {
+    const icon = b.isCurrent
+      ? '<span class="gg-branch-icon current">✓</span>'
+      : isRemote
+        ? '<span class="gg-branch-icon remote">☁</span>'
+        : '<span class="gg-branch-icon">⎇</span>';
+    const actions = isRemote
+      ? `<button class="gg-branch-action-btn" data-action="checkout-remote" data-name="${EscHtml(b.name)}">建立本地</button>`
+      : (!b.isCurrent
+        ? `<button class="gg-branch-action-btn" data-action="checkout" data-name="${EscHtml(b.name)}">切換</button>
+             <button class="gg-branch-action-btn danger" data-action="delete" data-name="${EscHtml(b.name)}">刪除</button>`
+        : '');
+    return `<div class="gg-branch-item${b.isCurrent ? ' current' : ''}" data-name="${EscHtml(b.name)}">
+      ${icon}
+      <span class="gg-branch-name" title="${EscHtml(b.name)}">${EscHtml(b.name)}</span>
+      <span class="gg-branch-hash">${EscHtml(b.hash || '')}</span>
+      <div class="gg-branch-actions">${actions}</div>
+    </div>`;
+  }
+
+  /** 綁定 branch item 事件 */
+  function BindBranchEvents(container) {
+    container.querySelectorAll('[data-action="checkout"]').forEach(btn => {
+      btn.addEventListener('click', e => { e.stopPropagation(); DoCheckout(btn.dataset.name); });
+    });
+    container.querySelectorAll('[data-action="delete"]').forEach(btn => {
+      btn.addEventListener('click', e => { e.stopPropagation(); DoDeleteBranch(btn.dataset.name); });
+    });
+    container.querySelectorAll('[data-action="checkout-remote"]').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        const localName = btn.dataset.name.replace(/^[^/]+\//, '');
+        DoCreateBranch(localName, btn.dataset.name);
+      });
+    });
+  }
+
+  /** 套用搜尋過濾 */
+  function FilterBranches(list, keyword) {
+    if (!keyword) return list;
+    const kw = keyword.toLowerCase();
+    return list.filter(b => b.name.toLowerCase().includes(kw));
+  }
+
+  /** 將分支列表轉成樹狀節點 */
+  function BuildTree(branches) {
+    const root = {};
+    branches.forEach(b => {
+      const parts = b.name.split('/');
+      let node = root;
+      parts.forEach((part, i) => {
+        if (!node[part]) node[part] = { _children: {}, _branch: null };
+        if (i === parts.length - 1) node[part]._branch = b;
+        node = node[part]._children;
+      });
+    });
+    return root;
+  }
+
+  /** 遞迴渲染樹狀節點 */
+  function RenderTreeNode(node, depth, isRemote) {
+    let html = '';
+    Object.entries(node).forEach(([key, val]) => {
+      const hasChildren = Object.keys(val._children).length > 0;
+      const b = val._branch;
+      if (hasChildren) {
+        html += `<div class="gg-tree-group" style="--depth:${depth}">
+          <div class="gg-tree-folder" data-folder="1">
+            <span class="gg-tree-arrow">▶</span>
+            <span class="gg-tree-folder-icon">📁</span>
+            <span class="gg-tree-folder-name">${EscHtml(key)}</span>
+          </div>
+          <div class="gg-tree-children">
+            ${b ? BranchItemHtml(b, isRemote) : ''}
+            ${RenderTreeNode(val._children, depth + 1, isRemote)}
+          </div>
+        </div>`;
+      } else if (b) {
+        html += `<div style="--depth:${depth}" class="gg-tree-leaf">${BranchItemHtml(b, isRemote)}</div>`;
+      }
+    });
+    return html;
+  }
+
+  /** 依前綴分群 */
+  function GroupBranches(branches) {
+    const groups = {};
+    branches.forEach(b => {
+      const slash = b.name.indexOf('/');
+      const key = slash === -1 ? '（無前綴）' : b.name.substring(0, slash);
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(b);
+    });
+    return groups;
+  }
+
+  //#endregion
+
   function RenderBranches(data) {
-    // 本地分支
-    if (data.local.length === 0) {
-      localBranchesEl.innerHTML = '<div class="gg-empty" style="padding:12px;font-size:11px;"><p>無本地分支</p></div>';
+    const kw = branchFilter.trim().toLowerCase();
+    const localFiltered = FilterBranches(data.local, kw);
+    const remoteFiltered = FilterBranches(data.remote, kw);
+
+    if (branchViewMode === 'flat') {
+      RenderBranchesFlat(localFiltered, remoteFiltered);
+    } else if (branchViewMode === 'tree') {
+      RenderBranchesTree(localFiltered, remoteFiltered);
     } else {
-      localBranchesEl.innerHTML = data.local.map(b => `
-        <div class="gg-branch-item ${b.isCurrent ? 'current' : ''}" data-name="${EscHtml(b.name)}">
-          <span style="font-size:12px">${b.isCurrent ? '✓' : '⎇'}</span>
-          <span class="gg-branch-name">${EscHtml(b.name)}</span>
-          <span class="gg-branch-hash">${EscHtml(b.hash || '')}</span>
-          <div class="gg-branch-actions">
-            ${!b.isCurrent ? `<button class="gg-branch-action-btn" data-action="checkout" data-name="${EscHtml(b.name)}">切換</button>` : ''}
-            ${!b.isCurrent ? `<button class="gg-branch-action-btn danger" data-action="delete" data-name="${EscHtml(b.name)}">刪除</button>` : ''}
-          </div>
-        </div>
-      `).join('');
-
-      localBranchesEl.querySelectorAll('[data-action="checkout"]').forEach(btn => {
-        btn.addEventListener('click', e => { e.stopPropagation(); DoCheckout(btn.dataset.name); });
-      });
-      localBranchesEl.querySelectorAll('[data-action="delete"]').forEach(btn => {
-        btn.addEventListener('click', e => { e.stopPropagation(); DoDeleteBranch(btn.dataset.name); });
-      });
+      RenderBranchesGrouped(localFiltered, remoteFiltered);
     }
+  }
 
-    // 遠端分支
-    if (data.remote.length === 0) {
-      remoteBranchesEl.innerHTML = '<div class="gg-empty" style="padding:12px;font-size:11px;"><p>無遠端分支</p></div>';
-    } else {
-      remoteBranchesEl.innerHTML = data.remote.map(b => `
-        <div class="gg-branch-item" data-name="${EscHtml(b.name)}">
-          <span style="font-size:12px;color:var(--warning)">☁</span>
-          <span class="gg-branch-name">${EscHtml(b.name)}</span>
-          <span class="gg-branch-hash">${EscHtml(b.hash || '')}</span>
-          <div class="gg-branch-actions">
-            <button class="gg-branch-action-btn" data-action="checkout-remote" data-name="${EscHtml(b.name)}">建立本地</button>
-          </div>
-        </div>
-      `).join('');
+  function RenderBranchesFlat(local, remote) {
+    const localHtml = local.length === 0
+      ? '<div class="gg-empty" style="padding:12px;font-size:11px;"><p>無本地分支</p></div>'
+      : local.map(b => BranchItemHtml(b, false)).join('');
+    const remoteHtml = remote.length === 0
+      ? '<div class="gg-empty" style="padding:12px;font-size:11px;"><p>無遠端分支</p></div>'
+      : remote.map(b => BranchItemHtml(b, true)).join('');
+    branchesContentEl.innerHTML = `
+      <div class="gg-branch-section">
+        <div class="gg-branch-section-title">本地分支 <span class="gg-branch-count">${local.length}</span></div>
+        <div>${localHtml}</div>
+      </div>
+      <div class="gg-branch-section">
+        <div class="gg-branch-section-title">遠端分支 <span class="gg-branch-count">${remote.length}</span></div>
+        <div>${remoteHtml}</div>
+      </div>`;
+    BindBranchEvents(branchesContentEl);
+  }
 
-      remoteBranchesEl.querySelectorAll('[data-action="checkout-remote"]').forEach(btn => {
-        btn.addEventListener('click', e => {
-          e.stopPropagation();
-          const localName = btn.dataset.name.replace(/^[^/]+\//, '');
-          DoCreateBranch(localName, btn.dataset.name);
-        });
+  function RenderBranchesTree(local, remote) {
+    const localTree = BuildTree(local);
+    const remoteTree = BuildTree(remote);
+    const localHtml = local.length === 0 ? '<div class="gg-empty" style="padding:12px;font-size:11px;"><p>無本地分支</p></div>' : RenderTreeNode(localTree, 0, false);
+    const remoteHtml = remote.length === 0 ? '<div class="gg-empty" style="padding:12px;font-size:11px;"><p>無遠端分支</p></div>' : RenderTreeNode(remoteTree, 0, true);
+    branchesContentEl.innerHTML = `
+      <div class="gg-branch-section">
+        <div class="gg-branch-section-title">本地分支 <span class="gg-branch-count">${local.length}</span></div>
+        <div class="gg-tree-root">${localHtml}</div>
+      </div>
+      <div class="gg-branch-section">
+        <div class="gg-branch-section-title">遠端分支 <span class="gg-branch-count">${remote.length}</span></div>
+        <div class="gg-tree-root">${remoteHtml}</div>
+      </div>`;
+    BindBranchEvents(branchesContentEl);
+    // 樹狀折疊切換
+    branchesContentEl.querySelectorAll('.gg-tree-folder').forEach(folder => {
+      folder.addEventListener('click', () => {
+        const group = folder.closest('.gg-tree-group');
+        group.classList.toggle('collapsed');
       });
-    }
+    });
+  }
+
+  function RenderBranchesGrouped(local, remote) {
+    const localGroups = GroupBranches(local);
+    const remoteGroups = GroupBranches(remote);
+    const renderGroups = (groups, isRemote) => {
+      if (Object.keys(groups).length === 0) return '<div class="gg-empty" style="padding:12px;font-size:11px;"><p>無分支</p></div>';
+      return Object.entries(groups).map(([prefix, branches]) => `
+        <div class="gg-grouped-section">
+          <div class="gg-grouped-header">
+            <span class="gg-tree-arrow">▶</span>
+            <span>${EscHtml(prefix)}</span>
+            <span class="gg-branch-count">${branches.length}</span>
+          </div>
+          <div class="gg-grouped-items">
+            ${branches.map(b => BranchItemHtml(b, isRemote)).join('')}
+          </div>
+        </div>`).join('');
+    };
+    branchesContentEl.innerHTML = `
+      <div class="gg-branch-section">
+        <div class="gg-branch-section-title">本地分支 <span class="gg-branch-count">${local.length}</span></div>
+        <div>${renderGroups(localGroups, false)}</div>
+      </div>
+      <div class="gg-branch-section">
+        <div class="gg-branch-section-title">遠端分支 <span class="gg-branch-count">${remote.length}</span></div>
+        <div>${renderGroups(remoteGroups, true)}</div>
+      </div>`;
+    BindBranchEvents(branchesContentEl);
+    branchesContentEl.querySelectorAll('.gg-grouped-header').forEach(h => {
+      h.addEventListener('click', () => h.closest('.gg-grouped-section').classList.toggle('collapsed'));
+    });
   }
 
   function DoCheckout(branchName) {
@@ -884,6 +1043,30 @@ document.addEventListener('DOMContentLoaded', () => {
       })
       .catch(e => Toast(e.message, 'error'));
   }
+
+  //#region Branch 搜尋與檢視切換事件
+  branchSearchEl.addEventListener('input', () => {
+    branchFilter = branchSearchEl.value;
+    branchSearchClearEl.classList.toggle('hidden', !branchFilter);
+    RenderBranches(branchData);
+  });
+
+  branchSearchClearEl.addEventListener('click', () => {
+    branchFilter = '';
+    branchSearchEl.value = '';
+    branchSearchClearEl.classList.add('hidden');
+    RenderBranches(branchData);
+  });
+
+  document.querySelectorAll('.gg-view-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      branchViewMode = btn.dataset.mode;
+      document.querySelectorAll('.gg-view-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      RenderBranches(branchData);
+    });
+  });
+  //#endregion
 
   // New Branch Form
   newBranchBtn.addEventListener('click', () => {
