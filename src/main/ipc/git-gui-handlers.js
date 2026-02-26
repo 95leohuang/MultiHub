@@ -55,20 +55,21 @@ function registerGitGuiHandlers() {
 
   //#region 取得 Commit Log 列表
   ipcMain.handle('git-gui-log', async (event, repoPath, options = {}) => {
-    const limit = options.limit || 200;
-    const branch = options.branch || 'HEAD';
-    // 使用 execFile 傳陣列，避免 Windows cmd.exe 展開 % 字元
-    const format = '%H%x00%h%x00%s%x00%an%x00%ai%x00%D';
+    const limit = options.limit || 300;
+    // --all 顯示所有分支，%P=父節點（空格分隔）
+    const format = '%H%x00%h%x00%s%x00%an%x00%ai%x00%D%x00%P';
     try {
       const out = await runGitArgs(
-        ['log', branch, `--pretty=format:${format}`, `--max-count=${limit}`],
+        ['log', '--all', `--pretty=format:${format}`, `--max-count=${limit}`],
         repoPath
       );
       if (!out.trim()) return [];
       return out.trim().split('\n').map(line => {
-        const [hash, shortHash, subject, authorName, authorDate, refs] = line.split('\x00');
+        const parts = line.split('\x00');
+        const [hash, shortHash, subject, authorName, authorDate, refs, parentsStr] = parts;
         const refList = refs ? refs.split(',').map(r => r.trim()).filter(Boolean) : [];
-        return { hash, shortHash, subject, authorName, authorDate, refs: refList };
+        const parents = parentsStr ? parentsStr.trim().split(' ').filter(Boolean) : [];
+        return { hash, shortHash, subject, authorName, authorDate, refs: refList, parents };
       });
     } catch (err) {
       return [];

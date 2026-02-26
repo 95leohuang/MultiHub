@@ -517,8 +517,153 @@ document.addEventListener('DOMContentLoaded', () => {
       });
   }
 
+  //#region Graph Lane 演算法
+
+  /** 預設 lane 顏色循環 */
+  const LANE_COLORS = [
+    '#4da6ff', '#f97316', '#a78bfa', '#4ade80',
+    '#fb7185', '#34d399', '#facc15', '#60a5fa',
+    '#e879f9', '#38bdf8'
+  ];
+
+  /**
+   * 根據 commits（含 parents）計算每個 commit 的 lane 與連線資訊
+   * @param {{ hash: string, parents: string[] }[]} commits
+   * @returns {{ lane: number, color: string, edges: {from:number,to:number,color:string,type:string}[], totalLanes: number }[]}
+   */
+  function BuildGraphLanes(commits) {
+    /** 目前活躍的 lanes，每個元素是「此 lane 正在等待哪個 hash」 */
+    const lanes = [];   // lanes[i] = hash | null
+    const results = [];
+
+    /** 取得或分配 lane */
+    function GetLane(hash) {
+      const idx = lanes.indexOf(hash);
+      if (idx !== -1) return idx;
+      // 找第一個空位
+      const empty = lanes.indexOf(null);
+      if (empty !== -1) { lanes[empty] = hash; return empty; }
+      lanes.push(hash);
+      return lanes.length - 1;
+    }
+
+    commits.forEach((c, i) => {
+      const myLane = GetLane(c.hash);
+      const myColor = LANE_COLORS[myLane % LANE_COLORS.length];
+
+      /** edges: 此行到下一行的連線 */
+      const edges = [];
+
+      // 計算：在此 commit 之後，lanes 的下一狀態
+      const nextLanes = lanes.slice();
+
+      if (c.parents.length === 0) {
+        // 根 commit：清空此 lane
+        nextLanes[myLane] = null;
+      } else {
+        // 第一個 parent 繼承此 lane
+        nextLanes[myLane] = c.parents[0];
+        // 額外 parents（merge commit）分配新 lane
+        for (let p = 1; p < c.parents.length; p++) {
+          const pHash = c.parents[p];
+          if (!nextLanes.includes(pHash)) {
+            const empty2 = nextLanes.indexOf(null);
+            if (empty2 !== -1) nextLanes[empty2] = pHash;
+            else nextLanes.push(pHash);
+          }
+        }
+      }
+
+      // 建立 edges（當前 lanes → next lanes 的連線）
+      // 直通線：lane 在 nextLanes 中相同位置還存在
+      for (let l = 0; l < Math.max(lanes.length, nextLanes.length); l++) {
+        const cur = lanes[l];
+        const nxt = nextLanes[l];
+        if (!cur || !nxt) continue;
+        if (cur === nxt) {
+          // 直通
+          edges.push({ from: l, to: l, color: LANE_COLORS[l % LANE_COLORS.length], type: 'straight' });
+        }
+      }
+
+      // merge 線：myLane 到各 parent 的 lane
+      if (c.parents.length > 1) {
+        for (let p = 1; p < c.parents.length; p++) {
+          const pLane = nextLanes.indexOf(c.parents[p]);
+          if (pLane !== -1 && pLane !== myLane) {
+            edges.push({ from: myLane, to: pLane, color: myColor, type: 'merge' });
+          }
+        }
+      }
+
+      // 分叉線：某 lane 在 nextLanes 中移動了位置（新分支起點）
+      for (let l = 0; l < nextLanes.length; l++) {
+        if (nextLanes[l] && nextLanes[l] !== lanes[l] && l !== myLane) {
+          // 這個 lane 剛被分配，畫從 myLane 分叉出去
+          const src = lanes.indexOf(nextLanes[l]);
+          if (src === -1) {
+            edges.push({ from: myLane, to: l, color: LANE_COLORS[l % LANE_COLORS.length], type: 'branch' });
+          }
+        }
+      }
+
+      const totalLanes = Math.max(1, nextLanes.filter(x => x).length, myLane + 1);
+
+      results.push({ lane: myLane, color: myColor, edges, totalLanes });
+
+      // 更新 lanes 為 nextLanes，清理尾部 null
+      lanes.length = 0;
+      nextLanes.forEach(v => lanes.push(v));
+      while (lanes.length > 0 && lanes[lanes.length - 1] === null) lanes.pop();
+    });
+
+    return results;
+  }
+
+  /** 產生單一 row 的 SVG graph 欄 */
+  function BuildGraphSvg(graphInfo, rowH) {
+    const { lane, color, edges, totalLanes } = graphInfo;
+    const colW = 14;
+    const w = Math.max(totalLanes, lane + 1) * colW + colW;
+    const h = rowH;
+    const cx = lane * colW + colW / 2;
+    const cy = h / 2;
+    const r = 3.5;
+
+    let paths = '';
+
+    edges.forEach(e => {
+      const fx = e.from * colW + colW / 2;
+      const tx = e.to * colW + colW / 2;
+
+      if (e.type === 'straight') {
+        paths += `<line x1="${fx}" y1="0" x2="${fx}" y2="${h}" stroke="${e.color}" stroke-width="1.5"/>`;
+      } else if (e.type === 'merge') {
+        // merge 從節點往右下連到 parent lane
+        const mx = Math.max(fx, tx);
+        paths += `<path d="M${fx},${cy} Q${mx},${cy} ${tx},${h}" fill="none" stroke="${e.color}" stroke-width="1.5"/>`;
+      } else if (e.type === 'branch') {
+        // 分叉：從 myLane 往新 lane 延伸
+        const mx = Math.max(fx, tx);
+        paths += `<path d="M${fx},${cy} Q${mx},${cy} ${tx},${h}" fill="none" stroke="${e.color}" stroke-width="1.5"/>`;
+      }
+    });
+
+    // 節點圓點（在所有線的上方）
+    paths += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${color}" stroke="var(--bg-primary)" stroke-width="1.5"/>`;
+
+    return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="display:block;flex-shrink:0">${paths}</svg>`;
+  }
+
+  //#endregion
+
   function RenderLogList(commits) {
+    const graphData = BuildGraphLanes(commits);
+    const ROW_H = 52; // 對應 commit item 高度
+
     logListEl.innerHTML = commits.map((c, i) => {
+      const g = graphData[i];
+      const svgW = Math.max(g.totalLanes, g.lane + 1) * 14 + 14;
       const refTags = c.refs.map(r => {
         let cls = 'local';
         if (r.includes('HEAD')) cls = 'head';
@@ -528,13 +673,16 @@ document.addEventListener('DOMContentLoaded', () => {
         return `<span class="gg-ref-tag ${cls}">${EscHtml(label)}</span>`;
       }).join('');
 
-      return `<div class="gg-commit-item ${activeCommitHash === c.hash ? 'active' : ''}" data-hash="${c.hash}" data-idx="${i}">
-        <div class="gg-commit-subject">${EscHtml(c.subject)}</div>
-        ${c.refs.length > 0 ? `<div class="gg-commit-refs">${refTags}</div>` : ''}
-        <div class="gg-commit-meta">
-          <span class="gg-commit-hash">${c.shortHash}</span>
-          <span>${EscHtml(c.authorName)}</span>
-          <span>${RelativeTime(c.authorDate)}</span>
+      return `<div class="gg-commit-item ${activeCommitHash === c.hash ? 'active' : ''}" data-hash="${c.hash}" data-idx="${i}" style="height:${ROW_H}px">
+        <div class="gg-commit-graph" style="width:${svgW}px;height:${ROW_H}px;flex-shrink:0">${BuildGraphSvg(g, ROW_H)}</div>
+        <div class="gg-commit-body">
+          <div class="gg-commit-subject">${EscHtml(c.subject)}</div>
+          ${c.refs.length > 0 ? `<div class="gg-commit-refs">${refTags}</div>` : ''}
+          <div class="gg-commit-meta">
+            <span class="gg-commit-hash">${c.shortHash}</span>
+            <span>${EscHtml(c.authorName)}</span>
+            <span>${RelativeTime(c.authorDate)}</span>
+          </div>
         </div>
       </div>`;
     }).join('');
