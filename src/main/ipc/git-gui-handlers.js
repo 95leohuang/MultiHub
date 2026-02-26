@@ -65,13 +65,14 @@ function registerGitGuiHandlers() {
     try {
       const out = await runGitArgs(args, repoPath);
       if (!out.trim()) return [];
-      return out.trim().split('\n').map(line => {
+      return out.trim().split(/\r?\n/).map(line => {
         const parts = line.split('\x00');
         const [hash, shortHash, subject, authorName, authorDate, refs, parentsStr] = parts;
+        if (!hash || !hash.trim()) return null;
         const refList = refs ? refs.split(',').map(r => r.trim()).filter(Boolean) : [];
-        const parents = parentsStr ? parentsStr.trim().split(' ').filter(Boolean) : [];
-        return { hash, shortHash, subject, authorName, authorDate, refs: refList, parents };
-      });
+        const parents = parentsStr ? parentsStr.trim().split(/\s+/).filter(Boolean) : [];
+        return { hash: hash.trim(), shortHash: (shortHash || '').trim(), subject: (subject || '').trim(), authorName: (authorName || '').trim(), authorDate: (authorDate || '').trim(), refs: refList, parents };
+      }).filter(Boolean);
     } catch (err) {
       return [];
     }
