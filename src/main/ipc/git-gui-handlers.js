@@ -1,7 +1,7 @@
 'use strict';
 
 const { ipcMain } = require('electron');
-const { exec } = require('child_process');
+const { exec, execFile } = require('child_process');
 
 //#region 工具函式
 /**
@@ -32,6 +32,20 @@ function runGitSilent(cmd, cwd) {
     });
   });
 }
+
+/**
+ * 以陣列參數執行 git（避免 Windows shell 展開 % 字元）
+ * @param {string[]} args
+ * @param {string} cwd
+ * @returns {Promise<string>}
+ */
+function runGitArgs(args, cwd) {
+  return new Promise((resolve) => {
+    execFile('git', args, { cwd, maxBuffer: 1024 * 1024 * 10 }, (error, stdout) => {
+      resolve(error ? '' : stdout);
+    });
+  });
+}
 //#endregion
 
 /**
@@ -43,14 +57,16 @@ function registerGitGuiHandlers() {
   ipcMain.handle('git-gui-log', async (event, repoPath, options = {}) => {
     const limit = options.limit || 200;
     const branch = options.branch || 'HEAD';
-    // --decorate=full 取得 refs，%H=完整hash, %h=短hash, %s=subject, %an=author name, %ae=author email, %ai=author date ISO, %D=refs
+    // 使用 execFile 傳陣列，避免 Windows cmd.exe 展開 % 字元
     const format = '%H%x00%h%x00%s%x00%an%x00%ai%x00%D';
-    const cmd = `git log ${branch} --pretty=format:"${format}" --max-count=${limit}`;
     try {
-      const out = await runGit(cmd, repoPath);
+      const out = await runGitArgs(
+        ['log', branch, `--pretty=format:${format}`, `--max-count=${limit}`],
+        repoPath
+      );
       if (!out.trim()) return [];
       return out.trim().split('\n').map(line => {
-        const [hash, shortHash, subject, authorName, authorDate, refs] = line.replace(/^"|"$/g, '').split('\x00');
+        const [hash, shortHash, subject, authorName, authorDate, refs] = line.split('\x00');
         const refList = refs ? refs.split(',').map(r => r.trim()).filter(Boolean) : [];
         return { hash, shortHash, subject, authorName, authorDate, refs: refList };
       });
@@ -105,20 +121,25 @@ function registerGitGuiHandlers() {
   //#region 取得所有分支列表
   ipcMain.handle('git-gui-branches', async (event, repoPath) => {
     try {
-      // 取得本地分支
-      const localOut = await runGitSilent('git branch -vv --format=%(refname:short)|%(objectname:short)|%(upstream:short)|%(upstream:track)', repoPath);
       const currentOut = await runGitSilent('git rev-parse --abbrev-ref HEAD', repoPath);
       const current = currentOut.trim();
 
+      // 使用 for-each-ref + execFile 避免 Windows % 展開問題
+      const localOut = await runGitArgs(
+        ['for-each-ref', '--format=%(refname:short)|%(objectname:short)|%(upstream:short)|%(upstream:track)', 'refs/heads/'],
+        repoPath
+      );
       const local = localOut.trim().split('\n').filter(Boolean).map(line => {
         const [name, hash, upstream, track] = line.split('|');
         return { name: name.trim(), hash: hash?.trim(), upstream: upstream?.trim(), track: track?.trim(), isCurrent: name.trim() === current };
       });
 
-      // 取得遠端分支
-      const remoteOut = await runGitSilent('git branch -r --format=%(refname:short)|%(objectname:short)', repoPath);
+      const remoteOut = await runGitArgs(
+        ['for-each-ref', '--format=%(refname:short)|%(objectname:short)', 'refs/remotes/'],
+        repoPath
+      );
       const remote = remoteOut.trim().split('\n').filter(Boolean)
-        .filter(l => !l.includes('HEAD'))
+        .filter(l => !l.includes('/HEAD'))
         .map(line => {
           const [name, hash] = line.split('|');
           return { name: name.trim(), hash: hash?.trim() };
