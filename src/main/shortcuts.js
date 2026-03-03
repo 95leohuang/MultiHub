@@ -28,18 +28,46 @@ function registerShortcuts() {
   console.log('Global shortcut registered:', registered ? 'Alt+`' : 'Ctrl+Shift+M');
   //#endregion
 
-  //#region Alt+1~6 切換 Tab
-  for (let i = 1; i <= 6; i++) {
-    globalShortcut.register(`Alt+${i}`, () => {
-      const win = getMainWindow();
-      if (win && !win.isDestroyed()) {
-        win.webContents.send('switch-tab', i);
-        if (!win.isVisible()) win.show();
-        win.focus();
-      }
-    });
-  }
-  console.log('Tab shortcuts (Alt+1~6) registered');
+  //#region 動態註冊自訂快捷鍵切換 Tab
+  const Store = require('electron-store');
+  const store = new Store();
+  const config = store.get('shortcutConfig', {
+    'Alt+1': ['messenger'], 'Alt+2': ['chatgpt'], 'Alt+3': ['gemini'],
+    'Alt+4': ['git'], 'Alt+5': ['notes'], 'Alt+6': ['discord'], 'Alt+7': ['telegram']
+  });
+
+  // 自動遷移舊版純數字 key
+  let hasMigrated = false;
+  const migratedConfig = {};
+  Object.keys(config).forEach(k => {
+    let newKey = k;
+    if (/^[1-7]$/.test(k)) {
+      newKey = `Alt+${k}`;
+      hasMigrated = true;
+    }
+    migratedConfig[newKey] = config[k];
+  });
+  if (hasMigrated) store.set('shortcutConfig', migratedConfig);
+
+  const finalConfig = hasMigrated ? migratedConfig : config;
+
+  Object.keys(finalConfig).forEach(accel => {
+    // 雖然這裡不使用序號切換，但我們將整個按鍵字串傳給前端，讓前端處理邏輯
+    try {
+      globalShortcut.register(accel, () => {
+        const win = getMainWindow();
+        if (win && !win.isDestroyed()) {
+          win.webContents.send('switch-tab', accel); // 傳送 accelerator 字串
+          if (!win.isVisible()) win.show();
+          win.focus();
+        }
+      });
+    } catch (e) {
+      console.error(`Failed to register shortcut ${accel}:`, e);
+    }
+  });
+
+  console.log('Tab shortcuts registered dynamically.');
   //#endregion
 }
 

@@ -584,17 +584,6 @@ body {
   flex: 1;
 }
 
-.settings-desc {
-  font-size: 12px;
-  color: var(--text-muted);
-  margin-bottom: 20px;
-  line-height: 1.6;
-  padding: 10px 14px;
-  background: var(--bg-tertiary);
-  border-radius: var(--radius-sm);
-  border-left: 3px solid var(--accent);
-}
-
 .shortcut-row {
   margin-bottom: 14px;
   padding: 14px 16px;

@@ -18,11 +18,12 @@ function renderPlatformGrid(shortcutConfig) {
   const activeTab = localStorage.getItem('activeTab') || 'messenger';
   popupGrid.innerHTML = '';
 
-  for (let i = 1; i <= 7; i++) {
-    const services = shortcutConfig[i] || [];
+  const groups = Object.keys(shortcutConfig);
+  groups.forEach(accel => {
+    const services = shortcutConfig[accel] || [];
     const item = document.createElement('div');
     item.className = `grid-item${services.includes(activeTab) ? ' active' : ''}`;
-    item.dataset.shortcut = String(i);
+    item.dataset.shortcut = accel;
 
     const hasUnread = services.some(s => (unreadCounts[s] || 0) > 0);
     if (hasUnread) item.classList.add('has-badge');
@@ -59,14 +60,16 @@ function renderPlatformGrid(shortcutConfig) {
 
     const scSpan = document.createElement('span');
     scSpan.className = 'grid-shortcut';
-    scSpan.textContent = String(i);
+    scSpan.textContent = accel.replace('CommandOrControl', 'Ctrl').replace('Shift', '⇧');
+    scSpan.style.width = "auto";
+    scSpan.style.padding = "0 4px";
 
     item.appendChild(iconsContainer);
     item.appendChild(label);
     item.appendChild(scSpan);
-    item.addEventListener('click', () => switchTabCarousel(i, shortcutConfig));
+    item.addEventListener('click', () => switchTabCarousel(accel, shortcutConfig));
     popupGrid.appendChild(item);
-  }
+  });
 }
 
 /**
@@ -74,9 +77,9 @@ function renderPlatformGrid(shortcutConfig) {
  */
 function togglePopup() {
   isPopupOpen = !isPopupOpen;
-  const gridPopup  = document.getElementById('grid-popup');
+  const gridPopup = document.getElementById('grid-popup');
   const dockTrigger = document.getElementById('dock-trigger');
-  if (gridPopup)   gridPopup.classList.toggle('hidden', !isPopupOpen);
+  if (gridPopup) gridPopup.classList.toggle('hidden', !isPopupOpen);
   if (dockTrigger) dockTrigger.classList.toggle('active', isPopupOpen);
 }
 
@@ -85,9 +88,9 @@ function togglePopup() {
  */
 function closePopup() {
   isPopupOpen = false;
-  const gridPopup  = document.getElementById('grid-popup');
+  const gridPopup = document.getElementById('grid-popup');
   const dockTrigger = document.getElementById('dock-trigger');
-  if (gridPopup)   gridPopup.classList.add('hidden');
+  if (gridPopup) gridPopup.classList.add('hidden');
   if (dockTrigger) dockTrigger.classList.remove('active');
 }
 
@@ -97,7 +100,7 @@ function closePopup() {
  */
 function bindGridPopupEvents(shortcutConfig) {
   const dockTrigger = document.getElementById('dock-trigger');
-  const gridPopup   = document.getElementById('grid-popup');
+  const gridPopup = document.getElementById('grid-popup');
 
   if (dockTrigger) {
     dockTrigger.addEventListener('click', (e) => { e.stopPropagation(); togglePopup(); });

@@ -11,20 +11,24 @@ const unreadCounts = {};
 /**
  * 計算側邊欄排序：先依 shortcutConfig 順序，未分配的按 label 字母排序附後
  * @param {object} shortcutConfig
- * @returns {{ key: string, shortcutNum: number|null }[]}
+ * @returns {{ key: string, shortcutNum: string|null }[]}
  */
 function getSidebarOrder(shortcutConfig) {
   const assigned = [];
   const seen = new Set();
-  const maxKey = Math.max(...Object.keys(shortcutConfig).map(Number));
-  for (let i = 1; i <= maxKey; i++) {
-    (shortcutConfig[i] || []).forEach(key => {
+
+  // 取得 config 中定義的所有群組鍵值字串
+  const groups = Object.keys(shortcutConfig);
+
+  groups.forEach(accel => {
+    (shortcutConfig[accel] || []).forEach(key => {
       if (!seen.has(key) && platformConfig[key]) {
-        assigned.push({ key, shortcutNum: i });
+        assigned.push({ key, shortcutNum: accel });
         seen.add(key);
       }
     });
-  }
+  });
+
   const unassigned = tabOrder
     .filter(key => !seen.has(key) && platformConfig[key])
     .sort((a, b) => platformConfig[a].label.localeCompare(platformConfig[b].label))
@@ -73,7 +77,10 @@ function renderSidebar(shortcutConfig, onTabClick) {
 
     const tooltip = document.createElement('span');
     tooltip.className = 'sidebar-tooltip';
-    tooltip.textContent = shortcutNum !== null ? `${cfg.label} (Alt+${shortcutNum})` : cfg.label;
+
+    // 如果是快捷鍵字串，將它格式化得好看一點
+    const displayAccel = shortcutNum ? shortcutNum.replace('CommandOrControl', 'Ctrl/Cmd') : '';
+    tooltip.textContent = shortcutNum !== null ? `${cfg.label} (${displayAccel})` : cfg.label;
 
     btn.appendChild(img);
     btn.appendChild(badge);

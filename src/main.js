@@ -25,17 +25,21 @@ const store = new Store();
 // 快捷鍵配置處理
 ipcMain.handle('get-shortcut-config', () => {
   return store.get('shortcutConfig', {
-    1: ['messenger'],
-    2: ['chatgpt'],
-    3: ['gemini'],
-    4: ['git'],
-    5: ['discord'],
-    6: ['telegram']
+    'Alt+1': ['messenger'],
+    'Alt+2': ['chatgpt'],
+    'Alt+3': ['gemini'],
+    'Alt+4': ['git'],
+    'Alt+5': ['discord'],
+    'Alt+6': ['telegram']
   });
 });
 
 ipcMain.handle('save-shortcut-config', (event, config) => {
   store.set('shortcutConfig', config);
+  // 動態重新註冊全域快捷鍵
+  const { registerShortcuts, unregisterShortcuts } = require('./main/shortcuts');
+  unregisterShortcuts();
+  registerShortcuts();
 });
 
 //#region Skill Synchronizer Handlers
@@ -590,20 +594,9 @@ app.whenReady().then(async () => {
 
   console.log('Global shortcut registered:', registered ? 'Alt+`' : 'Ctrl+Shift+M');
 
-  // 註冊 Alt+1~6 快捷鍵切換 Tab（全域快捷鍵，避免 webview 焦點問題）
-  for (let i = 1; i <= 6; i++) {
-    globalShortcut.register(`Alt+${i}`, () => {
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send('switch-tab', i);
-        // 確保視窗可見
-        if (!mainWindow.isVisible()) {
-          mainWindow.show();
-        }
-        mainWindow.focus();
-      }
-    });
-  }
-  console.log('Tab shortcuts (Alt+1~6) registered');
+  // 註冊自訂捷鍵切換 Tab（全域快捷鍵，避免 webview 焦點問題）
+  const { registerShortcuts } = require('./main/shortcuts');
+  registerShortcuts();
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
