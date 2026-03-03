@@ -3,9 +3,13 @@
  * 實作 Master-Detail 佈局、自訂快捷鍵與拖曳排序
  */
 
+import { platformConfig, tabOrder } from './platform-config.js';
+import { showToast } from './toast.js';
+import { closePopup } from './grid-popup.js';
+
 //#region 快捷鍵設定資料
 /** @type {object} */
-let shortcutConfig = {
+export let shortcutConfig = {
   'Alt+1': ['messenger'], 'Alt+2': ['chatgpt'], 'Alt+3': ['gemini'],
   'Alt+4': ['git'], 'Alt+5': ['notes'], 'Alt+6': ['discord']
 };
@@ -71,7 +75,7 @@ function migrateShortcutConfig(config) {
  * 取得目前的快捷鍵設定
  * @returns {object}
  */
-function getShortcutConfig() {
+export function getShortcutConfig() {
   return shortcutConfig;
 }
 //#endregion
@@ -80,7 +84,7 @@ function getShortcutConfig() {
  * 從 Electron Store 載入快捷鍵設定，完成後呼叫 callback
  * @param {function} onLoaded
  */
-function loadShortcutConfig(onLoaded) {
+export function loadShortcutConfig(onLoaded) {
   if (window.electronAPI && window.electronAPI.getShortcutConfig) {
     window.electronAPI.getShortcutConfig()
       .then(config => {
@@ -134,7 +138,7 @@ function getAcceleratorFromEvent(e) {
 /**
  * 渲染快捷鍵設定 Modal 內容 (Master-Details)
  */
-function renderShortcutSettings() {
+export function renderShortcutSettings() {
   const tabsContainer = document.getElementById('shortcut-tabs');
   const panelsContainer = document.getElementById('shortcut-panels');
 
@@ -439,7 +443,7 @@ function getDragAfterElement(container, y) {
  * 綁定快捷鍵設定 Modal 的所有事件
  * @param {function} onSaved - 儲存後呼叫（傳入新的 config）
  */
-function bindShortcutSettingsEvents(onSaved) {
+export function bindShortcutSettingsEvents(onSaved) {
   const settingsModal = document.getElementById('settings-modal');
 
   const openModal = () => {

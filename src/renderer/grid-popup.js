@@ -3,15 +3,19 @@
  * 負責 Floating Dock 按鈕與 Grid Popup 的渲染與互動
  */
 
+import { platformConfig } from './platform-config.js';
+import { unreadCounts } from './sidebar.js';
+import { switchTab, switchTabCarousel } from './tab-manager.js';
+
 //#region 狀態
-let isPopupOpen = false;
+export let isPopupOpen = false;
 //#endregion
 
 /**
  * 渲染 Grid Popup 的平台格子
  * @param {object} shortcutConfig
  */
-function renderPlatformGrid(shortcutConfig) {
+export function renderPlatformGrid(shortcutConfig) {
   const popupGrid = document.querySelector('.popup-grid');
   if (!popupGrid) return;
 
@@ -75,7 +79,7 @@ function renderPlatformGrid(shortcutConfig) {
 /**
  * 開關 Grid Popup
  */
-function togglePopup() {
+export function togglePopup() {
   isPopupOpen = !isPopupOpen;
   const gridPopup = document.getElementById('grid-popup');
   const dockTrigger = document.getElementById('dock-trigger');
@@ -86,7 +90,7 @@ function togglePopup() {
 /**
  * 關閉 Grid Popup
  */
-function closePopup() {
+export function closePopup() {
   isPopupOpen = false;
   const gridPopup = document.getElementById('grid-popup');
   const dockTrigger = document.getElementById('dock-trigger');
@@ -98,7 +102,7 @@ function closePopup() {
  * 綁定 Dock Trigger 與 Grid Popup 事件
  * @param {object} shortcutConfig
  */
-function bindGridPopupEvents(shortcutConfig) {
+export function bindGridPopupEvents(shortcutConfig) {
   const dockTrigger = document.getElementById('dock-trigger');
   const gridPopup = document.getElementById('grid-popup');
 

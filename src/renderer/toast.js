@@ -8,7 +8,7 @@
  * @param {'info'|'success'|'warning'|'error'} type
  * @param {number} duration
  */
-function showToast(message, type = 'info', duration = 3500) {
+export function showToast(message, type = 'info', duration = 3500) {
   const container = document.getElementById('toast-container');
   if (!container) return;
   const icons = { info: 'ℹ️', success: '✅', warning: '⚠️', error: '❌' };
@@ -28,7 +28,7 @@ function showToast(message, type = 'info', duration = 3500) {
  * 開啟外部連結（透過 Electron IPC）
  * @param {string} url
  */
-function openExternalUrl(url) {
+export function openExternalUrl(url) {
   if (window.electronAPI && window.electronAPI.openExternal) {
     window.electronAPI.openExternal(url);
   }

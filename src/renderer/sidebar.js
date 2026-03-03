@@ -3,9 +3,11 @@
  * 負責渲染側邊欄 Tab 按鈕、未讀徽章更新
  */
 
+import { platformConfig, tabOrder } from './platform-config.js';
+
 //#region 狀態
 /** @type {Record<string, number>} */
-const unreadCounts = {};
+export const unreadCounts = {};
 //#endregion
 
 /**
@@ -13,7 +15,7 @@ const unreadCounts = {};
  * @param {object} shortcutConfig
  * @returns {{ key: string, shortcutNum: string|null }[]}
  */
-function getSidebarOrder(shortcutConfig) {
+export function getSidebarOrder(shortcutConfig) {
   const assigned = [];
   const seen = new Set();
 
@@ -41,7 +43,7 @@ function getSidebarOrder(shortcutConfig) {
  * @param {object} shortcutConfig
  * @param {function} onTabClick
  */
-function renderSidebar(shortcutConfig, onTabClick) {
+export function renderSidebar(shortcutConfig, onTabClick) {
   const sidebarTabsEl = document.getElementById('sidebar-tabs');
   if (!sidebarTabsEl) return;
 
@@ -97,7 +99,7 @@ function renderSidebar(shortcutConfig, onTabClick) {
  * @param {object} shortcutConfig
  * @param {HTMLElement} dockBadge
  */
-function updateBadge(tabKey, count, shortcutConfig, dockBadge) {
+export function updateBadge(tabKey, count, shortcutConfig, dockBadge) {
   unreadCounts[tabKey] = count;
 
   // 側邊欄徽章

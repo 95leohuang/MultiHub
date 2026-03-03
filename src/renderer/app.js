@@ -14,6 +14,20 @@
  *   renderer/quick-notes.js
  */
 
+import { platformConfig } from './platform-config.js';
+import { showToast } from './toast.js';
+import { renderSidebar, getSidebarOrder } from './sidebar.js';
+import { bindNavBarEvents, setNavLoading, getActiveWebview } from './nav-bar.js';
+import { initWebviews, switchTab, switchTabCarousel, bindWebviewEvents, webviews } from './tab-manager.js';
+import { renderPlatformGrid, togglePopup, closePopup, bindGridPopupEvents } from './grid-popup.js';
+import { getShortcutConfig, loadShortcutConfig, bindShortcutSettingsEvents } from './shortcut-settings.js';
+import { initTheme } from './theme.js';
+import { initQuickNotes } from './quick-notes.js';
+
+import './features/git-updater-ui.js';
+import './features/skill-sync-ui.js';
+import './features/git-gui-ui.js';
+
 document.addEventListener('DOMContentLoaded', () => {
 
   //#region 初始化各模組

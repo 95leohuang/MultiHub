@@ -2,8 +2,14 @@
  * Tab 切換與 Webview 管理模組
  */
 
+import { platformConfig } from './platform-config.js';
+import { setNavTitle, updateNavBar, setNavLoading } from './nav-bar.js';
+import { closePopup } from './grid-popup.js';
+import { openExternalUrl } from './toast.js';
+import { updateBadge } from './sidebar.js';
+
 /** @type {Record<string, HTMLElement>} */
-const webviews = {
+export const webviews = {
   messenger: null,
   chatgpt: null,
   gemini: null,
@@ -18,7 +24,7 @@ const webviews = {
 /**
  * 初始化 Webview 元素對應表
  */
-function initWebviews() {
+export function initWebviews() {
   Object.keys(webviews).forEach(key => {
     const id = key === 'git' ? 'git-updater-ui' :
       key === 'skills' ? 'skill-sync-ui' :
@@ -34,7 +40,7 @@ function initWebviews() {
  * @param {string} tabName
  * @param {object} shortcutConfig
  */
-function switchTab(tabName, shortcutConfig) {
+export function switchTab(tabName, shortcutConfig) {
   // 1. Webview 顯示切換
   Object.entries(webviews).forEach(([name, el]) => {
     if (!el) return;
@@ -94,7 +100,7 @@ function switchTab(tabName, shortcutConfig) {
  * @param {number} shortcutNum
  * @param {object} shortcutConfig
  */
-function switchTabCarousel(shortcutNum, shortcutConfig) {
+export function switchTabCarousel(shortcutNum, shortcutConfig) {
   const services = shortcutConfig[shortcutNum];
   if (!services || services.length === 0) return;
   if (services.length === 1) { switchTab(services[0], shortcutConfig); return; }
@@ -129,7 +135,7 @@ const internalDomains = [
  * 綁定所有 Webview 事件
  * @param {object} shortcutConfig
  */
-function bindWebviewEvents(shortcutConfig) {
+export function bindWebviewEvents(shortcutConfig) {
   Object.entries(webviews).forEach(([name, wv]) => {
     if (!wv || wv.tagName !== 'WEBVIEW') return;
 

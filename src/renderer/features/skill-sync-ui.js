@@ -1,3 +1,5 @@
+import { showToast } from '../toast.js';
+
 document.addEventListener('DOMContentLoaded', async () => {
   const skillSyncUI = document.getElementById('skill-sync-ui');
   if (!skillSyncUI) return;

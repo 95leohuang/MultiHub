@@ -1,3 +1,5 @@
+import { showToast } from '../toast.js';
+
 document.addEventListener('DOMContentLoaded', async () => {
   const gitUpdaterUI = document.getElementById('git-updater-ui');
   if (!gitUpdaterUI) return;

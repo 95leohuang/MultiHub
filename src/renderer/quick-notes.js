@@ -4,6 +4,8 @@
  * 資料持久化至 localStorage
  */
 
+import { showToast } from './toast.js';
+
 //#region 狀態
 /** @type {{ id: string, title: string, body: string, updatedAt: number }[]} */
 let notes = [];
@@ -41,7 +43,7 @@ function saveNotes() {
 
 /** 渲染筆記清單 */
 function renderNotesList() {
-  const notesList  = document.getElementById('notes-list');
+  const notesList = document.getElementById('notes-list');
   const notesEmpty = document.getElementById('notes-empty');
   if (!notesList || !notesEmpty) return;
 
@@ -77,19 +79,19 @@ function openNote(id) {
   activeNoteId = id;
   renderNotesList();
 
-  const editorEmpty   = document.getElementById('notes-editor-empty');
+  const editorEmpty = document.getElementById('notes-editor-empty');
   const editorContent = document.getElementById('notes-editor-content');
   const noteTitleInput = document.getElementById('note-title-input');
-  const noteBodyInput  = document.getElementById('note-body-input');
-  const noteMeta       = document.getElementById('note-meta');
+  const noteBodyInput = document.getElementById('note-body-input');
+  const noteMeta = document.getElementById('note-meta');
   const noteSaveStatus = document.getElementById('note-save-status');
 
-  if (editorEmpty)   editorEmpty.classList.add('hidden');
+  if (editorEmpty) editorEmpty.classList.add('hidden');
   if (editorContent) editorContent.classList.remove('hidden');
   if (noteTitleInput) noteTitleInput.value = note.title || '';
-  if (noteBodyInput)  noteBodyInput.value  = note.body  || '';
-  if (noteMeta)        noteMeta.textContent = `最後更新：${fmtTime(note.updatedAt)}`;
-  if (noteSaveStatus)  noteSaveStatus.textContent = '';
+  if (noteBodyInput) noteBodyInput.value = note.body || '';
+  if (noteMeta) noteMeta.textContent = `最後更新：${fmtTime(note.updatedAt)}`;
+  if (noteSaveStatus) noteSaveStatus.textContent = '';
 }
 
 /** 新增一筆筆記並開啟 */
@@ -111,12 +113,12 @@ function autoSave() {
   if (!note) return;
 
   const noteTitleInput = document.getElementById('note-title-input');
-  const noteBodyInput  = document.getElementById('note-body-input');
-  const noteMeta       = document.getElementById('note-meta');
+  const noteBodyInput = document.getElementById('note-body-input');
+  const noteMeta = document.getElementById('note-meta');
   const noteSaveStatus = document.getElementById('note-save-status');
 
-  note.title     = noteTitleInput ? noteTitleInput.value : note.title;
-  note.body      = noteBodyInput  ? noteBodyInput.value  : note.body;
+  note.title = noteTitleInput ? noteTitleInput.value : note.title;
+  note.body = noteBodyInput ? noteBodyInput.value : note.body;
   note.updatedAt = Date.now();
   saveNotes();
   renderNotesList();
@@ -136,9 +138,9 @@ function deleteCurrentNote() {
   saveNotes();
   activeNoteId = null;
 
-  const editorEmpty   = document.getElementById('notes-editor-empty');
+  const editorEmpty = document.getElementById('notes-editor-empty');
   const editorContent = document.getElementById('notes-editor-content');
-  if (editorEmpty)   editorEmpty.classList.remove('hidden');
+  if (editorEmpty) editorEmpty.classList.remove('hidden');
   if (editorContent) editorContent.classList.add('hidden');
   renderNotesList();
   showToast('筆記已刪除', 'info', 2000);
@@ -147,12 +149,12 @@ function deleteCurrentNote() {
 /**
  * 初始化 Quick Notes 模組（綁定所有事件並載入資料）
  */
-function initQuickNotes() {
-  const addNoteBtn    = document.getElementById('add-note-btn');
+export function initQuickNotes() {
+  const addNoteBtn = document.getElementById('add-note-btn');
   const noteTitleInput = document.getElementById('note-title-input');
-  const noteBodyInput  = document.getElementById('note-body-input');
-  const noteCopyBtn    = document.getElementById('note-copy-btn');
-  const noteDeleteBtn  = document.getElementById('note-delete-btn');
+  const noteBodyInput = document.getElementById('note-body-input');
+  const noteCopyBtn = document.getElementById('note-copy-btn');
+  const noteDeleteBtn = document.getElementById('note-delete-btn');
 
   if (addNoteBtn) addNoteBtn.addEventListener('click', addNote);
 

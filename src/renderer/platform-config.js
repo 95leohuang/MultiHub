@@ -4,7 +4,7 @@
  */
 
 /** @type {Record<string, { label: string, favicon: string, homeUrl: string|null, color: string }>} */
-const platformConfig = {
+export const platformConfig = {
   messenger: {
     label: 'Messenger',
     favicon: 'https://static.xx.fbcdn.net/rsrc.php/yO/r/qa11ER6rke_.ico',
@@ -62,4 +62,4 @@ const platformConfig = {
 };
 
 /** 預設 Tab 順序 */
-const tabOrder = ['messenger', 'chatgpt', 'gemini', 'git', 'skills', 'notes', 'discord', 'telegram', 'gitgui'];
+export const tabOrder = ['messenger', 'chatgpt', 'gemini', 'git', 'skills', 'notes', 'discord', 'telegram', 'gitgui'];

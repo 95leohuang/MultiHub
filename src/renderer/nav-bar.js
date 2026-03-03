@@ -3,18 +3,21 @@
  * 負責 Webview 的上一頁/下一頁/重整/首頁/外部開啟/標題顯示
  */
 
-//#region DOM 元素（延遲綁定）
-let _navBar, _navBack, _navForward, _navReload, _navHome, _navPageTitle, _navSpinner, _navOpenExt;
+import { platformConfig } from './platform-config.js';
+import { openExternalUrl } from './toast.js';
 
-function initNavBar() {
-  _navBar       = document.getElementById('nav-bar');
-  _navBack      = document.getElementById('nav-back');
-  _navForward   = document.getElementById('nav-forward');
-  _navReload    = document.getElementById('nav-reload');
-  _navHome      = document.getElementById('nav-home');
+//#region DOM 元素（延遲綁定）
+export let _navBar, _navBack, _navForward, _navReload, _navHome, _navPageTitle, _navSpinner, _navOpenExt;
+
+export function initNavBar() {
+  _navBar = document.getElementById('nav-bar');
+  _navBack = document.getElementById('nav-back');
+  _navForward = document.getElementById('nav-forward');
+  _navReload = document.getElementById('nav-reload');
+  _navHome = document.getElementById('nav-home');
   _navPageTitle = document.getElementById('nav-page-title');
-  _navSpinner   = document.getElementById('nav-loading-spinner');
-  _navOpenExt   = document.getElementById('nav-open-external');
+  _navSpinner = document.getElementById('nav-loading-spinner');
+  _navOpenExt = document.getElementById('nav-open-external');
 }
 //#endregion
 
@@ -23,7 +26,7 @@ function initNavBar() {
  * @param {Record<string, HTMLElement>} webviews
  * @returns {HTMLElement|null}
  */
-function getActiveWebview(webviews) {
+export function getActiveWebview(webviews) {
   const el = webviews[localStorage.getItem('activeTab') || 'messenger'];
   return el && el.tagName === 'WEBVIEW' ? el : null;
 }
@@ -33,14 +36,14 @@ function getActiveWebview(webviews) {
  * @param {string} tabName
  * @param {Record<string, HTMLElement>} webviews
  */
-function updateNavBar(tabName, webviews) {
+export function updateNavBar(tabName, webviews) {
   if (!_navBar) return;
   const wv = webviews[tabName];
   const isWV = wv && wv.tagName === 'WEBVIEW';
   _navBar.classList.toggle('hidden', !isWV);
   if (!isWV) return;
   try {
-    _navBack.disabled    = !wv.canGoBack();
+    _navBack.disabled = !wv.canGoBack();
     _navForward.disabled = !wv.canGoForward();
   } catch (_) { /* 尚未載入時忽略 */ }
 }
@@ -49,7 +52,7 @@ function updateNavBar(tabName, webviews) {
  * 更新導覽列的頁面標題
  * @param {string} title
  */
-function setNavTitle(title) {
+export function setNavTitle(title) {
   if (_navPageTitle) _navPageTitle.textContent = title;
 }
 
@@ -57,16 +60,16 @@ function setNavTitle(title) {
  * 更新 spinner 與 reload 按鈕的載入狀態
  * @param {boolean} isLoading
  */
-function setNavLoading(isLoading) {
+export function setNavLoading(isLoading) {
   if (_navSpinner) _navSpinner.classList.toggle('hidden', !isLoading);
-  if (_navReload)  _navReload.classList.toggle('loading', isLoading);
+  if (_navReload) _navReload.classList.toggle('loading', isLoading);
 }
 
 /**
  * 綁定導航列按鈕事件
  * @param {Record<string, HTMLElement>} webviews
  */
-function bindNavBarEvents(webviews) {
+export function bindNavBarEvents(webviews) {
   initNavBar();
 
   _navBack.addEventListener('click', () => {
