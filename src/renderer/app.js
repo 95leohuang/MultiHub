@@ -22,7 +22,7 @@ import { initWebviews, switchTab, switchTabCarousel, bindWebviewEvents, webviews
 import { renderPlatformGrid, togglePopup, closePopup, bindGridPopupEvents } from './grid-popup.js';
 import { getShortcutConfig, loadShortcutConfig, bindShortcutSettingsEvents } from './shortcut-settings.js';
 import { initTheme } from './theme.js';
-import { initQuickNotes } from './quick-notes.js';
+import { initQuickNotes } from './features/quick-notes.js';
 
 import './features/git-updater-ui.js';
 import './features/skill-sync-ui.js';

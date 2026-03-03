@@ -2,36 +2,58 @@
  * Tab 切換與 Webview 管理模組
  */
 
-import { platformConfig } from './platform-config.js';
+import { platformConfig, externalServices, localFeatures } from './platform-config.js';
 import { setNavTitle, updateNavBar, setNavLoading } from './nav-bar.js';
 import { closePopup } from './grid-popup.js';
 import { openExternalUrl } from './toast.js';
 import { updateBadge } from './sidebar.js';
 
 /** @type {Record<string, HTMLElement>} */
-export const webviews = {
-  messenger: null,
-  chatgpt: null,
-  gemini: null,
-  git: null,
-  skills: null,
-  notes: null,
-  discord: null,
-  telegram: null,
-  gitgui: null
-};
+export const webviews = {};
 
 /**
  * 初始化 Webview 元素對應表
  */
 export function initWebviews() {
-  Object.keys(webviews).forEach(key => {
+  const container = document.getElementById('webview-container');
+  if (!container) return;
+
+  // 1. 綁定已存在於 HTML 的 Local Features (如 Git GUI, Quick Notes)
+  Object.keys(localFeatures).forEach(key => {
     const id = key === 'git' ? 'git-updater-ui' :
       key === 'skills' ? 'skill-sync-ui' :
         key === 'notes' ? 'quick-notes-ui' :
-          key === 'gitgui' ? 'git-gui-ui' :
-            `${key}-webview`;
-    webviews[key] = document.getElementById(id);
+          key === 'gitgui' ? 'git-gui-ui' : null;
+    if (id) {
+      const el = document.getElementById(id);
+      if (el) webviews[key] = el;
+    }
+  });
+
+  // 2. 動態生成 External Services 的 Webview
+  Object.entries(externalServices).forEach(([key, config]) => {
+    if (config.type === 'webview') {
+      const wv = document.createElement('webview');
+      wv.id = `${key}-webview`;
+      wv.className = 'webview';
+      if (config.partition !== false) {
+        wv.setAttribute('partition', config.partition || `persist:${key}`);
+      }
+      if (config.allowpopups) wv.setAttribute('allowpopups', '');
+      if (config.useragent) wv.setAttribute('useragent', config.useragent);
+      if (config.preload) wv.setAttribute('preload', config.preload);
+
+      // 特殊處理：Messenger 啟動直接載入，其他延遲載入 (data-src)
+      if (key === 'messenger') {
+        wv.src = config.homeUrl;
+        wv.classList.add('active'); // 預設顯示
+      } else {
+        wv.dataset.src = config.homeUrl;
+      }
+
+      container.appendChild(wv);
+      webviews[key] = wv;
+    }
   });
 }
 

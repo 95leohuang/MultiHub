@@ -4,7 +4,7 @@
  * 資料持久化至 localStorage
  */
 
-import { showToast } from './toast.js';
+import { showToast } from '../toast.js';
 
 //#region 狀態
 /** @type {{ id: string, title: string, body: string, updatedAt: number }[]} */

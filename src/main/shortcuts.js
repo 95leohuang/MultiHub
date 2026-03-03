@@ -6,11 +6,12 @@ const { globalShortcut } = require('electron');
  * 註冊所有全域快捷鍵
  */
 function registerShortcuts() {
-  const { getMainWindow } = require('./window');
+  const { BrowserWindow } = require('electron');
 
   //#region 顯示/隱藏視窗
   const toggleWindow = () => {
-    const win = getMainWindow();
+    const windows = BrowserWindow.getAllWindows();
+    const win = windows.length > 0 ? windows[0] : null;
     if (win && !win.isDestroyed()) {
       if (win.isVisible()) {
         win.hide();
@@ -55,7 +56,8 @@ function registerShortcuts() {
     // 雖然這裡不使用序號切換，但我們將整個按鍵字串傳給前端，讓前端處理邏輯
     try {
       globalShortcut.register(accel, () => {
-        const win = getMainWindow();
+        const windows = BrowserWindow.getAllWindows();
+        const win = windows.length > 0 ? windows[0] : null;
         if (win && !win.isDestroyed()) {
           win.webContents.send('switch-tab', accel); // 傳送 accelerator 字串
           if (!win.isVisible()) win.show();
