@@ -50,7 +50,9 @@
   -webkit-app-region: no-drag;
 }
 
-.notes-add-btn:hover { background: #fbbf24; }
+.notes-add-btn:hover {
+  background: #fbbf24;
+}
 
 .notes-layout {
   display: flex;
@@ -84,7 +86,9 @@
   border: 1px solid transparent;
 }
 
-.note-list-item:hover { background: var(--bg-hover); }
+.note-list-item:hover {
+  background: var(--bg-hover);
+}
 
 .note-list-item.active {
   background: rgba(245, 158, 11, 0.1);
@@ -101,7 +105,9 @@
   margin-bottom: 3px;
 }
 
-.note-list-item.active .note-item-title { color: #f59e0b; }
+.note-list-item.active .note-item-title {
+  color: #f59e0b;
+}
 
 .note-item-preview {
   font-size: 11px;
@@ -129,8 +135,20 @@
   text-align: center;
 }
 
-.notes-empty p    { font-size: 13px; color: var(--text-secondary); margin: 0; }
-.notes-empty span { font-size: 11px; color: var(--text-muted); }
+.notes-empty.hidden {
+  display: none !important;
+}
+
+.notes-empty p {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.notes-empty span {
+  font-size: 11px;
+  color: var(--text-muted);
+}
 
 .notes-editor-panel {
   flex: 1;
@@ -151,13 +169,24 @@
   font-size: 13px;
 }
 
-.notes-editor-placeholder p { margin: 0; opacity: 0.5; }
+.notes-editor-placeholder.hidden {
+  display: none !important;
+}
+
+.notes-editor-placeholder p {
+  margin: 0;
+  opacity: 0.5;
+}
 
 #notes-editor-content {
   display: flex;
   flex-direction: column;
   flex: 1;
   min-height: 0;
+}
+
+#notes-editor-content.hidden {
+  display: none !important;
 }
 
 .note-title-input {
@@ -174,8 +203,14 @@
   box-sizing: border-box;
 }
 
-.note-title-input:focus          { border-bottom-color: #f59e0b; }
-.note-title-input::placeholder   { color: var(--text-muted); font-weight: 400; }
+.note-title-input:focus {
+  border-bottom-color: #f59e0b;
+}
+
+.note-title-input::placeholder {
+  color: var(--text-muted);
+  font-weight: 400;
+}
 
 .note-meta {
   padding: 4px 20px 6px;
@@ -198,7 +233,13 @@
   box-sizing: border-box;
 }
 
-.note-body-input::placeholder { color: var(--text-muted); }
+.note-body-input.hidden {
+  display: none !important;
+}
+
+.note-body-input::placeholder {
+  color: var(--text-muted);
+}
 
 .notes-editor-actions {
   display: flex;
@@ -224,7 +265,10 @@
   transition: all var(--transition);
 }
 
-.note-action-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+.note-action-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
 
 .note-action-btn.danger {
   color: var(--danger);
@@ -241,4 +285,148 @@
   font-size: 11px;
   color: var(--success);
   opacity: 0.8;
+}
+
+/* ========================================
+   Quick Notes Preview & Extra Features
+   ======================================== */
+
+.notes-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition);
+  -webkit-app-region: no-drag;
+}
+
+.notes-action-btn.hidden {
+  display: none !important;
+}
+
+.notes-action-btn:hover {
+  background: var(--bg-hover);
+}
+
+.notes-preview-content {
+  flex: 1;
+  width: 100%;
+  padding: 12px 20px;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--text-primary);
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+.notes-preview-content.hidden {
+  display: none !important;
+}
+
+/* 簡單 Markdown 樣式 */
+.markdown-body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+  word-wrap: break-word;
+}
+
+.markdown-body p,
+.markdown-body blockquote,
+.markdown-body ul,
+.markdown-body ol,
+.markdown-body dl,
+.markdown-body table,
+.markdown-body pre,
+.markdown-body details {
+  margin-top: 0;
+  margin-bottom: 16px;
+}
+
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3,
+.markdown-body h4,
+.markdown-body h5,
+.markdown-body h6 {
+  margin-top: 24px;
+  margin-bottom: 16px;
+  font-weight: 600;
+  line-height: 1.25;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 0.3em;
+}
+
+.markdown-body h1 {
+  font-size: 2em;
+}
+
+.markdown-body h2 {
+  font-size: 1.5em;
+}
+
+.markdown-body h3 {
+  font-size: 1.25em;
+}
+
+.markdown-body ul,
+.markdown-body ol {
+  padding-left: 2em;
+}
+
+.markdown-body blockquote {
+  padding: 0 1em;
+  color: var(--text-muted);
+  border-left: 0.25em solid var(--border-color);
+}
+
+.markdown-body code {
+  padding: 0.2em 0.4em;
+  margin: 0;
+  font-size: 85%;
+  background-color: var(--bg-tertiary);
+  border-radius: 6px;
+  font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace;
+}
+
+.markdown-body pre {
+  padding: 16px;
+  overflow: auto;
+  font-size: 85%;
+  line-height: 1.45;
+  background-color: var(--bg-tertiary);
+  border-radius: 6px;
+}
+
+.markdown-body pre code {
+  display: inline;
+  max-width: auto;
+  padding: 0;
+  margin: 0;
+  overflow: visible;
+  line-height: inherit;
+  word-wrap: normal;
+  background-color: transparent;
+  border: 0;
+}
+
+.markdown-body img {
+  max-width: 100%;
+  box-sizing: content-box;
+  background-color: var(--bg-primary);
+  border-radius: 6px;
+}
+
+.markdown-body a {
+  color: #58a6ff;
+  text-decoration: none;
+}
+
+.markdown-body a:hover {
+  text-decoration: underline;
 }

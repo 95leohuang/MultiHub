@@ -56,6 +56,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   compareSkills: (rootPath) => ipcRenderer.invoke('compare-skills', rootPath),
   readSkillContent: (data) => ipcRenderer.invoke('read-skill-content', data),
   syncSkillFile: (data) => ipcRenderer.invoke('sync-skill-file', data),
+  // Quick Notes: 圖片處理 API
+  saveImage: (data) => ipcRenderer.invoke('save-image', data),
+  selectImage: () => ipcRenderer.invoke('select-image'),
   // Git Repo Info
   getRepoInfo: (repoPath) => ipcRenderer.invoke('get-repo-info', repoPath),
   // Toast 通知監聽

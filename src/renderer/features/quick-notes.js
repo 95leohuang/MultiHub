@@ -9,9 +9,9 @@ import { showToast } from '../toast.js';
 //#region 狀態
 /** @type {{ id: string, title: string, body: string, updatedAt: number }[]} */
 let notes = [];
-/** @type {string|null} */
 let activeNoteId = null;
 let saveTimer = null;
+let isPreviewMode = false;
 //#endregion
 
 /**
@@ -25,11 +25,98 @@ function fmtTime(ts) {
   });
 }
 
+/** 切換預覽模式 */
+function setPreviewMode(enable) {
+  isPreviewMode = enable;
+  const bodyInput = document.getElementById('note-body-input');
+  const previewContent = document.getElementById('notes-preview-content');
+  const modeText = document.getElementById('note-mode-text');
+  const modeIcon = document.querySelector('#note-mode-toggle-btn svg');
+
+  if (isPreviewMode) {
+    if (bodyInput) bodyInput.classList.add('hidden');
+    if (previewContent) {
+      previewContent.classList.remove('hidden');
+      const text = bodyInput ? bodyInput.value : '';
+
+      const html = window.marked ? window.marked.parse(text, { breaks: true, gfm: true }) : text;
+
+      // 注意：marked.parse 可能是同步也可能是非同步（根據設定或版本）
+      // 如果回傳是 Promise (例如新版搭配異步 highlight 外掛)，則等待
+      Promise.resolve(html).then(resolvedHtml => {
+        previewContent.innerHTML = resolvedHtml;
+
+        if (window.Prism) {
+          window.Prism.highlightAllUnder(previewContent);
+        }
+
+        if (window.mermaid) {
+          const mermaidNodes = previewContent.querySelectorAll('code.language-mermaid');
+          mermaidNodes.forEach((node, index) => {
+            const pre = node.parentElement;
+            if (pre && pre.tagName === 'PRE') {
+              const div = document.createElement('div');
+              div.className = 'mermaid';
+              div.textContent = node.textContent;
+              div.id = `mermaid-${Date.now()}-${index}`; // 給每個圖表唯一 ID 防止衝突
+              pre.replaceWith(div);
+            }
+          });
+
+          const mermaids = previewContent.querySelectorAll('.mermaid');
+          if (mermaids.length > 0) {
+            window.mermaid.run({ nodes: mermaids }).catch(e => console.error('Mermaid render error:', e));
+          }
+        }
+      });
+    }
+    if (modeText) modeText.textContent = '編輯';
+    if (modeIcon) modeIcon.innerHTML = '<path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>';
+  } else {
+    if (bodyInput) bodyInput.classList.remove('hidden');
+    if (previewContent) previewContent.classList.add('hidden');
+    if (modeText) modeText.textContent = '預覽';
+    if (modeIcon) modeIcon.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+  }
+}
+
+/** 插入圖片到筆記 */
+function insertImageToNote(imagePath) {
+  const bodyInput = document.getElementById('note-body-input');
+  if (!bodyInput) return;
+  const start = bodyInput.selectionStart;
+  const end = bodyInput.selectionEnd;
+  const text = bodyInput.value;
+  const before = text.substring(0, start);
+  const after = text.substring(end);
+  const insertText = `\n![Image](${imagePath})\n`;
+  bodyInput.value = before + insertText + after;
+  bodyInput.selectionStart = bodyInput.selectionEnd = start + insertText.length;
+  autoSave();
+}
+
 /** 從 localStorage 載入筆記 */
 function loadNotes() {
   try {
     const raw = localStorage.getItem('quickNotes');
     notes = raw ? JSON.parse(raw) : [];
+
+    // 轉換舊的 file:// 圖片路徑為 local:// 以配合新協定 (避免 CSP 或跨域被擋)
+    notes = notes.map(note => {
+      if (note.body) {
+        if (note.body.includes('file://')) {
+          note.body = note.body.replace(/file:\/\//g, 'local://');
+        }
+        // 修復舊有筆記中 local:// 路徑包含空白（如 "Multi Hub" 資料夾）導致 Markdown 無法渲染圖片的問題
+        note.body = note.body.replace(/!\[.*?\]\((local:\/\/[^)]+)\)/g, (match, url) => {
+          if (url.includes(' ')) {
+            return match.replace(url, encodeURI(url));
+          }
+          return match;
+        });
+      }
+      return note;
+    });
   } catch (_) {
     notes = [];
   }
@@ -92,6 +179,10 @@ function openNote(id) {
   if (noteBodyInput) noteBodyInput.value = note.body || '';
   if (noteMeta) noteMeta.textContent = `最後更新：${fmtTime(note.updatedAt)}`;
   if (noteSaveStatus) noteSaveStatus.textContent = '';
+
+  const modeToggleBtn = document.getElementById('note-mode-toggle-btn');
+  if (modeToggleBtn) modeToggleBtn.classList.remove('hidden');
+  setPreviewMode(true);
 }
 
 /** 新增一筆筆記並開啟 */
@@ -101,6 +192,7 @@ function addNote() {
   saveNotes();
   renderNotesList();
   openNote(note.id);
+  setPreviewMode(false);
   const noteTitleInput = document.getElementById('note-title-input');
   if (noteTitleInput) noteTitleInput.focus();
   showToast('已新增筆記', 'success', 2000);
@@ -142,6 +234,10 @@ function deleteCurrentNote() {
   const editorContent = document.getElementById('notes-editor-content');
   if (editorEmpty) editorEmpty.classList.remove('hidden');
   if (editorContent) editorContent.classList.add('hidden');
+
+  const modeToggleBtn = document.getElementById('note-mode-toggle-btn');
+  if (modeToggleBtn) modeToggleBtn.classList.add('hidden');
+
   renderNotesList();
   showToast('筆記已刪除', 'info', 2000);
 }
@@ -155,8 +251,27 @@ export function initQuickNotes() {
   const noteBodyInput = document.getElementById('note-body-input');
   const noteCopyBtn = document.getElementById('note-copy-btn');
   const noteDeleteBtn = document.getElementById('note-delete-btn');
+  const noteModeToggleBtn = document.getElementById('note-mode-toggle-btn');
+  const noteInsertImgBtn = document.getElementById('note-insert-img-btn');
+
+  if (window.mermaid) {
+    window.mermaid.initialize({ startOnLoad: false, theme: 'dark', securityLevel: 'loose' });
+  }
 
   if (addNoteBtn) addNoteBtn.addEventListener('click', addNote);
+
+  if (noteModeToggleBtn) {
+    noteModeToggleBtn.addEventListener('click', () => setPreviewMode(!isPreviewMode));
+  }
+
+  if (noteInsertImgBtn) {
+    noteInsertImgBtn.addEventListener('click', async () => {
+      if (window.electronAPI && window.electronAPI.selectImage) {
+        const imagePath = await window.electronAPI.selectImage();
+        if (imagePath) insertImageToNote(imagePath);
+      }
+    });
+  }
 
   if (noteTitleInput) {
     noteTitleInput.addEventListener('input', () => {
@@ -169,6 +284,49 @@ export function initQuickNotes() {
     noteBodyInput.addEventListener('input', () => {
       clearTimeout(saveTimer);
       saveTimer = setTimeout(autoSave, 600);
+    });
+
+    noteBodyInput.addEventListener('paste', async (e) => {
+      const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+      for (const item of items) {
+        if (item.type.indexOf('image/') === 0) {
+          e.preventDefault();
+          const file = item.getAsFile();
+          if (file && window.electronAPI && window.electronAPI.saveImage) {
+            try {
+              const buffer = await file.arrayBuffer();
+              const ext = file.name.split('.').pop() || 'png';
+              const imagePath = await window.electronAPI.saveImage({ buffer, ext });
+              if (imagePath) insertImageToNote(imagePath);
+            } catch (err) {
+              console.error('Save image failed', err);
+            }
+          }
+        }
+      }
+    });
+
+    noteBodyInput.addEventListener('drop', async (e) => {
+      e.preventDefault();
+      const files = e.dataTransfer.files;
+      for (const file of files) {
+        if (file.type.indexOf('image/') === 0) {
+          if (window.electronAPI && window.electronAPI.saveImage) {
+            try {
+              const buffer = await file.arrayBuffer();
+              const ext = file.name.split('.').pop() || 'png';
+              const imagePath = await window.electronAPI.saveImage({ buffer, ext });
+              if (imagePath) insertImageToNote(imagePath);
+            } catch (err) {
+              console.error('Save image failed', err);
+            }
+          }
+        }
+      }
+    });
+
+    noteBodyInput.addEventListener('dragover', (e) => {
+      e.preventDefault();
     });
   }
 

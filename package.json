@@ -29,7 +29,10 @@
     "cross-fetch": "^4.1.0",
     "electron-context-menu": "^3.6.1",
     "electron-store": "^8.1.0",
-    "lucide": "^0.575.0"
+    "lucide": "^0.575.0",
+    "marked": "^17.0.4",
+    "mermaid": "^11.12.3",
+    "prismjs": "^1.30.0"
   },
   "devDependencies": {
     "electron": "^27.0.0",

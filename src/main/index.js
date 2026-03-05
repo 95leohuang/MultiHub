@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, Tray, shell, ipcMain, nativeImage, globalShortcut, session } = require('electron');
+const { app, BrowserWindow, Menu, Tray, shell, ipcMain, nativeImage, globalShortcut, session, protocol, net } = require('electron');
 const path = require('path');
 const crypto = require('crypto');
 const Store = require('electron-store');
@@ -526,6 +526,32 @@ app.on('web-contents-created', (event, contents) => {
 
 // 應用生命周期
 app.whenReady().then(async () => {
+  // 註冊 local:// 協議來繞過 Chrome 安全性讀取本地圖片檔案
+  protocol.handle('local', async (request) => {
+    // 移除 "local://"
+    let filePath = request.url.slice('local://'.length);
+    filePath = decodeURIComponent(filePath);
+
+    // 處理可能的 local:/// 格式 (如果有多的斜線)
+    if (process.platform === 'win32') {
+      if (filePath.startsWith('/')) {
+        filePath = filePath.slice(1);
+      }
+      // 因為 Chromium 解析自訂 protocol 主機名稱時可能會把磁碟機冒號吃掉 (變成 C/Users/...)
+      // 這邊把它還原成 C:/Users/...
+      if (/^[a-zA-Z]\//.test(filePath)) {
+        filePath = filePath[0] + ':' + filePath.slice(1);
+      }
+    }
+
+    try {
+      const data = await require('fs').promises.readFile(filePath);
+      return new Response(data);
+    } catch (error) {
+      console.error('Local protocol error:', error, 'path:', filePath);
+      return new Response('Not Found', { status: 404 });
+    }
+  });
 
   // 設定 Google 服務的 User-Agent（解決 YouTube/Gemini 登入問題）
 
@@ -667,6 +693,53 @@ ipcMain.handle('select-directory', async () => {
   if (result.canceled) return null;
   return result.filePaths[0];
 });
+
+// Quick Notes: 圖片處理
+ipcMain.handle('save-image', async (event, { buffer, ext }) => {
+  try {
+    const userDataPath = app.getPath('userData');
+    const imagesDir = path.join(userDataPath, 'quick-notes-images');
+    if (!fs.existsSync(imagesDir)) {
+      fs.mkdirSync(imagesDir, { recursive: true });
+    }
+    const filename = `img_${Date.now()}.${ext || 'png'}`;
+    const filePath = path.join(imagesDir, filename);
+    fs.writeFileSync(filePath, Buffer.from(buffer));
+    return `local://${encodeURI(filePath.replace(/\\/g, '/'))}`;
+  } catch (error) {
+    console.error('Failed to save image:', error);
+    return null;
+  }
+});
+
+ipcMain.handle('select-image', async () => {
+  try {
+    const result = await dialog.showOpenDialog(mainWindow, {
+      properties: ['openFile'],
+      filters: [{ name: 'Images', extensions: ['jpg', 'jpeg', 'png', 'gif', 'webp'] }]
+    });
+
+    if (result.canceled || result.filePaths.length === 0) return null;
+
+    const sourcePath = result.filePaths[0];
+    const userDataPath = app.getPath('userData');
+    const imagesDir = path.join(userDataPath, 'quick-notes-images');
+    if (!fs.existsSync(imagesDir)) {
+      fs.mkdirSync(imagesDir, { recursive: true });
+    }
+
+    const ext = path.extname(sourcePath).slice(1);
+    const filename = `img_${Date.now()}.${ext || 'png'}`;
+    const destPath = path.join(imagesDir, filename);
+
+    fs.copyFileSync(sourcePath, destPath);
+    return `local://${encodeURI(destPath.replace(/\\/g, '/'))}`;
+  } catch (error) {
+    console.error('Failed to select image:', error);
+    return null;
+  }
+});
+
 
 
 // 搜尋 Git 儲存庫
