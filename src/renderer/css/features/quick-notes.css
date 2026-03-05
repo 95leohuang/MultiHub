@@ -430,3 +430,124 @@
 .markdown-body a:hover {
   text-decoration: underline;
 }
+
+/* Slash Command Menu */
+#note-slash-menu {
+  position: absolute;
+  top: 100%;
+  /* Default, JavaScript will reposition */
+  left: 0;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  max-height: 250px;
+  overflow-y: auto;
+  width: 240px;
+  z-index: 1000;
+}
+
+#note-slash-menu.hidden {
+  display: none !important;
+}
+
+.slash-menu-items {
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+}
+
+.slash-menu-item {
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.slash-menu-item:hover,
+.slash-menu-item.active {
+  background: var(--bg-hover);
+}
+
+.slash-menu-title {
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.slash-menu-desc {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+/* Cheat Sheet Modal */
+#note-cheat-sheet-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#note-cheat-sheet-modal.hidden {
+  display: none !important;
+}
+
+.cheat-sheet-box {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  width: 90%;
+  max-width: 600px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+}
+
+.cheat-sheet-header {
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  background: var(--bg-surface);
+}
+
+#cheat-sheet-close-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 24px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0;
+}
+
+#cheat-sheet-close-btn:hover {
+  color: var(--text-danger);
+}
+
+.cheat-sheet-content {
+  padding: 24px;
+  overflow-y: auto;
+}
+
+.cheat-sheet-content h4 {
+  margin-top: 0;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.cheat-sheet-content pre {
+  margin-bottom: 24px !important;
+}

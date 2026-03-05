@@ -145,6 +145,13 @@
               <span>Quick Notes</span>
             </div>
             <div class="notes-toolbar-right" style="display: flex; gap: 8px;">
+              <button id="note-help-btn" class="notes-action-btn" title="語法小抄 (Markdown & Mermaid)">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+                  <line x1="12" y1="17" x2="12.01" y2="17" />
+                </svg>
+              </button>
               <button id="note-mode-toggle-btn" class="notes-action-btn hidden" title="切換編輯/預覽">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                   <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
@@ -220,6 +227,10 @@
                     刪除
                   </button>
                   <span class="note-save-status" id="note-save-status"></span>
+                </div>
+                <!-- 語法捷徑選單 -->
+                <div id="note-slash-menu" class="hidden">
+                  <div class="slash-menu-items"></div>
                 </div>
               </div>
             </div>
@@ -329,6 +340,64 @@
   <!-- 載入動畫 -->
   <div id="loading-overlay" class="hidden">
     <div class="loading-spinner"></div>
+  </div>
+
+  <!-- Quick Notes: Markdown 語法小抄彈出視窗 -->
+  <div id="note-cheat-sheet-modal" class="hidden">
+    <div class="cheat-sheet-box">
+      <div class="cheat-sheet-header">
+        第三步：精通 Markdown 與 Mermaid ✨
+        <button id="cheat-sheet-close-btn">&times;</button>
+      </div>
+      <div class="cheat-sheet-content markdown-body">
+        <h4>常用 Quick Notes 指令</h2>
+          <p>在編輯器內輸入 <code>/</code> 即可呼出快速樣板選單！</p>
+
+          <h4>文字格式</h3>
+            <pre><code># 大標題
+## 中標題
+**粗體文字**
+*斜體文字*
+~~刪除線~~</code></pre>
+
+            <h4>清單與待辦</h3>
+              <pre><code>- 項目符號 1
+- 項目符號 2
+1. 數字清單
+2. 數字清單
+- [ ] 待辦事項
+- [x] 完成事項</code></pre>
+
+              <h4>程式碼與高亮</h3>
+                <p>支援：<code>javascript</code>, <code>python</code>, <code>html</code>, <code>css</code>,
+                  <code>json</code>, <code>bash</code> 等。
+                </p>
+                <pre><code>```javascript
+console.log("Hello Multi Hub!");
+```</code></pre>
+
+                <h4>Mermaid 圖表</h3>
+                  <p>支援流程圖、圓餅圖、甘特圖等多種強大圖表：</p>
+                  <pre><code class="language-markdown">```mermaid
+graph TD
+  A[開始] --> B{判斷}
+  B -->|是| C[成功]
+  B -->|否| D[失敗]
+```</code></pre>
+                  <pre><code class="language-markdown">```mermaid
+pie title 支援圖表
+  "流程圖" : 40
+  "圓餅圖" : 20
+  "序列圖" : 20
+  "其它" : 20
+```</code></pre>
+
+                  <h4>插入圖片與連結</h3>
+                    <pre><code>[連結文字](https://example.com)
+![圖片描述](圖片網址)
+> 提示：可以直接從工具列選擇檔案，支援拖放與 Ctrl+V 貼上圖片！</code></pre>
+      </div>
+    </div>
   </div>
 
   <!-- Markdown / Mermaid / Prism 依賴 -->

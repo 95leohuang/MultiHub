@@ -46,6 +46,10 @@ function setPreviewMode(enable) {
       Promise.resolve(html).then(resolvedHtml => {
         previewContent.innerHTML = resolvedHtml;
 
+        // 移除 checkbox 的 disabled 屬性以允許點擊
+        const checkboxes = previewContent.querySelectorAll('input[type="checkbox"]');
+        checkboxes.forEach(cb => cb.removeAttribute('disabled'));
+
         if (window.Prism) {
           window.Prism.highlightAllUnder(previewContent);
         }
@@ -253,9 +257,42 @@ export function initQuickNotes() {
   const noteDeleteBtn = document.getElementById('note-delete-btn');
   const noteModeToggleBtn = document.getElementById('note-mode-toggle-btn');
   const noteInsertImgBtn = document.getElementById('note-insert-img-btn');
+  const noteHelpBtn = document.getElementById('note-help-btn');
+  const cheatSheetModal = document.getElementById('note-cheat-sheet-modal');
+  const cheatSheetCloseBtn = document.getElementById('cheat-sheet-close-btn');
+  const slashMenu = document.getElementById('note-slash-menu');
+  const slashMenuItemsContainer = slashMenu ? slashMenu.querySelector('.slash-menu-items') : null;
 
   if (window.mermaid) {
     window.mermaid.initialize({ startOnLoad: false, theme: 'dark', securityLevel: 'loose' });
+  }
+
+  const previewContent = document.getElementById('notes-preview-content');
+  if (previewContent && !previewContent.hasAttribute('data-checkbox-bound')) {
+    previewContent.setAttribute('data-checkbox-bound', 'true');
+    previewContent.addEventListener('change', (e) => {
+      if (e.target.tagName === 'INPUT' && e.target.type === 'checkbox') {
+        const checkboxes = Array.from(previewContent.querySelectorAll('input[type="checkbox"]'));
+        const index = checkboxes.indexOf(e.target);
+        if (index !== -1 && noteBodyInput) {
+          let text = noteBodyInput.value;
+          const isChecked = e.target.checked;
+          let count = 0;
+
+          text = text.replace(/^(\s*[-*+]\s+)\[([ xX])\]/gm, (match, prefix, state) => {
+            if (count === index) {
+              count++;
+              return `${prefix}[${isChecked ? 'x' : ' '}]`;
+            }
+            count++;
+            return match;
+          });
+
+          noteBodyInput.value = text;
+          autoSave();
+        }
+      }
+    });
   }
 
   if (addNoteBtn) addNoteBtn.addEventListener('click', addNote);
@@ -273,6 +310,15 @@ export function initQuickNotes() {
     });
   }
 
+  // Cheat Sheet 邏輯
+  if (noteHelpBtn && cheatSheetModal && cheatSheetCloseBtn) {
+    noteHelpBtn.addEventListener('click', () => cheatSheetModal.classList.remove('hidden'));
+    cheatSheetCloseBtn.addEventListener('click', () => cheatSheetModal.classList.add('hidden'));
+    cheatSheetModal.addEventListener('click', (e) => {
+      if (e.target === cheatSheetModal) cheatSheetModal.classList.add('hidden');
+    });
+  }
+
   if (noteTitleInput) {
     noteTitleInput.addEventListener('input', () => {
       clearTimeout(saveTimer);
@@ -281,10 +327,125 @@ export function initQuickNotes() {
   }
 
   if (noteBodyInput) {
+    // 定義 Markdown 指令集
+    const markdownCommands = [
+      { cmd: 'h1', label: '大標題', desc: 'Heading 1', syntax: '# ' },
+      { cmd: 'h2', label: '中標題', desc: 'Heading 2', syntax: '## ' },
+      { cmd: 'h3', label: '小標題', desc: 'Heading 3', syntax: '### ' },
+      { cmd: 'bold', label: '粗體', desc: 'Bold text', syntax: '**粗體文字**' },
+      { cmd: 'italic', label: '斜體', desc: 'Italic text', syntax: '*斜體文字*' },
+      { cmd: 'list', label: '清單', desc: 'Bulleted list', syntax: '- ' },
+      { cmd: 'num', label: '數字清單', desc: 'Numbered list', syntax: '1. ' },
+      { cmd: 'todo', label: '待辦事項', desc: 'Checklist box', syntax: '- [ ] ' },
+      { cmd: 'code', label: '程式碼區塊', desc: 'Code block', syntax: '```javascript\n\n```' },
+      { cmd: 'quote', label: '引用區塊', desc: 'Blockquote', syntax: '> ' },
+      { cmd: 'table', label: '表格', desc: 'Markdown table', syntax: '| 欄位 1 | 欄位 2 |\n|---|---|\n| 內容 | 內容 |' },
+      { cmd: 'mermaid', label: 'Mermaid 流程圖', desc: 'Flowchart diagram', syntax: '```mermaid\ngraph TD\n  A[開始] --> B(結束)\n```' },
+      { cmd: 'pie', label: 'Mermaid 圓餅圖', desc: 'Pie chart diagram', syntax: '```mermaid\npie title 標題\n  "項目" : 100\n```' }
+    ];
+
+    let slashMenuVisible = false;
+    let currentSlashQuery = '';
+    let selectedSlashIndex = 0;
+    let filteredCommands = [];
+
+    const closeSlashMenu = () => {
+      slashMenuVisible = false;
+      if (slashMenu) slashMenu.classList.add('hidden');
+    };
+
+    const applySlashCommand = (cmdItem) => {
+      const text = noteBodyInput.value;
+      const pos = noteBodyInput.selectionStart;
+      // 找出 slash 起點 (/ 的位置)
+      const textBefore = text.slice(0, pos);
+      const match = textBefore.match(/(^|\n|\s)\/([a-zA-Z0-9]*)$/);
+      if (match) {
+        const slashStart = pos - match[2].length - 1;
+        const newText = text.slice(0, slashStart) + cmdItem.syntax + text.slice(pos);
+        noteBodyInput.value = newText;
+        noteBodyInput.selectionStart = noteBodyInput.selectionEnd = slashStart + cmdItem.syntax.length;
+        autoSave();
+      }
+      closeSlashMenu();
+      noteBodyInput.focus();
+    };
+
+    const renderSlashMenu = () => {
+      if (!slashMenuItemsContainer || filteredCommands.length === 0) {
+        closeSlashMenu();
+        return;
+      }
+      slashMenuItemsContainer.innerHTML = '';
+      filteredCommands.forEach((cmd, i) => {
+        const el = document.createElement('div');
+        el.className = `slash-menu-item${i === selectedSlashIndex ? ' active' : ''}`;
+        el.innerHTML = `<div class="slash-menu-title"><span style="color:var(--text-muted)">/</span>${cmd.cmd} - ${cmd.label}</div><div class="slash-menu-desc">${cmd.desc}</div>`;
+        el.addEventListener('mousedown', (e) => {
+          e.preventDefault(); // 防止 textarea 失去焦點
+          applySlashCommand(cmd);
+        });
+        slashMenuItemsContainer.appendChild(el);
+      });
+      // 確保選中項目可見
+      const activeItem = slashMenuItemsContainer.querySelector('.active');
+      if (activeItem) {
+        activeItem.scrollIntoView({ block: 'nearest' });
+      }
+
+      // 簡單位置定位 (置於 textarea 內游標無法精確定位，因此隨便放在下方)
+      const inputRect = noteBodyInput.getBoundingClientRect();
+      slashMenu.style.top = `60px`;
+      slashMenu.style.left = `20px`;
+      slashMenu.classList.remove('hidden');
+      slashMenuVisible = true;
+    };
+
+    noteBodyInput.addEventListener('keydown', (e) => {
+      if (slashMenuVisible) {
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          selectedSlashIndex = (selectedSlashIndex + 1) % filteredCommands.length;
+          renderSlashMenu();
+        } else if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          selectedSlashIndex = (selectedSlashIndex - 1 + filteredCommands.length) % filteredCommands.length;
+          renderSlashMenu();
+        } else if (e.key === 'Enter') {
+          e.preventDefault();
+          applySlashCommand(filteredCommands[selectedSlashIndex]);
+        } else if (e.key === 'Escape') {
+          e.preventDefault();
+          closeSlashMenu();
+        }
+      }
+    });
+
     noteBodyInput.addEventListener('input', () => {
       clearTimeout(saveTimer);
       saveTimer = setTimeout(autoSave, 600);
+
+      const text = noteBodyInput.value;
+      const pos = noteBodyInput.selectionStart;
+      const textBefore = text.slice(0, pos);
+
+      // 偵測前方是否有獨立的 / (前面為開頭、換行或空白)
+      const match = textBefore.match(/(^|\n|\s)\/([a-zA-Z0-9]*)$/);
+      if (match) {
+        currentSlashQuery = match[2].toLowerCase();
+        filteredCommands = markdownCommands.filter(cmd =>
+          cmd.cmd.includes(currentSlashQuery) || cmd.label.includes(currentSlashQuery) || cmd.desc.toLowerCase().includes(currentSlashQuery)
+        );
+
+        selectedSlashIndex = 0;
+        renderSlashMenu();
+      } else {
+        closeSlashMenu();
+      }
     });
+
+    noteBodyInput.addEventListener('click', closeSlashMenu);
+    noteBodyInput.addEventListener('blur', closeSlashMenu);
 
     noteBodyInput.addEventListener('paste', async (e) => {
       const items = (e.clipboardData || e.originalEvent.clipboardData).items;
