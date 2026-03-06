@@ -26,7 +26,7 @@ function createWindow() {
     backgroundColor: '#fff',
     show: false,
     webPreferences: {
-      preload: path.join(__dirname, '../preload.js'),
+      preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
       webviewTag: true,
@@ -36,7 +36,7 @@ function createWindow() {
     icon: path.join(__dirname, '../../assets/icon.png')
   });
 
-  mainWindow.loadFile(path.join(__dirname, '../index.html'));
+  mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
 
   mainWindow.once('ready-to-show', () => {
     if (isMaximized) mainWindow.maximize();
