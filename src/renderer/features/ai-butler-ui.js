@@ -4,6 +4,7 @@
  */
 
 import { showToast } from '../toast.js';
+import { getActiveContext } from './ai-butler-tools.js';
 
 let drawerOpen = false;
 let settingsOpen = false;
@@ -185,13 +186,16 @@ export function toggleDrawer() {
 }
 
 function updateContext() {
-  const activeTab = localStorage.getItem('activeTab') || 'messenger';
   const labelMap = {
     messenger: 'Messenger', chatgpt: 'ChatGPT', gemini: 'Gemini',
     git: 'Git Update', skills: 'Skill Sync', notes: 'Quick Notes',
     gitgui: 'Git GUI', discord: 'Discord', telegram: 'Telegram'
   };
-  contextTag.textContent = labelMap[activeTab] || activeTab;
+  const ctx = getActiveContext();
+  contextTag.textContent = labelMap[ctx.activeTab] || ctx.activeTab;
+  // 顯示上下文摘要的前 30 字元
+  const hint = ctx.extra ? ctx.extra.split('\n')[0].slice(0, 40) : '';
+  if (hint) contextTag.title = ctx.extra.slice(0, 200);
 }
 
 async function loadConfig() {
@@ -277,10 +281,11 @@ async function sendMessage() {
   scrollToBottom();
 
   try {
-    const activeTab = localStorage.getItem('activeTab') || 'messenger';
+    // P1: 使用 getActiveContext 取得當前分頁的完整上下文
+    const context = getActiveContext();
     const result = await window.electronAPI.aiButlerChat({
       messages: messages.map(m => ({ role: m.role, content: m.content })),
-      context: { activeTab }
+      context
     });
 
     // Remove typing
