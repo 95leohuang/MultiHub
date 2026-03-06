@@ -187,18 +187,19 @@ async function callGemini(apiKey, model, messages, systemPrompt, tools) {
   const contents = messages
     .filter(m => m.role !== 'system')
     .map(msg => {
+      // Gemini: functionResponse 必須用 role: 'user'
       if (msg.role === 'tool') {
         return {
-          role: 'function',
+          role: 'user',
           parts: [{
             functionResponse: {
               name: msg.tool_call_id || msg.name || 'unknown',
-              response: { result: msg.content }
+              response: JSON.parse(msg.content || '{}')
             }
           }]
         };
       }
-      // 如果有原始 Gemini parts（含 thought_signature），直接回放
+      // 如果有原始 Gemini parts（含 thoughtSignature），直接回放
       if (msg._geminiRawParts) {
         return {
           role: 'model',
