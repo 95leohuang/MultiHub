@@ -128,6 +128,9 @@ app.whenReady().then(async () => {
   const { registerSkillHandlers } = require('./ipc/skill-handlers');
   registerSkillHandlers();
 
+  const { registerAiButlerHandlers } = require('./ipc/ai-butler-handlers');
+  registerAiButlerHandlers();
+
   try {
     const { registerStoreHandlers } = require('./ipc/store-handlers');
     registerStoreHandlers();

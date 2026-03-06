@@ -23,6 +23,7 @@ import { renderPlatformGrid, togglePopup, closePopup, bindGridPopupEvents } from
 import { getShortcutConfig, loadShortcutConfig, bindShortcutSettingsEvents } from './shortcut-settings.js';
 import { initTheme } from './theme.js';
 import { initQuickNotes } from './features/quick-notes.js';
+import { initAiButler } from './features/ai-butler-ui.js';
 
 import './features/git-updater-ui.js';
 import './features/skill-sync-ui.js';
@@ -34,6 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initWebviews();
   initTheme();
   initQuickNotes();
+  initAiButler();
   bindNavBarEvents(webviews);
   bindGridPopupEvents(getShortcutConfig());
   //#endregion

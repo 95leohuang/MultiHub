@@ -95,7 +95,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   gitGuiTags: (repoPath) => ipcRenderer.invoke('git-gui-tags', repoPath),
   gitGuiDiscard: (repoPath, filePath, staged) => ipcRenderer.invoke('git-gui-discard', repoPath, filePath, staged),
   gitGuiOpenFile: (repoPath, filePath) => ipcRenderer.invoke('git-gui-open-file', repoPath, filePath),
-  gitGuiRevealFile: (repoPath, filePath) => ipcRenderer.invoke('git-gui-reveal-file', repoPath, filePath)
+  gitGuiRevealFile: (repoPath, filePath) => ipcRenderer.invoke('git-gui-reveal-file', repoPath, filePath),
+  // AI Butler API
+  aiButlerChat: (data) => ipcRenderer.invoke('ai-butler-chat', data),
+  aiButlerGetConfig: () => ipcRenderer.invoke('ai-butler-get-config'),
+  aiButlerSaveConfig: (config) => ipcRenderer.invoke('ai-butler-save-config', config),
+  aiButlerGetModels: (provider) => ipcRenderer.invoke('ai-butler-get-models', provider)
 });
 
 // 快捷键增强
