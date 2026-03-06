@@ -1,6 +1,6 @@
 'use strict';
 
-const { ipcMain } = require('electron');
+const { ipcMain, net } = require('electron');
 const Store = require('electron-store');
 
 const store = new Store();
@@ -45,7 +45,7 @@ async function callOpenAI(apiKey, model, messages, systemPrompt) {
     ...messages
   ];
 
-  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+  const res = await net.fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -83,7 +83,7 @@ async function callGemini(apiKey, model, messages, systemPrompt) {
     parts: [{ text: msg.content }]
   }));
 
-  const res = await fetch(url, {
+  const res = await net.fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
