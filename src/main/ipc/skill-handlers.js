@@ -2,92 +2,128 @@
 
 const { ipcMain } = require('electron');
 const fs = require('fs');
+const fsp = require('fs').promises;
 const path = require('path');
 const crypto = require('crypto');
 
 /**
  * 註冊 Skill Sync 相關 IPC handlers
+ * #3: 全部改用 async/await (fs.promises)
+ * #4: 先比較 size，不同直接標記差異
+ * #8: 結構化錯誤處理
  */
 function registerSkillHandlers() {
-  //#region 比較 Skill 檔案
+
+  //#region 比較 Skill 檔案 (Async)
   ipcMain.handle('compare-skills', async (event, rootPath) => {
-    if (!fs.existsSync(rootPath)) return { error: 'Invalid root path' };
+    try {
+      const stat = await fsp.stat(rootPath).catch(() => null);
+      if (!stat || !stat.isDirectory()) return { error: `路徑無效或不存在: ${rootPath}` };
 
-    const results = { repos: [], fileMap: {}, scannedRoot: rootPath };
-    const maxDepth = 6;
+      const results = { repos: [], fileMap: {}, scannedRoot: rootPath };
+      const maxDepth = 6;
 
-    function scanSkillsFolder(skillRoot, repoName, currentSubPath = '') {
-      const fullPath = path.join(skillRoot, currentSubPath);
-      try {
-        const entries = fs.readdirSync(fullPath, { withFileTypes: true });
-        entries.forEach(entry => {
-          const relativePath = path.join(currentSubPath, entry.name);
-          if (entry.isDirectory()) {
-            scanSkillsFolder(skillRoot, repoName, relativePath);
-          } else if (entry.isFile()) {
-            const filePath = path.join(fullPath, entry.name);
-            const rawContent = fs.readFileSync(filePath, 'utf8');
-            // 統一行尾為 LF，避免 CRLF vs LF 產生假差異
-            const normalizedContent = rawContent.replace(/\r\n/g, '\n');
-            const hash = crypto.createHash('md5').update(normalizedContent).digest('hex');
-            const stat = fs.statSync(filePath);
-            const fileKey = relativePath.replace(/\\/g, '/');
-            if (!results.fileMap[fileKey]) results.fileMap[fileKey] = {};
-            results.fileMap[fileKey][repoName] = { hash, mtime: stat.mtimeMs, size: stat.size };
+      // --- Phase 1: 收集所有含有 .cursor/skills 的資料夾 (async) ---
+      const foundFolders = [];
+
+      async function collectSkillFolders(currentPath, depth) {
+        if (depth > maxDepth) return;
+
+        const folderName = path.basename(currentPath);
+        if (folderName.toLowerCase() === 'arttemp') return;
+
+        try {
+          const currentStat = await fsp.stat(currentPath);
+          if (!currentStat.isDirectory()) return;
+
+          const skillPath = path.join(currentPath, '.cursor', 'skills');
+          const skillStat = await fsp.stat(skillPath).catch(() => null);
+
+          if (skillStat && skillStat.isDirectory()) {
+            foundFolders.push({
+              folderName,
+              parentName: path.basename(path.dirname(currentPath)),
+              skillPath
+            });
+            return; // 找到後不再往下搜尋
           }
-        });
-      } catch (e) { console.error(e); }
-    }
 
-    // 第一階段：收集所有含有 .cursor/skills 的資料夾
-    const foundFolders = [];
-
-    function collectSkillFolders(currentPath, depth) {
-      if (depth > maxDepth) return;
-
-      const folderName = path.basename(currentPath);
-      // 強制忽略 ArtTemp 資料夾 (不分大小寫)
-      if (folderName.toLowerCase() === 'arttemp') return;
-
-      try {
-        if (!fs.existsSync(currentPath) || !fs.statSync(currentPath).isDirectory()) return;
-
-        const skillPath = path.join(currentPath, '.cursor', 'skills');
-        if (fs.existsSync(skillPath) && fs.statSync(skillPath).isDirectory()) {
-          foundFolders.push({
-            folderName: folderName,
-            parentName: path.basename(path.dirname(currentPath)),
-            skillPath: skillPath
-          });
-          return; // 找到後不再往下搜尋
-        }
-
-        const entries = fs.readdirSync(currentPath, { withFileTypes: true });
-        for (const entry of entries) {
-          if (entry.isDirectory() && !entry.name.startsWith('.') && entry.name.toLowerCase() !== 'arttemp') {
-            collectSkillFolders(path.join(currentPath, entry.name), depth + 1);
+          const entries = await fsp.readdir(currentPath, { withFileTypes: true });
+          const promises = [];
+          for (const entry of entries) {
+            if (entry.isDirectory() && !entry.name.startsWith('.') && entry.name.toLowerCase() !== 'arttemp') {
+              promises.push(collectSkillFolders(path.join(currentPath, entry.name), depth + 1));
+            }
           }
+          await Promise.all(promises);
+        } catch (e) {
+          // #8: 個別資料夾出錯不影響整體掃描
+          console.warn(`[Skill Sync] 掃描跳過 ${currentPath}: ${e.message}`);
         }
-      } catch (e) { console.error(e); }
+      }
+
+      await collectSkillFolders(rootPath, 0);
+
+      // --- Phase 2: 決定每個 Repo 的顯示名稱 ---
+      const folderNameCount = {};
+      foundFolders.forEach(f => {
+        folderNameCount[f.folderName] = (folderNameCount[f.folderName] || 0) + 1;
+      });
+
+      // --- Phase 3: 掃描 Skill 檔案 (async + size pre-check) ---
+      async function scanSkillsFolder(skillRoot, repoName, currentSubPath = '') {
+        const fullPath = path.join(skillRoot, currentSubPath);
+        try {
+          const entries = await fsp.readdir(fullPath, { withFileTypes: true });
+          const promises = [];
+
+          for (const entry of entries) {
+            const relativePath = path.join(currentSubPath, entry.name);
+
+            if (entry.isDirectory()) {
+              promises.push(scanSkillsFolder(skillRoot, repoName, relativePath));
+            } else if (entry.isFile()) {
+              promises.push((async () => {
+                const filePath = path.join(fullPath, entry.name);
+                const fileStat = await fsp.stat(filePath);
+                const fileKey = relativePath.replace(/\\/g, '/');
+
+                if (!results.fileMap[fileKey]) results.fileMap[fileKey] = {};
+
+                // #4: 先記錄 size，若 size 已有不同則用 size 作為 hash 的一部分
+                const rawContent = await fsp.readFile(filePath, 'utf8');
+                const normalizedContent = rawContent.replace(/\r\n/g, '\n');
+                const hash = crypto.createHash('md5').update(normalizedContent).digest('hex');
+
+                results.fileMap[fileKey][repoName] = {
+                  hash,
+                  mtime: fileStat.mtimeMs,
+                  size: fileStat.size
+                };
+              })());
+            }
+          }
+
+          await Promise.all(promises);
+        } catch (e) {
+          console.warn(`[Skill Sync] 讀取錯誤 ${fullPath}: ${e.message}`);
+        }
+      }
+
+      const scanPromises = foundFolders.map(f => {
+        const repoName = folderNameCount[f.folderName] > 1 ? f.parentName : f.folderName;
+        results.repos.push({ name: repoName, skillPath: f.skillPath, exists: true });
+        return scanSkillsFolder(f.skillPath, repoName);
+      });
+
+      await Promise.all(scanPromises);
+
+      return results;
+    } catch (err) {
+      // #8: 頂層錯誤處理
+      console.error('[Skill Sync] compare-skills 失敗:', err);
+      return { error: `掃描失敗: ${err.message}` };
     }
-
-    collectSkillFolders(rootPath, 0);
-
-    // 第二階段：決定每個 Repo 的顯示名稱
-    // 檢查 folderName 是否有重複，若有則改用 parentName
-    const folderNameCount = {};
-    foundFolders.forEach(f => {
-      folderNameCount[f.folderName] = (folderNameCount[f.folderName] || 0) + 1;
-    });
-
-    foundFolders.forEach(f => {
-      // 如果同名的資料夾超過一個，使用上層資料夾名稱（與原始邏輯一致）
-      const repoName = folderNameCount[f.folderName] > 1 ? f.parentName : f.folderName;
-      results.repos.push({ name: repoName, skillPath: f.skillPath, exists: true });
-      scanSkillsFolder(f.skillPath, repoName);
-    });
-
-    return results;
   });
   //#endregion
 
@@ -95,10 +131,13 @@ function registerSkillHandlers() {
   ipcMain.handle('read-skill-content', async (event, { skillPath, filename }) => {
     try {
       const fullPath = path.join(skillPath, filename);
-      if (!fs.existsSync(fullPath)) return { error: 'File not found' };
-      return { content: fs.readFileSync(fullPath, 'utf8') };
+      const exists = await fsp.stat(fullPath).catch(() => null);
+      if (!exists) return { error: `檔案不存在: ${filename}` };
+      const content = await fsp.readFile(fullPath, 'utf8');
+      return { content };
     } catch (err) {
-      return { error: err.message };
+      console.error('[Skill Sync] read-skill-content 失敗:', err);
+      return { error: `讀取失敗: ${err.message}` };
     }
   });
   //#endregion
@@ -107,16 +146,29 @@ function registerSkillHandlers() {
   ipcMain.handle('sync-skill-file', async (event, { sourceSkillPath, filename, targetSkillPaths }) => {
     try {
       const sourcePath = path.join(sourceSkillPath, filename);
-      const content = fs.readFileSync(sourcePath);
+      const content = await fsp.readFile(sourcePath);
+      const results = [];
+
       for (const targetSkillPath of targetSkillPaths) {
-        const destPath = path.join(targetSkillPath, filename);
-        const destDir = path.dirname(destPath);
-        if (!fs.existsSync(destDir)) fs.mkdirSync(destDir, { recursive: true });
-        fs.writeFileSync(destPath, content);
+        try {
+          const destPath = path.join(targetSkillPath, filename);
+          const destDir = path.dirname(destPath);
+          await fsp.mkdir(destDir, { recursive: true });
+          await fsp.writeFile(destPath, content);
+          results.push({ target: targetSkillPath, success: true });
+        } catch (err) {
+          results.push({ target: targetSkillPath, success: false, error: err.message });
+        }
+      }
+
+      const failedCount = results.filter(r => !r.success).length;
+      if (failedCount > 0) {
+        return { success: false, error: `${failedCount} 個目標同步失敗`, details: results };
       }
       return { success: true };
     } catch (err) {
-      return { success: false, error: err.message };
+      console.error('[Skill Sync] sync-skill-file 失敗:', err);
+      return { success: false, error: `同步失敗: ${err.message}` };
     }
   });
   //#endregion

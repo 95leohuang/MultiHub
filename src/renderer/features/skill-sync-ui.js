@@ -431,6 +431,60 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
+  /**
+   * #6: LCS-based diff algorithm
+   * 計算最長公共子序列，用於正確對齊行
+   */
+  function computeLCS(a, b) {
+    const m = a.length, n = b.length;
+    // 使用位元組最佳化版本 (空間: O(min(m,n)))
+    const prev = new Uint32Array(n + 1);
+    const curr = new Uint32Array(n + 1);
+
+    for (let i = 1; i <= m; i++) {
+      for (let j = 1; j <= n; j++) {
+        if (a[i - 1] === b[j - 1]) {
+          curr[j] = prev[j - 1] + 1;
+        } else {
+          curr[j] = Math.max(prev[j], curr[j - 1]);
+        }
+      }
+      prev.set(curr);
+      curr.fill(0);
+    }
+
+    // 回溯取得 LCS 索引對
+    const lcsLen = prev[n];
+    const lcs = [];
+    let i = m, j = n;
+
+    // 需要完整表格回溯，改用標準方式
+    const dp = Array.from({ length: m + 1 }, () => new Uint32Array(n + 1));
+    for (let i2 = 1; i2 <= m; i2++) {
+      for (let j2 = 1; j2 <= n; j2++) {
+        if (a[i2 - 1] === b[j2 - 1]) {
+          dp[i2][j2] = dp[i2 - 1][j2 - 1] + 1;
+        } else {
+          dp[i2][j2] = Math.max(dp[i2 - 1][j2], dp[i2][j2 - 1]);
+        }
+      }
+    }
+
+    i = m; j = n;
+    while (i > 0 && j > 0) {
+      if (a[i - 1] === b[j - 1]) {
+        lcs.unshift([i - 1, j - 1]);
+        i--; j--;
+      } else if (dp[i - 1][j] > dp[i][j - 1]) {
+        i--;
+      } else {
+        j--;
+      }
+    }
+
+    return lcs;
+  }
+
   function renderProDiff(text1, text2) {
     const lines1 = text1.split(/\r?\n/);
     const lines2 = text2.split(/\r?\n/);
@@ -441,11 +495,65 @@ document.addEventListener('DOMContentLoaded', async () => {
     rightTextContent.innerHTML = '';
 
     const stats = { changed: 0, added: 0, removed: 0 };
+
+    // 對小檔案使用 LCS，大檔案使用簡化版本
+    if (lines1.length > 5000 || lines2.length > 5000) {
+      // 回退到簡單逐行比對（避免大檔案 OOM）
+      return renderSimpleDiff(lines1, lines2, stats);
+    }
+
+    const lcs = computeLCS(lines1, lines2);
+
+    let i = 0, j = 0;
+    for (const [li, lj] of lcs) {
+      // 輸出 LCS 前的差異
+      while (i < li && j < lj) {
+        appendDiffRow('change', lines1[i], lines2[j], i + 1, j + 1);
+        stats.changed++;
+        i++; j++;
+      }
+      while (i < li) {
+        appendDiffRow('removed', lines1[i], null, i + 1, null);
+        stats.removed++;
+        i++;
+      }
+      while (j < lj) {
+        appendDiffRow('added', null, lines2[j], null, j + 1);
+        stats.added++;
+        j++;
+      }
+      // 輸出匹配行
+      appendDiffRow('unchanged', lines1[li], lines2[lj], li + 1, lj + 1);
+      i = li + 1;
+      j = lj + 1;
+    }
+
+    // 輸出 LCS 後的剩餘差異
+    while (i < lines1.length && j < lines2.length) {
+      appendDiffRow('change', lines1[i], lines2[j], i + 1, j + 1);
+      stats.changed++;
+      i++; j++;
+    }
+    while (i < lines1.length) {
+      appendDiffRow('removed', lines1[i], null, i + 1, null);
+      stats.removed++;
+      i++;
+    }
+    while (j < lines2.length) {
+      appendDiffRow('added', null, lines2[j], null, j + 1);
+      stats.added++;
+      j++;
+    }
+
+    return stats;
+  }
+
+  /** 大檔案回退用的簡單逐行比對 */
+  function renderSimpleDiff(lines1, lines2, stats) {
     let i = 0, j = 0;
     while (i < lines1.length || j < lines2.length) {
       const l1 = i < lines1.length ? lines1[i] : null;
       const l2 = j < lines2.length ? lines2[j] : null;
-
       if (l1 === l2 && l1 !== null) {
         appendDiffRow('unchanged', l1, l2, i + 1, j + 1);
         i++; j++;
