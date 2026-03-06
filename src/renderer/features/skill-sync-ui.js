@@ -233,7 +233,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       const item = document.createElement('div');
       const isL = repoName === previewContext.leftRepo;
       const isR = repoName === previewContext.rightRepo;
-      item.className = `version-item ${isL || isR ? 'active' : ''}`;
+      let cls = 'version-item';
+      if (isL) cls += ' active source';
+      else if (isR) cls += ' active target';
+      item.className = cls;
 
       let label = repoName;
       if (isL) label += ' (Source)';
@@ -267,8 +270,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Render logic
     if (previewContext.leftRepo && previewContext.rightRepo) {
-      renderProDiff(lContent, rContent);
-      diffInfo.textContent = `Comparing Source: ${previewContext.leftRepo} vs Target: ${previewContext.rightRepo}`;
+      const stats = renderProDiff(lContent, rContent);
+      diffInfo.innerHTML = `Comparing Source: <b>${previewContext.leftRepo}</b> vs Target: <b>${previewContext.rightRepo}</b>`
+        + `<span class="diff-stats">`
+        + `<span class="stat-changed">⚠ ${stats.changed} changed</span>`
+        + `<span class="stat-added">+ ${stats.added} added</span>`
+        + `<span class="stat-removed">− ${stats.removed} removed</span>`
+        + (stats.changed === 0 && stats.added === 0 && stats.removed === 0 ? `<span class="stat-identical">✓ Files are identical</span>` : '')
+        + `</span>`;
     } else if (previewContext.leftRepo) {
       renderSingle(lContent, true);
       diffInfo.textContent = `Previewing ${previewContext.leftRepo}. Choose another repo to compare.`;
@@ -327,6 +336,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     leftTextContent.innerHTML = '';
     rightTextContent.innerHTML = '';
 
+    const stats = { changed: 0, added: 0, removed: 0 };
     let i = 0, j = 0;
     while (i < lines1.length || j < lines2.length) {
       const l1 = i < lines1.length ? lines1[i] : null;
@@ -337,15 +347,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         i++; j++;
       } else if (l1 !== null && l2 !== null) {
         appendDiffRow('change', l1, l2, i + 1, j + 1);
+        stats.changed++;
         i++; j++;
       } else if (l1 !== null) {
         appendDiffRow('removed', l1, null, i + 1, null);
+        stats.removed++;
         i++;
       } else {
         appendDiffRow('added', null, l2, null, j + 1);
+        stats.added++;
         j++;
       }
     }
+    return stats;
   }
 
   function appendDiffRow(type, c1, c2, n1, n2) {

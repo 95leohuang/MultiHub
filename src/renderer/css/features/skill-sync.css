@@ -89,11 +89,19 @@
 .skill-matrix th {
   background: #1d1d1d;
   color: #888;
-  font-weight: normal;
+  font-weight: 600;
   position: sticky;
   top: 0;
   z-index: 10;
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.5px;
 }
+
+.skill-matrix tbody tr:nth-child(even) td { background: rgba(255,255,255,0.015); }
+.skill-matrix tbody tr:nth-child(even) td.sticky-col { background: #1e1e1e; }
+.skill-matrix tbody tr:hover td { background: rgba(255,255,255,0.04); }
+.skill-matrix tbody tr:hover td.sticky-col { background: #242424; }
 
 .skill-matrix .sticky-col {
   position: sticky;
@@ -220,18 +228,21 @@
 }
 
 .version-item {
-  padding: 8px 12px;
+  padding: 10px 14px;
   background: #222;
   border: 1px solid #333;
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
   font-size: 13px;
   color: #aaa;
   transition: all 0.2s;
+  font-weight: 500;
 }
 
-.version-item:hover { background: #2a2a2a; color: #fff; }
-.version-item.active { background: rgba(0, 132, 255, 0.1); border-color: #0084ff; color: #0084ff; }
+.version-item:hover { background: #2a2a2a; color: #fff; border-color: #555; }
+.version-item.active { background: rgba(0, 132, 255, 0.12); border-color: #0084ff; color: #0084ff; }
+.version-item.source { background: rgba(0, 132, 255, 0.12); border-color: #0084ff; color: #0084ff; }
+.version-item.target { background: rgba(255, 152, 0, 0.12); border-color: #ff9800; color: #ff9800; }
 
 .preview-main {
   flex: 1;
@@ -312,12 +323,25 @@
 
 .line-num-entry { height: 20px; line-height: 20px; }
 
-.diff-added    { background: rgba(76, 175, 80, 0.15);  border-left-color: #4caf50; }
-.diff-removed  { background: rgba(244, 67, 54, 0.15);  border-left-color: #f44336; }
+.diff-added    { background: rgba(76, 175, 80, 0.2);  border-left-color: #4caf50; color: #a5d6a7; }
+.diff-removed  { background: rgba(244, 67, 54, 0.2);  border-left-color: #f44336; color: #ef9a9a; }
 .diff-placeholder {
   background: repeating-linear-gradient(45deg, #161616, #161616 10px, #1a1a1a 10px, #1a1a1a 20px);
   opacity: 0.5;
 }
+
+/* Diff stats bar */
+.diff-stats {
+  display: inline-flex;
+  gap: 12px;
+  margin-left: 16px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.diff-stats .stat-added { color: #4caf50; }
+.diff-stats .stat-removed { color: #f44336; }
+.diff-stats .stat-changed { color: #ff9800; }
+.diff-stats .stat-identical { color: #888; }
 
 .panel-scroller::-webkit-scrollbar         { width: 10px; height: 10px; }
 .panel-scroller::-webkit-scrollbar-track   { background: #111; }

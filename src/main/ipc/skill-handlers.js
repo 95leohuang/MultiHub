@@ -26,8 +26,10 @@ function registerSkillHandlers() {
             scanSkillsFolder(skillRoot, repoName, relativePath);
           } else if (entry.isFile()) {
             const filePath = path.join(fullPath, entry.name);
-            const content = fs.readFileSync(filePath);
-            const hash = crypto.createHash('md5').update(content).digest('hex');
+            const rawContent = fs.readFileSync(filePath, 'utf8');
+            // 統一行尾為 LF，避免 CRLF vs LF 產生假差異
+            const normalizedContent = rawContent.replace(/\r\n/g, '\n');
+            const hash = crypto.createHash('md5').update(normalizedContent).digest('hex');
             const stat = fs.statSync(filePath);
             const fileKey = relativePath.replace(/\\/g, '/');
             if (!results.fileMap[fileKey]) results.fileMap[fileKey] = {};
