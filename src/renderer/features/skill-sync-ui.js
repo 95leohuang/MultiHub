@@ -186,14 +186,18 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <button class="sync-row-btn" onclick="syncFileToAll('${file}', '${actualSource}')" title="${syncTitle}">⚓</button>
             </div>`;
       row.appendChild(nameCell);
+
+      // 找出這個檔案的「多數版本」hash（最多人擁有的版本 = 正確版本）
+      const majorityHash = getMajorityHash(file);
+
       results.repos.forEach(repo => {
         const td = document.createElement('td');
         const fileInRepo = results.fileMap[file][repo.name];
         if (fileInRepo) {
-          const isConsistent = checkConsistency(file, fileInRepo.hash);
-          td.innerHTML = `<div class="status-cell ${isConsistent ? 'consistent' : 'diff'}"
+          const isOutlier = fileInRepo.hash !== majorityHash;
+          td.innerHTML = `<div class="status-cell ${isOutlier ? 'diff' : 'consistent'}"
                         onclick="openPreview('${file}', '${repo.name}')">
-                        <span class="status-icon">${isConsistent ? '●' : '⚠'}</span>
+                        <span class="status-icon">${isOutlier ? '⚠' : '●'}</span>
                     </div>`;
         } else {
           td.innerHTML = `<div class="status-cell missing" onclick="handleAutoSync('${file}', '${repo.name}')">+</div>`;
@@ -204,9 +208,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
-  function checkConsistency(filename, hash) {
-    const versions = Object.values(currentResults.fileMap[filename]);
-    return versions.every(v => v.hash === hash);
+  /**
+   * 找出某個檔案中最多 Repo 共享的 hash（多數版本）
+   * 如果所有人都一樣，回傳該 hash；如果有分歧，回傳最多人擁有的那個
+   */
+  function getMajorityHash(filename) {
+    const versions = currentResults.fileMap[filename];
+    const hashCount = {};
+    Object.values(versions).forEach(v => {
+      hashCount[v.hash] = (hashCount[v.hash] || 0) + 1;
+    });
+    // 回傳出現次數最多的 hash
+    let maxHash = null, maxCount = 0;
+    for (const [hash, count] of Object.entries(hashCount)) {
+      if (count > maxCount) { maxCount = count; maxHash = hash; }
+    }
+    return maxHash;
   }
 
   window.openPreview = (filename, initialRepo) => {
