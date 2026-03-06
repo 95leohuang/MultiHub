@@ -20,6 +20,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <button id="skill-scan-btn" class="git-btn" style="padding: 4px 12px; font-size: 11px;">Scan & Compare</button>
             </div>
         </div>
+        <div class="matrix-summary" id="matrix-summary"></div>
         <div class="skill-matrix-wrapper">
             <table class="skill-matrix" id="skill-matrix-table">
                 <thead>
@@ -44,6 +45,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const scanBtn = document.getElementById('skill-scan-btn');
   const matrixHeader = document.getElementById('matrix-header-row');
   const matrixBody = document.getElementById('matrix-body');
+  const matrixSummary = document.getElementById('matrix-summary');
   const logContainer = document.getElementById('skill-log');
   const globalMasterSelect = document.getElementById('global-master-select');
 
@@ -70,6 +72,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const syncSelectedBtn = document.getElementById('sync-selected-version');
 
   let currentResults = null;
+  let showDiffOnly = false;
   let previewContext = {
     filename: '',
     leftRepo: null,
@@ -83,7 +86,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     syncScrollSource = source;
     target.scrollTop = source.scrollTop;
     target.scrollLeft = source.scrollLeft;
-    // Reset source after a short frame to prevent feedback
     requestAnimationFrame(() => {
       if (source.scrollTop === target.scrollTop && source.scrollLeft === target.scrollLeft) {
         syncScrollSource = null;
@@ -127,23 +129,67 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   scanBtn.onclick = async () => {
     const rootPath = searchPathInput.value;
-    if (!rootPath) { if (typeof showToast === 'function') showToast('請先輸入根目錄路徑', 'warning'); return; }
+    if (!rootPath) { showToast('請先輸入根目錄路徑', 'warning'); return; }
     await window.electronAPI.savePath(rootPath);
     scanBtn.disabled = true;
     scanBtn.textContent = 'Comparing...';
     try {
       const results = await window.electronAPI.compareSkills(rootPath);
-      if (results.error) return addLog(results.error, 'error');
+      if (results.error) { addLog(results.error, 'error'); return; }
       currentResults = results;
       renderMatrix(results);
       addLog(`Scanned ${results.repos.length} repositories.`, 'success');
     } catch (err) {
       addLog(err.message, 'error');
+      showToast(`掃描失敗：${err.message}`, 'error');
     } finally {
       scanBtn.disabled = false;
       scanBtn.textContent = 'Scan & Compare';
     }
   };
+
+  //#region ===== #7 Event Delegation =====
+  // 矩陣表格使用 Event Delegation 取代 inline onclick
+  matrixBody.addEventListener('click', (e) => {
+    const cell = e.target.closest('[data-action]');
+    if (!cell) return;
+    const action = cell.dataset.action;
+    const file = cell.dataset.file;
+    const repo = cell.dataset.repo;
+
+    switch (action) {
+      case 'preview':
+        openPreview(file, repo);
+        break;
+      case 'auto-sync':
+        handleAutoSync(file, repo);
+        break;
+      case 'sync-all':
+        syncFileToAll(file, repo);
+        break;
+    }
+  });
+  //#endregion
+
+  //#region ===== #5 Summary & Filter =====
+  function renderSummaryBar(totalFiles, consistentCount, diffCount, missingCount) {
+    matrixSummary.innerHTML = `
+      <div class="summary-stats">
+        <span class="summary-total">📊 ${totalFiles} files</span>
+        <span class="summary-consistent">● ${consistentCount} consistent</span>
+        <span class="summary-diff">⚠ ${diffCount} different</span>
+        ${missingCount > 0 ? `<span class="summary-missing">+ ${missingCount} missing</span>` : ''}
+      </div>
+      <button class="filter-toggle-btn ${showDiffOnly ? 'active' : ''}" id="filter-diff-btn">
+        ${showDiffOnly ? '👁 Show All' : '⚠ Show Diff Only'}
+      </button>
+    `;
+    document.getElementById('filter-diff-btn').addEventListener('click', () => {
+      showDiffOnly = !showDiffOnly;
+      if (currentResults) renderMatrix(currentResults);
+    });
+  }
+  //#endregion
 
   function renderMatrix(results) {
     // Populate Global Master Select
@@ -164,53 +210,85 @@ document.addEventListener('DOMContentLoaded', async () => {
       th.textContent = repo.name;
       matrixHeader.appendChild(th);
     });
+
     const filenames = Object.keys(results.fileMap).sort();
     if (filenames.length === 0) {
       matrixBody.innerHTML = '<tr><td colspan="100" class="placeholder-cell">No skill files found.</td></tr>';
+      renderSummaryBar(0, 0, 0, 0);
       return;
     }
+
+    // #5 統計摘要
+    let consistentCount = 0, diffCount = 0, missingCount = 0;
+
     filenames.forEach(file => {
+      const majorityHash = getMajorityHash(file);
+      const majorityRepos = getMajorityRepos(file, majorityHash);
+      const repoMap = results.fileMap[file];
+
+      // 判斷這個檔案是否全部一致
+      const allPresent = results.repos.every(r => repoMap[r.name]);
+      const allSame = allPresent && Object.values(repoMap).every(v => v.hash === majorityHash);
+      const hasOutlier = !allSame;
+      const hasMissing = !allPresent;
+
+      if (allSame) consistentCount++;
+      if (hasOutlier && !hasMissing) diffCount++;
+      if (hasMissing) missingCount++;
+
+      // #5 Filter: 只顯示有差異的檔案
+      if (showDiffOnly && allSame) return;
+
       const row = document.createElement('tr');
       const nameCell = document.createElement('td');
       nameCell.className = 'sticky-col file-name-cell';
 
-      const repoMap = results.fileMap[file];
       const preferredMaster = globalMasterSelect.value;
       const canSyncFromMaster = preferredMaster && repoMap[preferredMaster];
       const actualSource = canSyncFromMaster ? preferredMaster : Object.keys(repoMap)[0];
-
       const syncTitle = `Sync this file to all repos using [${actualSource}] as master`;
 
+      // #7: 使用 data attributes 取代 inline onclick
       nameCell.innerHTML = `<div class="file-info">
                 <span class="file-name-text" title="${file}">${file}</span>
-                <button class="sync-row-btn" onclick="syncFileToAll('${file}', '${actualSource}')" title="${syncTitle}">⚓</button>
+                <button class="sync-row-btn" data-action="sync-all" data-file="${file}" data-repo="${actualSource}" title="${syncTitle}">⚓</button>
             </div>`;
       row.appendChild(nameCell);
 
-      // 找出這個檔案的「多數版本」hash（最多人擁有的版本 = 正確版本）
-      const majorityHash = getMajorityHash(file);
-
       results.repos.forEach(repo => {
         const td = document.createElement('td');
-        const fileInRepo = results.fileMap[file][repo.name];
+        const fileInRepo = repoMap[repo.name];
         if (fileInRepo) {
           const isOutlier = fileInRepo.hash !== majorityHash;
+
+          // #5 Tooltip: 顯示哪些 repo 是多數版本
+          let tooltip = '';
+          if (isOutlier) {
+            tooltip = `此版本與多數不同\n多數版本: ${majorityRepos.join(', ')}`;
+          } else {
+            tooltip = '與多數版本一致';
+          }
+
+          // #7: data attributes 取代 inline onclick
           td.innerHTML = `<div class="status-cell ${isOutlier ? 'diff' : 'consistent'}"
-                        onclick="openPreview('${file}', '${repo.name}')">
+                        data-action="preview" data-file="${file}" data-repo="${repo.name}"
+                        title="${tooltip}">
                         <span class="status-icon">${isOutlier ? '⚠' : '●'}</span>
                     </div>`;
         } else {
-          td.innerHTML = `<div class="status-cell missing" onclick="handleAutoSync('${file}', '${repo.name}')">+</div>`;
+          td.innerHTML = `<div class="status-cell missing" data-action="auto-sync" data-file="${file}" data-repo="${repo.name}" title="此 Repo 缺少此檔案，點擊自動同步">+</div>`;
         }
         row.appendChild(td);
       });
       matrixBody.appendChild(row);
     });
+
+    // #5 渲染摘要列
+    renderSummaryBar(filenames.length, consistentCount, diffCount, missingCount);
   }
 
   /**
    * 找出某個檔案中最多 Repo 共享的 hash（多數版本）
-   * 如果所有人都一樣，回傳該 hash；如果有分歧，回傳最多人擁有的那個
    */
   function getMajorityHash(filename) {
     const versions = currentResults.fileMap[filename];
@@ -218,7 +296,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     Object.values(versions).forEach(v => {
       hashCount[v.hash] = (hashCount[v.hash] || 0) + 1;
     });
-    // 回傳出現次數最多的 hash
     let maxHash = null, maxCount = 0;
     for (const [hash, count] of Object.entries(hashCount)) {
       if (count > maxCount) { maxCount = count; maxHash = hash; }
@@ -226,14 +303,25 @@ document.addEventListener('DOMContentLoaded', async () => {
     return maxHash;
   }
 
-  window.openPreview = (filename, initialRepo) => {
+  /**
+   * 找出擁有多數版本的 Repo 名稱列表（用於 Tooltip）
+   */
+  function getMajorityRepos(filename, majorityHash) {
+    const versions = currentResults.fileMap[filename];
+    return Object.entries(versions)
+      .filter(([, v]) => v.hash === majorityHash)
+      .map(([name]) => name);
+  }
+
+  // #7: 移除 window.openPreview，改为本地函数
+  function openPreview(filename, initialRepo) {
     previewModal.classList.remove('hidden');
     previewFilenameLabel.textContent = filename;
     previewContext.filename = filename;
     previewContext.leftRepo = initialRepo;
     previewContext.rightRepo = null;
     updatePreviewUI();
-  };
+  }
 
   async function loadContent(repoName) {
     const repo = currentResults.repos.find(r => r.name === repoName);
@@ -317,7 +405,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     } else if (!previewContext.leftRepo) {
       previewContext.leftRepo = repoName;
     } else {
-      // Already has leftRepo, assign to rightRepo
       previewContext.rightRepo = repoName;
     }
     updatePreviewUI();
@@ -383,7 +470,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const isRem = type === 'removed' || type === 'change';
     const isAdd = type === 'added' || type === 'change';
 
-    // L1
     const num1 = document.createElement('div');
     num1.className = 'line-num-entry';
     num1.textContent = n1 || '';
@@ -394,7 +480,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     code1.textContent = (isRem ? '- ' : '  ') + (c1 || ' ');
     leftTextContent.appendChild(code1);
 
-    // L2
     const num2 = document.createElement('div');
     num2.className = 'line-num-entry';
     num2.textContent = n2 || '';
@@ -410,7 +495,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!previewContext.leftRepo) return;
     const confirmed = await new Promise(resolve => {
       const msg = `確定要以 [${previewContext.leftRepo}] 為主版本，同步 ${previewContext.filename} 至所有 Repo？`;
-      if (typeof showToast === 'function') showToast(msg, 'warning', 5000);
+      showToast(msg, 'warning', 5000);
       const overlay = document.createElement('div');
       overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);z-index:99999;display:flex;align-items:center;justify-content:center;';
       overlay.innerHTML = `<div style="background:var(--bg-surface,#252525);border:1px solid var(--border-color,rgba(255,255,255,0.1));border-radius:12px;padding:24px 28px;max-width:420px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,0.5);"><p style="color:var(--text-primary,#f0f0f0);font-size:14px;margin:0 0 20px;line-height:1.5;">${msg}</p><div style="display:flex;justify-content:flex-end;gap:10px;"><button id="_cancel_sync" style="background:var(--bg-tertiary,#1e1e1e);color:var(--text-secondary,#999);border:1px solid var(--border-color,rgba(255,255,255,0.1));padding:8px 18px;border-radius:6px;cursor:pointer;font-size:13px;">取消</button><button id="_confirm_sync" style="background:#0084ff;color:#fff;border:none;padding:8px 18px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;">確定同步</button></div></div>`;
@@ -423,24 +508,35 @@ document.addEventListener('DOMContentLoaded', async () => {
     await syncFileToAll(previewContext.filename, previewContext.leftRepo);
   };
 
-  window.handleAutoSync = async (filename, targetRepoName) => {
+  // #7: 移除 window.handleAutoSync，改为本地函数
+  async function handleAutoSync(filename, targetRepoName) {
     const sourceRepoName = Object.keys(currentResults.fileMap[filename])[0];
     const targetRepo = currentResults.repos.find(r => r.name === targetRepoName);
     const sourceRepo = currentResults.repos.find(r => r.name === sourceRepoName);
-    const res = await window.electronAPI.syncSkillFile({ sourceSkillPath: sourceRepo.skillPath, filename, targetSkillPaths: [targetRepo.skillPath] });
-    if (res.success) scanBtn.click();
-  };
+    try {
+      const res = await window.electronAPI.syncSkillFile({ sourceSkillPath: sourceRepo.skillPath, filename, targetSkillPaths: [targetRepo.skillPath] });
+      if (res.success) scanBtn.click();
+      else showToast(`同步失敗：${res.error || '未知錯誤'}`, 'error');
+    } catch (err) {
+      showToast(`同步失敗：${err.message}`, 'error');
+    }
+  }
 
-  window.syncFileToAll = async (filename, sourceRepoNameOverride = null) => {
+  // #7: 移除 window.syncFileToAll，改为本地函数
+  async function syncFileToAll(filename, sourceRepoNameOverride = null) {
     const sourceRepoName = sourceRepoNameOverride || Object.keys(currentResults.fileMap[filename])[0];
     const sourceRepo = currentResults.repos.find(r => r.name === sourceRepoName);
     const targetSkillPaths = currentResults.repos.filter(r => r.name !== sourceRepoName).map(r => r.skillPath);
-    const res = await window.electronAPI.syncSkillFile({ sourceSkillPath: sourceRepo.skillPath, filename, targetSkillPaths });
-    if (res.success) {
-      if (typeof showToast === 'function') showToast(`${filename} 同步完成`, 'success');
-      scanBtn.click();
-    } else {
-      if (typeof showToast === 'function') showToast(`同步失敗：${res.error || '未知錯誤'}`, 'error');
+    try {
+      const res = await window.electronAPI.syncSkillFile({ sourceSkillPath: sourceRepo.skillPath, filename, targetSkillPaths });
+      if (res.success) {
+        showToast(`${filename} 同步完成`, 'success');
+        scanBtn.click();
+      } else {
+        showToast(`同步失敗：${res.error || '未知錯誤'}`, 'error');
+      }
+    } catch (err) {
+      showToast(`同步失敗：${err.message}`, 'error');
     }
-  };
+  }
 });
