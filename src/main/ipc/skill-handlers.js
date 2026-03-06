@@ -13,16 +13,8 @@ function registerSkillHandlers() {
   ipcMain.handle('compare-skills', async (event, rootPath) => {
     if (!fs.existsSync(rootPath)) return { error: 'Invalid root path' };
 
-    let actualRoot = rootPath;
-    const parts = rootPath.split(/[\\/]/);
-    const vfcIndex = parts.indexOf('VegasFrenzyClient');
-    if (vfcIndex !== -1) {
-      if (vfcIndex > 1) actualRoot = parts.slice(0, vfcIndex - 1).join(path.sep);
-      else if (vfcIndex > 0) actualRoot = parts.slice(0, vfcIndex).join(path.sep);
-    }
-
-    const results = { repos: [], fileMap: {}, scannedRoot: actualRoot };
-    const maxDepth = 4;
+    const results = { repos: [], fileMap: {}, scannedRoot: rootPath };
+    const maxDepth = 6;
 
     function scanSkillsFolder(skillRoot, repoName, currentSubPath = '') {
       const fullPath = path.join(skillRoot, currentSubPath);
@@ -45,27 +37,54 @@ function registerSkillHandlers() {
       } catch (e) { console.error(e); }
     }
 
-    function findVFC(currentPath, depth) {
+    // 第一階段：收集所有含有 .cursor/skills 的資料夾
+    const foundFolders = [];
+
+    function collectSkillFolders(currentPath, depth) {
       if (depth > maxDepth) return;
+
+      const folderName = path.basename(currentPath);
+      // 強制忽略 ArtTemp 資料夾 (不分大小寫)
+      if (folderName.toLowerCase() === 'arttemp') return;
+
       try {
         if (!fs.existsSync(currentPath) || !fs.statSync(currentPath).isDirectory()) return;
-        const isVFC = path.basename(currentPath) === 'VegasFrenzyClient';
-        if (isVFC) {
-          const skillPath = path.join(currentPath, '.cursor', 'skills');
-          const hasSkills = fs.existsSync(skillPath);
-          const folderName = path.basename(path.dirname(currentPath));
-          results.repos.push({ name: folderName, skillPath, exists: hasSkills });
-          if (hasSkills) scanSkillsFolder(skillPath, folderName);
-          return;
+
+        const skillPath = path.join(currentPath, '.cursor', 'skills');
+        if (fs.existsSync(skillPath) && fs.statSync(skillPath).isDirectory()) {
+          foundFolders.push({
+            folderName: folderName,
+            parentName: path.basename(path.dirname(currentPath)),
+            skillPath: skillPath
+          });
+          return; // 找到後不再往下搜尋
         }
+
         const entries = fs.readdirSync(currentPath, { withFileTypes: true });
         for (const entry of entries) {
-          if (entry.isDirectory()) findVFC(path.join(currentPath, entry.name), depth + 1);
+          if (entry.isDirectory() && !entry.name.startsWith('.') && entry.name.toLowerCase() !== 'arttemp') {
+            collectSkillFolders(path.join(currentPath, entry.name), depth + 1);
+          }
         }
       } catch (e) { console.error(e); }
     }
 
-    findVFC(actualRoot, 0);
+    collectSkillFolders(rootPath, 0);
+
+    // 第二階段：決定每個 Repo 的顯示名稱
+    // 檢查 folderName 是否有重複，若有則改用 parentName
+    const folderNameCount = {};
+    foundFolders.forEach(f => {
+      folderNameCount[f.folderName] = (folderNameCount[f.folderName] || 0) + 1;
+    });
+
+    foundFolders.forEach(f => {
+      // 如果同名的資料夾超過一個，使用上層資料夾名稱（與原始邏輯一致）
+      const repoName = folderNameCount[f.folderName] > 1 ? f.parentName : f.folderName;
+      results.repos.push({ name: repoName, skillPath: f.skillPath, exists: true });
+      scanSkillsFolder(f.skillPath, repoName);
+    });
+
     return results;
   });
   //#endregion

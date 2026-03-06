@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         <div class="skill-header-mini">
             <div class="skill-title-group">
                 <h2>Skill Sync</h2>
-                <span class="search-pattern-hint">**/VegasFrenzyClient/.cursor/skills</span>
+                <span class="search-pattern-hint">**/{任意檔名}/.cursor/skills</span>
             </div>
             <div class="skill-controls-row">
                 <input type="text" id="skill-search-path" class="skill-input-compact" placeholder="Root directory (e.g., E:\\Git)">
