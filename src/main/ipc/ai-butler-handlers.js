@@ -19,14 +19,19 @@ const DEFAULT_CONFIG = {
   }
 };
 
-// 模型選項
+// 模型選項（僅列出適合文字聊天的模型）
 const MODEL_OPTIONS = {
   openai: [
-    { id: 'gpt-4o', name: 'GPT-4o' },
-    { id: 'gpt-4o-mini', name: 'GPT-4o Mini' },
+    { id: 'gpt-5.4', name: 'GPT-5.4' },
+    { id: 'gpt-5.4-pro', name: 'GPT-5.4 Pro' },
+    { id: 'gpt-5-mini', name: 'GPT-5 Mini' },
+    { id: 'gpt-5-nano', name: 'GPT-5 Nano' },
+    { id: 'gpt-5', name: 'GPT-5' },
     { id: 'gpt-4.1', name: 'GPT-4.1' },
     { id: 'gpt-4.1-mini', name: 'GPT-4.1 Mini' },
     { id: 'gpt-4.1-nano', name: 'GPT-4.1 Nano' },
+    { id: 'gpt-4o', name: 'GPT-4o' },
+    { id: 'gpt-4o-mini', name: 'GPT-4o Mini' },
     { id: 'o3-mini', name: 'o3-mini' }
   ],
   gemini: [
