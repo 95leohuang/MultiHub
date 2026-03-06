@@ -80,7 +80,19 @@ function injectDrawerHTML() {
         <textarea class="ai-settings-textarea" id="ai-settings-rules" rows="6"
           placeholder="你是 Multi Hub 的 AI 大管家..."></textarea>
       </div>
-      <button class="ai-settings-save-btn" id="ai-settings-save">儲存設定</button>
+      <div class="ai-settings-group">
+        <label class="ai-settings-label">Skills (啟用工具)</label>
+        <div class="ai-settings-skills">
+          <label class="ai-skill-toggle"><input type="checkbox" id="ai-skill-quicknotes" checked> Quick Notes</label>
+          <label class="ai-skill-toggle"><input type="checkbox" id="ai-skill-skillsync" checked> Skill Sync</label>
+          <label class="ai-skill-toggle"><input type="checkbox" id="ai-skill-gitgui" checked> Git GUI</label>
+          <label class="ai-skill-toggle"><input type="checkbox" id="ai-skill-gitupdater" checked> Git Updater</label>
+        </div>
+      </div>
+      <div class="ai-settings-actions">
+        <button class="ai-settings-save-btn" id="ai-settings-save">儲存設定</button>
+        <button class="ai-settings-clear-btn" id="ai-settings-clear-history">清除對話紀錄</button>
+      </div>
     </div>
 
     <!-- Context + Input -->
@@ -119,8 +131,19 @@ function bindEvents() {
   document.getElementById('ai-butler-clear-btn').addEventListener('click', () => {
     messages = [];
     totalTokens = 0;
+    saveHistory();
     renderMessages();
     document.getElementById('ai-butler-token-count').textContent = 'Tokens: 0';
+  });
+
+  // Clear history from settings
+  document.getElementById('ai-settings-clear-history').addEventListener('click', () => {
+    messages = [];
+    totalTokens = 0;
+    saveHistory();
+    renderMessages();
+    document.getElementById('ai-butler-token-count').textContent = 'Tokens: 0';
+    showToast('對話紀錄已清除', 'info');
   });
 
   // Settings toggle
@@ -206,11 +229,19 @@ async function loadConfig() {
     document.getElementById('ai-settings-provider').value = config.provider || 'openai';
     document.getElementById('ai-settings-apikey').value = config.apiKey || '';
     document.getElementById('ai-settings-rules').value = config.rules || '';
+    // Skill toggles
+    const skills = config.skills || {};
+    document.getElementById('ai-skill-quicknotes').checked = skills.quickNotes !== false;
+    document.getElementById('ai-skill-skillsync').checked = skills.skillSync !== false;
+    document.getElementById('ai-skill-gitgui').checked = skills.gitGui !== false;
+    document.getElementById('ai-skill-gitupdater').checked = skills.gitUpdater !== false;
     await loadModels(config.provider || 'openai');
     if (config.model) {
       document.getElementById('ai-settings-model').value = config.model;
     }
     updateModelTag();
+    // Load conversation history
+    loadHistory();
   } catch (e) {
     console.error('[AI Butler] Failed to load config:', e);
   }
@@ -238,7 +269,12 @@ async function saveConfig() {
     apiKey: document.getElementById('ai-settings-apikey').value,
     model: document.getElementById('ai-settings-model').value,
     rules: document.getElementById('ai-settings-rules').value,
-    skills: config.skills || { quickNotes: true, skillSync: true, gitGui: true, gitUpdater: true }
+    skills: {
+      quickNotes: document.getElementById('ai-skill-quicknotes').checked,
+      skillSync: document.getElementById('ai-skill-skillsync').checked,
+      gitGui: document.getElementById('ai-skill-gitgui').checked,
+      gitUpdater: document.getElementById('ai-skill-gitupdater').checked
+    }
   };
   try {
     await window.electronAPI.aiButlerSaveConfig(config);
@@ -303,13 +339,14 @@ async function sendMessage() {
         totalTokens += result.usage.total_tokens || 0;
         document.getElementById('ai-butler-token-count').textContent = `Tokens: ${totalTokens.toLocaleString()}`;
       }
+      saveHistory();
       renderMessages();
     }
   } catch (err) {
     typingEl.remove();
     const errEl = document.createElement('div');
     errEl.className = 'ai-msg-error';
-    errEl.textContent = `❌ ${err.message}`;
+    errEl.textContent = err.message;
     messagesEl.appendChild(errEl);
   } finally {
     isStreaming = false;
@@ -339,7 +376,16 @@ function renderMessages() {
 
     const bubble = document.createElement('div');
     bubble.className = 'ai-msg-bubble';
-    bubble.textContent = msg.content;
+
+    if (msg.role === 'assistant' && window.marked) {
+      const html = window.marked.parse(msg.content || '', { breaks: true, gfm: true });
+      Promise.resolve(html).then(h => {
+        bubble.innerHTML = h;
+        if (window.Prism) window.Prism.highlightAllUnder(bubble);
+      });
+    } else {
+      bubble.textContent = msg.content;
+    }
 
     el.appendChild(bubble);
     messagesEl.appendChild(el);
@@ -352,4 +398,26 @@ function scrollToBottom() {
   requestAnimationFrame(() => {
     messagesEl.scrollTop = messagesEl.scrollHeight;
   });
+}
+
+// ======= Conversation History Persistence =======
+
+function saveHistory() {
+  try {
+    const data = { messages, totalTokens };
+    localStorage.setItem('aiButlerHistory', JSON.stringify(data));
+  } catch (e) { /* quota exceeded — silently ignore */ }
+}
+
+function loadHistory() {
+  try {
+    const raw = localStorage.getItem('aiButlerHistory');
+    if (raw) {
+      const data = JSON.parse(raw);
+      messages = data.messages || [];
+      totalTokens = data.totalTokens || 0;
+      document.getElementById('ai-butler-token-count').textContent = `Tokens: ${totalTokens.toLocaleString()}`;
+      renderMessages();
+    }
+  } catch (e) { /* corrupted — start fresh */ }
 }

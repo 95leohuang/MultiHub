@@ -445,3 +445,153 @@
   color: var(--text-muted, #444);
   flex-shrink: 0;
 }
+
+/* ========================================
+   P3: Skill Toggles + Settings Actions
+   ======================================== */
+
+.ai-settings-skills {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.ai-skill-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-secondary, #aaa);
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
+  background: var(--bg-surface, #1a1a1a);
+  transition: all 0.15s;
+}
+
+.ai-skill-toggle:hover {
+  border-color: rgba(0, 132, 255, 0.4);
+  color: var(--text-primary, #f0f0f0);
+}
+
+.ai-skill-toggle input[type="checkbox"] {
+  accent-color: #0084ff;
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+}
+
+.ai-settings-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+
+.ai-settings-clear-btn {
+  background: transparent;
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
+  color: var(--text-muted, #777);
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.ai-settings-clear-btn:hover {
+  border-color: rgba(255, 59, 48, 0.5);
+  color: #ff6b6b;
+}
+
+/* ========================================
+   P3: Markdown Rendering in Assistant Bubbles
+   ======================================== */
+
+.ai-msg.assistant .ai-msg-bubble {
+  white-space: normal;
+  /* override pre-wrap for markdown */
+}
+
+.ai-msg.assistant .ai-msg-bubble p {
+  margin: 0 0 8px;
+  line-height: 1.6;
+}
+
+.ai-msg.assistant .ai-msg-bubble p:last-child {
+  margin-bottom: 0;
+}
+
+.ai-msg.assistant .ai-msg-bubble ul,
+.ai-msg.assistant .ai-msg-bubble ol {
+  margin: 4px 0 8px 16px;
+  padding: 0;
+}
+
+.ai-msg.assistant .ai-msg-bubble li {
+  margin: 2px 0;
+  line-height: 1.5;
+}
+
+.ai-msg.assistant .ai-msg-bubble code {
+  background: rgba(255, 255, 255, 0.08);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-family: 'Consolas', 'Monaco', monospace;
+}
+
+.ai-msg.assistant .ai-msg-bubble pre {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  padding: 10px 12px;
+  overflow-x: auto;
+  margin: 8px 0;
+}
+
+.ai-msg.assistant .ai-msg-bubble pre code {
+  background: none;
+  padding: 0;
+  font-size: 11px;
+}
+
+.ai-msg.assistant .ai-msg-bubble strong {
+  color: var(--text-primary, #f0f0f0);
+  font-weight: 600;
+}
+
+.ai-msg.assistant .ai-msg-bubble h1,
+.ai-msg.assistant .ai-msg-bubble h2,
+.ai-msg.assistant .ai-msg-bubble h3 {
+  margin: 8px 0 4px;
+  font-weight: 600;
+  color: var(--text-primary, #f0f0f0);
+}
+
+.ai-msg.assistant .ai-msg-bubble h1 {
+  font-size: 15px;
+}
+
+.ai-msg.assistant .ai-msg-bubble h2 {
+  font-size: 14px;
+}
+
+.ai-msg.assistant .ai-msg-bubble h3 {
+  font-size: 13px;
+}
+
+.ai-msg.assistant .ai-msg-bubble blockquote {
+  border-left: 3px solid rgba(0, 132, 255, 0.4);
+  padding-left: 10px;
+  margin: 6px 0;
+  color: var(--text-secondary, #aaa);
+  font-style: italic;
+}
+
+.ai-msg.assistant .ai-msg-bubble hr {
+  border: none;
+  border-top: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
+  margin: 8px 0;
+}
