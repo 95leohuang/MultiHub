@@ -4,7 +4,7 @@
  */
 
 import { showToast } from '../toast.js';
-import { getActiveContext } from './ai-butler-tools.js';
+import { getActiveContext, initToolListener } from './ai-butler-tools.js';
 
 let drawerOpen = false;
 let settingsOpen = false;
@@ -21,6 +21,7 @@ export function initAiButler() {
   injectDrawerHTML();
   bindEvents();
   loadConfig();
+  initToolListener();
 }
 
 function injectDrawerHTML() {

@@ -100,7 +100,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
   aiButlerChat: (data) => ipcRenderer.invoke('ai-butler-chat', data),
   aiButlerGetConfig: () => ipcRenderer.invoke('ai-butler-get-config'),
   aiButlerSaveConfig: (config) => ipcRenderer.invoke('ai-butler-save-config', config),
-  aiButlerGetModels: (provider) => ipcRenderer.invoke('ai-butler-get-models', provider)
+  aiButlerGetModels: (provider) => ipcRenderer.invoke('ai-butler-get-models', provider),
+  // AI Butler Tool Execution (main→renderer)
+  onAiButlerExecuteTool: (callback) => {
+    ipcRenderer.on('ai-butler-execute-tool', (event, data) => callback(data));
+  },
+  aiButlerToolResult: (channel, result) => {
+    ipcRenderer.send(channel, result);
+  }
 });
 
 // 快捷键增强

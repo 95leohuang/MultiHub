@@ -213,3 +213,131 @@ function gatherWebviewContext(platformName) {
     return '';
   }
 }
+
+// ======= P2: Tool Execution (Renderer Side) =======
+
+/**
+ * 初始化工具執行監聽器
+ * 由 main process 透過 IPC 呼叫
+ */
+export function initToolListener() {
+  if (!window.electronAPI?.onAiButlerExecuteTool) return;
+
+  window.electronAPI.onAiButlerExecuteTool(async ({ name, args, responseChannel }) => {
+    let result;
+    try {
+      switch (name) {
+        case 'update_note':
+          result = executeUpdateNote(args);
+          break;
+        case 'create_note':
+          result = executeCreateNote(args);
+          break;
+        case 'get_skill_diff_summary':
+          result = { summary: gatherSkillSyncContext() };
+          break;
+        case 'get_git_status':
+          result = { status: gatherGitGuiContext() };
+          break;
+        case 'generate_commit_message':
+          result = await executeGenerateCommitMessage();
+          break;
+        default:
+          result = { error: `未知工具: ${name}` };
+      }
+    } catch (e) {
+      result = { error: e.message };
+    }
+
+    window.electronAPI.aiButlerToolResult(responseChannel, result);
+  });
+}
+
+/**
+ * 修改目前正在編輯的筆記
+ */
+function executeUpdateNote({ title, body }) {
+  try {
+    const notes = JSON.parse(localStorage.getItem('quickNotes') || '[]');
+    const activeId = localStorage.getItem('activeNoteId');
+    if (!activeId) return { error: '目前沒有正在編輯的筆記' };
+
+    const note = notes.find(n => n.id === activeId);
+    if (!note) return { error: '找不到筆記' };
+
+    if (title !== undefined) note.title = title;
+    if (body !== undefined) note.body = body;
+    note.updatedAt = Date.now();
+
+    localStorage.setItem('quickNotes', JSON.stringify(notes));
+
+    // 更新 DOM
+    const titleEl = document.getElementById('note-title');
+    const editorEl = document.getElementById('note-editor');
+    if (titleEl && title !== undefined) titleEl.value = title;
+    if (editorEl && body !== undefined) editorEl.value = body;
+
+    // 觸發 renderNotesList（透過 DOM event）
+    window.dispatchEvent(new CustomEvent('notes-updated'));
+
+    return { success: true, message: `已更新筆記 "${note.title}"` };
+  } catch (e) {
+    return { error: e.message };
+  }
+}
+
+/**
+ * 建立新筆記
+ */
+function executeCreateNote({ title, body }) {
+  try {
+    const notes = JSON.parse(localStorage.getItem('quickNotes') || '[]');
+    const newNote = {
+      id: `note-${Date.now()}`,
+      title: title || '新筆記',
+      body: body || '',
+      updatedAt: Date.now()
+    };
+    notes.unshift(newNote);
+    localStorage.setItem('quickNotes', JSON.stringify(notes));
+    localStorage.setItem('activeNoteId', newNote.id);
+
+    window.dispatchEvent(new CustomEvent('notes-updated'));
+
+    return { success: true, message: `已建立筆記 "${newNote.title}"`, noteId: newNote.id };
+  } catch (e) {
+    return { error: e.message };
+  }
+}
+
+/**
+ * 取得 staged diff 用於生成 commit message
+ */
+async function executeGenerateCommitMessage() {
+  try {
+    const repoName = document.getElementById('gg-toolbar-repo-name');
+    if (!repoName || repoName.textContent === '—') {
+      return { error: '尚未選取 Repo' };
+    }
+
+    // 收集 staged 檔案列表
+    const stagedRows = document.querySelectorAll('#gg-panel-changes .gg-changes-section:first-child .gg-changes-file-row');
+    if (stagedRows.length === 0) {
+      return { error: '沒有 staged 的檔案' };
+    }
+
+    const files = Array.from(stagedRows).map(row => {
+      const name = row.querySelector('.gg-changes-filename');
+      const status = row.querySelector('.gg-changes-status');
+      return `${status ? status.textContent : '?'} ${name ? name.textContent : ''}`;
+    });
+
+    return {
+      repo: repoName.textContent,
+      stagedFiles: files,
+      suggestion: `基於以上 ${files.length} 個 staged 檔案，請生成 conventional commit message`
+    };
+  } catch (e) {
+    return { error: e.message };
+  }
+}
