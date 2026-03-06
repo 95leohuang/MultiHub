@@ -312,7 +312,7 @@ function registerAiButlerHandlers() {
       const config = { ...DEFAULT_CONFIG, ...store.get('aiButlerConfig', {}) };
 
       if (!config.apiKey) {
-        return { error: '請先設定 API Key（點擊右上角 ⚙ 按鈕）' };
+        return { error: '請先設定 API Key（點擊右上角設定按鈕）' };
       }
 
       let systemPrompt = config.rules || DEFAULT_CONFIG.rules;

@@ -175,13 +175,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   function renderSummaryBar(totalFiles, consistentCount, diffCount, missingCount) {
     matrixSummary.innerHTML = `
       <div class="summary-stats">
-        <span class="summary-total">📊 ${totalFiles} files</span>
-        <span class="summary-consistent">● ${consistentCount} consistent</span>
-        <span class="summary-diff">⚠ ${diffCount} different</span>
+        <span class="summary-total"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>${totalFiles} files</span>
+        <span class="summary-consistent"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="6"/></svg> ${consistentCount} consistent</span>
+        <span class="summary-diff"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:2px"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>${diffCount} different</span>
         ${missingCount > 0 ? `<span class="summary-missing">+ ${missingCount} missing</span>` : ''}
       </div>
       <button class="filter-toggle-btn ${showDiffOnly ? 'active' : ''}" id="filter-diff-btn">
-        ${showDiffOnly ? '👁 Show All' : '⚠ Show Diff Only'}
+        ${showDiffOnly ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>Show All' : '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Show Diff Only'}
       </button>
     `;
     document.getElementById('filter-diff-btn').addEventListener('click', () => {
@@ -273,7 +273,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           td.innerHTML = `<div class="status-cell ${isOutlier ? 'diff' : 'consistent'}"
                         data-action="preview" data-file="${file}" data-repo="${repo.name}"
                         title="${tooltip}">
-                        <span class="status-icon">${isOutlier ? '⚠' : '●'}</span>
+                        <span class="status-icon">${isOutlier ? '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' : '<svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="6"/></svg>'}</span>
                     </div>`;
         } else {
           td.innerHTML = `<div class="status-cell missing" data-action="auto-sync" data-file="${file}" data-repo="${repo.name}" title="此 Repo 缺少此檔案，點擊自動同步">+</div>`;
@@ -378,10 +378,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       const stats = renderProDiff(lContent, rContent);
       diffInfo.innerHTML = `Comparing Source: <b>${previewContext.leftRepo}</b> vs Target: <b>${previewContext.rightRepo}</b>`
         + `<span class="diff-stats">`
-        + `<span class="stat-changed">⚠ ${stats.changed} changed</span>`
+        + `<span class="stat-changed"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:2px"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>${stats.changed} changed</span>`
         + `<span class="stat-added">+ ${stats.added} added</span>`
         + `<span class="stat-removed">− ${stats.removed} removed</span>`
-        + (stats.changed === 0 && stats.added === 0 && stats.removed === 0 ? `<span class="stat-identical">✓ Files are identical</span>` : '')
+        + (stats.changed === 0 && stats.added === 0 && stats.removed === 0 ? `<span class="stat-identical"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:2px"><polyline points="20 6 9 17 4 12"/></svg>Files are identical</span>` : '')
         + `</span>`;
     } else if (previewContext.leftRepo) {
       renderSingle(lContent, true);

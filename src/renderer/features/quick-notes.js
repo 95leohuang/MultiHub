@@ -220,7 +220,7 @@ function autoSave() {
   renderNotesList();
   if (noteMeta) noteMeta.textContent = `最後更新：${fmtTime(note.updatedAt)}`;
   if (noteSaveStatus) {
-    noteSaveStatus.textContent = '✓ 已儲存';
+    noteSaveStatus.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><polyline points="20 6 9 17 4 12"/></svg>已儲存';
     setTimeout(() => { if (noteSaveStatus) noteSaveStatus.textContent = ''; }, 2000);
   }
 }

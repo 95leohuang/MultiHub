@@ -38,21 +38,21 @@ function injectDrawerHTML() {
   drawer.innerHTML = `
     <div class="ai-butler-header">
       <div class="ai-butler-title">
-        <span class="butler-icon">🤖</span>
+        <span class="butler-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><line x1="8" y1="16" x2="8" y2="16"/><line x1="16" y1="16" x2="16" y2="16"/></svg></span>
         <span>AI 大管家</span>
         <span class="ai-butler-model-tag" id="ai-butler-model-tag">未設定</span>
       </div>
       <div class="ai-butler-header-actions">
-        <button class="ai-butler-header-btn" id="ai-butler-clear-btn" title="清除對話">🗑</button>
-        <button class="ai-butler-header-btn" id="ai-butler-settings-btn" title="設定">⚙</button>
-        <button class="ai-butler-header-btn" id="ai-butler-close-btn" title="關閉 (Alt+A)">✕</button>
+        <button class="ai-butler-header-btn" id="ai-butler-clear-btn" title="清除對話"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+        <button class="ai-butler-header-btn" id="ai-butler-settings-btn" title="設定"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+        <button class="ai-butler-header-btn" id="ai-butler-close-btn" title="關閉 (Alt+A)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
       </div>
     </div>
 
     <!-- Chat Panel -->
     <div class="ai-butler-messages" id="ai-butler-messages">
       <div class="ai-butler-welcome">
-        <span class="welcome-icon">🤖</span>
+        <span class="welcome-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><line x1="8" y1="16" x2="8" y2="16"/><line x1="16" y1="16" x2="16" y2="16"/></svg></span>
         <h3>AI 大管家</h3>
         <p>按 Alt+A 隨時呼叫我。<br>我可以協助你處理筆記、比對差異、Git 操作等各種任務。</p>
       </div>
@@ -92,7 +92,7 @@ function injectDrawerHTML() {
       <textarea class="ai-butler-input" id="ai-butler-input"
         placeholder="問我任何事... (Enter 送出, Shift+Enter 換行)"
         rows="1"></textarea>
-      <button class="ai-butler-send-btn" id="ai-butler-send" disabled>➤</button>
+      <button class="ai-butler-send-btn" id="ai-butler-send" disabled><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
     </div>
     <div class="ai-butler-footer-info" id="ai-butler-footer">
       <span id="ai-butler-token-count">Tokens: 0</span>
@@ -295,7 +295,7 @@ async function sendMessage() {
     if (result.error) {
       const errEl = document.createElement('div');
       errEl.className = 'ai-msg-error';
-      errEl.textContent = `❌ ${result.error}`;
+      errEl.textContent = result.error;
       messagesEl.appendChild(errEl);
     } else {
       messages.push({ role: 'assistant', content: result.content });
@@ -325,7 +325,7 @@ function renderMessages() {
   if (messages.length === 0) {
     messagesEl.innerHTML = `
       <div class="ai-butler-welcome">
-        <span class="welcome-icon">🤖</span>
+        <span class="welcome-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><line x1="8" y1="16" x2="8" y2="16"/><line x1="16" y1="16" x2="16" y2="16"/></svg></span>
         <h3>AI 大管家</h3>
         <p>按 Alt+A 隨時呼叫我。<br>我可以協助你處理筆記、比對差異、Git 操作等各種任務。</p>
       </div>

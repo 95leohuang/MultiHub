@@ -291,7 +291,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="gg-branches-search-wrap">
               <svg class="gg-search-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
               <input type="text" class="gg-branches-search-input" id="gg-branch-search" placeholder="搜尋分支...">
-              <button class="gg-search-clear hidden" id="gg-branch-search-clear" title="清除">✕</button>
+              <button class="gg-search-clear hidden" id="gg-branch-search-clear" title="清除">${LucideIcon('x', 12)}</button>
             </div>
             <div class="gg-branch-view-btns">
               <button class="gg-view-btn active" id="gg-view-tree" data-mode="tree" title="樹狀結構">
@@ -1858,7 +1858,7 @@ document.addEventListener('DOMContentLoaded', () => {
   /** 產生單一 branch item HTML */
   function BranchItemHtml(b, isRemote) {
     const icon = b.isCurrent
-      ? '<span class="gg-branch-icon current">✓</span>'
+      ? `<span class="gg-branch-icon current">${LucideIcon('check', 12)}</span>`
       : isRemote
         ? '<span class="gg-branch-icon remote">☁</span>'
         : '<span class="gg-branch-icon">⎇</span>';
