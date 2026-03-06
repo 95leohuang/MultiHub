@@ -518,5 +518,17 @@ export function initQuickNotes() {
     });
   }
 
+  // AI Butler 透過 localStorage 修改筆記後觸發此事件刷新 UI
+  window.addEventListener('notes-updated', () => {
+    loadNotes();
+    // 如果有 activeNoteId，重新開啟以更新編輯器
+    const newActiveId = localStorage.getItem('activeNoteId');
+    if (newActiveId && newActiveId !== activeNoteId) {
+      openNote(newActiveId);
+    } else if (activeNoteId) {
+      openNote(activeNoteId);
+    }
+  });
+
   loadNotes();
 }
