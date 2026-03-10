@@ -6,6 +6,7 @@
 import { platformConfig, tabOrder } from './platform-config.js';
 import { showToast } from './toast.js';
 import { closePopup } from './grid-popup.js';
+import { logRendererError } from './logger.js';
 
 //#region 快捷鍵設定資料
 /** @type {object} */
@@ -92,7 +93,7 @@ export function loadShortcutConfig(onLoaded) {
         onLoaded(shortcutConfig);
       })
       .catch(err => {
-        console.error('loadShortcutConfig:', err);
+        logRendererError('Shortcut Settings', err);
         onLoaded(shortcutConfig);
       });
   } else {
@@ -486,7 +487,7 @@ export function bindShortcutSettingsEvents(onSaved) {
   if (saveShortcutsBtn) {
     saveShortcutsBtn.addEventListener('click', () => {
       if (window.electronAPI && window.electronAPI.saveShortcutConfig) {
-        window.electronAPI.saveShortcutConfig(shortcutConfig).catch(e => console.error('saveShortcutConfig:', e));
+        window.electronAPI.saveShortcutConfig(shortcutConfig).catch(e => logRendererError('Shortcut Settings', e));
       }
       settingsModal.classList.add('hidden');
       showToast('快捷鍵設定已儲存', 'success');

@@ -4,6 +4,8 @@
  */
 
 import { showToast } from '../toast.js';
+import { logRendererError } from '../logger.js';
+import { STORAGE_KEYS, getStorageItem, setStorageItem } from '../storage.js';
 import { getActiveContext, initToolListener } from './ai-butler-tools.js';
 
 // ──── SVG helpers ────
@@ -67,19 +69,19 @@ function fmtDate(ts) {
 // ──── Session Persistence ────
 function saveSessions() {
   try {
-    localStorage.setItem('aiButlerSessions', JSON.stringify(sessions));
-    localStorage.setItem('aiButlerActiveSession', activeSessionId || '');
+    setStorageItem(STORAGE_KEYS.AI_BUTLER_SESSIONS, JSON.stringify(sessions));
+    setStorageItem(STORAGE_KEYS.AI_BUTLER_ACTIVE_SESSION, activeSessionId || '');
   } catch (e) { /* quota */ }
 }
 
 function loadSessions() {
   try {
-    const raw = localStorage.getItem('aiButlerSessions');
+    const raw = getStorageItem(STORAGE_KEYS.AI_BUTLER_SESSIONS);
     if (raw) {
       sessions = JSON.parse(raw);
       // Migrate old single-session history if exists
       if (sessions.length === 0) {
-        const oldRaw = localStorage.getItem('aiButlerHistory');
+        const oldRaw = getStorageItem(STORAGE_KEYS.AI_BUTLER_HISTORY);
         if (oldRaw) {
           const old = JSON.parse(oldRaw);
           if (old.messages && old.messages.length > 0) {
@@ -91,7 +93,7 @@ function loadSessions() {
       }
     }
 
-    const savedActive = localStorage.getItem('aiButlerActiveSession');
+    const savedActive = getStorageItem(STORAGE_KEYS.AI_BUTLER_ACTIVE_SESSION);
     if (savedActive && sessions.find(s => s.id === savedActive)) {
       activeSessionId = savedActive;
     } else if (sessions.length > 0) {
@@ -102,6 +104,7 @@ function loadSessions() {
       createNewSession(false);
     }
   } catch (e) {
+    logRendererError('AI Butler Session Load', e);
     sessions = [];
     createNewSession(false);
   }
@@ -404,7 +407,7 @@ async function loadConfig() {
     renderSessionList();
     renderMessages();
   } catch (e) {
-    console.error('[AI Butler] Failed to load config:', e);
+    logRendererError('AI Butler Config Load', e);
     loadSessions();
     renderSessionList();
     renderMessages();
@@ -423,7 +426,7 @@ async function loadModels(provider) {
       select.appendChild(opt);
     });
   } catch (e) {
-    console.error('[AI Butler] Failed to load models:', e);
+    logRendererError('AI Butler Models Load', e);
   }
 }
 
@@ -447,6 +450,7 @@ async function saveConfig() {
     settingsOpen = false;
     settingsPanel.classList.remove('active');
   } catch (e) {
+    logRendererError('AI Butler Config Save', e);
     showToast('儲存失敗', 'error');
   }
 }
@@ -516,6 +520,7 @@ async function sendMessage() {
       renderSessionList(); // update message count
     }
   } catch (err) {
+    logRendererError('AI Butler Chat', err);
     typingEl.remove();
     const errEl = document.createElement('div');
     errEl.className = 'ai-msg-error';

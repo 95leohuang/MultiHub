@@ -2,8 +2,6 @@
 
 const { ipcMain, net } = require('electron');
 const Store = require('electron-store');
-const fs = require('fs');
-const path = require('path');
 
 const store = new Store();
 

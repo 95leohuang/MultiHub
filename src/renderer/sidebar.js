@@ -4,6 +4,7 @@
  */
 
 import { platformConfig, tabOrder } from './platform-config.js';
+import { getActiveTab } from './storage.js';
 
 //#region 狀態
 /** @type {Record<string, number>} */
@@ -47,7 +48,7 @@ export function renderSidebar(shortcutConfig, onTabClick) {
   const sidebarTabsEl = document.getElementById('sidebar-tabs');
   if (!sidebarTabsEl) return;
 
-  const activeTab = localStorage.getItem('activeTab') || 'messenger';
+  const activeTab = getActiveTab();
   sidebarTabsEl.innerHTML = '';
   const ordered = getSidebarOrder(shortcutConfig);
   let dividerAdded = false;
@@ -96,10 +97,9 @@ export function renderSidebar(shortcutConfig, onTabClick) {
  * 更新某個 tab 的未讀徽章（側邊欄 + Grid Popup + Dock）
  * @param {string} tabKey
  * @param {number} count
- * @param {object} shortcutConfig
  * @param {HTMLElement} dockBadge
  */
-export function updateBadge(tabKey, count, shortcutConfig, dockBadge) {
+export function updateBadge(tabKey, count, dockBadge) {
   unreadCounts[tabKey] = count;
 
   // 側邊欄徽章

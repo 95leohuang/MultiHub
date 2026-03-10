@@ -5,6 +5,7 @@
 
 import { platformConfig } from './platform-config.js';
 import { openExternalUrl } from './toast.js';
+import { getActiveTab } from './storage.js';
 
 //#region DOM 元素（延遲綁定）
 export let _navBar, _navBack, _navForward, _navReload, _navHome, _navPageTitle, _navSpinner, _navOpenExt;
@@ -27,7 +28,7 @@ export function initNavBar() {
  * @returns {HTMLElement|null}
  */
 export function getActiveWebview(webviews) {
-  const el = webviews[localStorage.getItem('activeTab') || 'messenger'];
+  const el = webviews[getActiveTab()];
   return el && el.tagName === 'WEBVIEW' ? el : null;
 }
 
@@ -90,7 +91,7 @@ export function bindNavBarEvents(webviews) {
   });
 
   _navHome.addEventListener('click', () => {
-    const activeTab = localStorage.getItem('activeTab') || 'messenger';
+    const activeTab = getActiveTab();
     const cfg = platformConfig[activeTab];
     const wv = getActiveWebview(webviews);
     if (wv && cfg && cfg.homeUrl) wv.loadURL(cfg.homeUrl);

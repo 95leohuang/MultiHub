@@ -6,6 +6,7 @@
 import { platformConfig } from './platform-config.js';
 import { unreadCounts } from './sidebar.js';
 import { switchTab, switchTabCarousel } from './tab-manager.js';
+import { getActiveTab } from './storage.js';
 
 //#region 狀態
 export let isPopupOpen = false;
@@ -19,7 +20,7 @@ export function renderPlatformGrid(shortcutConfig) {
   const popupGrid = document.querySelector('.popup-grid');
   if (!popupGrid) return;
 
-  const activeTab = localStorage.getItem('activeTab') || 'messenger';
+  const activeTab = getActiveTab();
   popupGrid.innerHTML = '';
 
   const groups = Object.keys(shortcutConfig);

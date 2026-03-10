@@ -3,12 +3,14 @@
  * 擷取各分頁上下文，供 AI 大管家理解當前狀態
  */
 
+import { STORAGE_KEYS, getActiveTab, getStorageItem, setStorageItem } from '../storage.js';
+
 /**
  * 取得當前分頁的上下文資訊
  * @returns {{ activeTab: string, extra: string }}
  */
 export function getActiveContext() {
-  const activeTab = localStorage.getItem('activeTab') || 'messenger';
+  const activeTab = getActiveTab();
 
   const gatherers = {
     notes: gatherQuickNotesContext,
@@ -33,8 +35,8 @@ export function getActiveContext() {
  */
 function gatherQuickNotesContext() {
   try {
-    const notes = JSON.parse(localStorage.getItem('quickNotes') || '[]');
-    const activeId = localStorage.getItem('activeNoteId') || null;
+    const notes = JSON.parse(getStorageItem(STORAGE_KEYS.QUICK_NOTES, '[]'));
+    const activeId = getStorageItem(STORAGE_KEYS.ACTIVE_NOTE_ID);
     const noteCount = notes.length;
 
     // 找當前編輯的筆記
@@ -258,8 +260,8 @@ export function initToolListener() {
  */
 function executeUpdateNote({ title, body }) {
   try {
-    const notes = JSON.parse(localStorage.getItem('quickNotes') || '[]');
-    const activeId = localStorage.getItem('activeNoteId');
+    const notes = JSON.parse(getStorageItem(STORAGE_KEYS.QUICK_NOTES, '[]'));
+    const activeId = getStorageItem(STORAGE_KEYS.ACTIVE_NOTE_ID);
     if (!activeId) return { error: '目前沒有正在編輯的筆記' };
 
     const note = notes.find(n => n.id === activeId);
@@ -269,7 +271,7 @@ function executeUpdateNote({ title, body }) {
     if (body !== undefined) note.body = body;
     note.updatedAt = Date.now();
 
-    localStorage.setItem('quickNotes', JSON.stringify(notes));
+    setStorageItem(STORAGE_KEYS.QUICK_NOTES, JSON.stringify(notes));
 
     // 更新 DOM
     const titleEl = document.getElementById('note-title');
@@ -291,7 +293,7 @@ function executeUpdateNote({ title, body }) {
  */
 function executeCreateNote({ title, body }) {
   try {
-    const notes = JSON.parse(localStorage.getItem('quickNotes') || '[]');
+    const notes = JSON.parse(getStorageItem(STORAGE_KEYS.QUICK_NOTES, '[]'));
     const newNote = {
       id: `note-${Date.now()}`,
       title: title || '新筆記',
@@ -299,8 +301,8 @@ function executeCreateNote({ title, body }) {
       updatedAt: Date.now()
     };
     notes.unshift(newNote);
-    localStorage.setItem('quickNotes', JSON.stringify(notes));
-    localStorage.setItem('activeNoteId', newNote.id);
+    setStorageItem(STORAGE_KEYS.QUICK_NOTES, JSON.stringify(notes));
+    setStorageItem(STORAGE_KEYS.ACTIVE_NOTE_ID, newNote.id);
 
     window.dispatchEvent(new CustomEvent('notes-updated'));
 

@@ -131,11 +131,6 @@ app.whenReady().then(async () => {
   const { registerAiButlerHandlers } = require('./ipc/ai-butler-handlers');
   registerAiButlerHandlers();
 
-  try {
-    const { registerStoreHandlers } = require('./ipc/store-handlers');
-    registerStoreHandlers();
-  } catch (e) { }
-
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       createWindow();

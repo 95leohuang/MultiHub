@@ -5,6 +5,8 @@
  */
 
 import { showToast } from '../toast.js';
+import { logRendererError } from '../logger.js';
+import { STORAGE_KEYS, getStorageItem, setStorageItem } from '../storage.js';
 
 //#region 狀態
 /** @type {{ id: string, title: string, body: string, updatedAt: number }[]} */
@@ -69,7 +71,7 @@ function setPreviewMode(enable) {
 
           const mermaids = previewContent.querySelectorAll('.mermaid');
           if (mermaids.length > 0) {
-            window.mermaid.run({ nodes: mermaids }).catch(e => console.error('Mermaid render error:', e));
+            window.mermaid.run({ nodes: mermaids }).catch(e => logRendererError('Quick Notes', e));
           }
         }
       });
@@ -102,7 +104,7 @@ function insertImageToNote(imagePath) {
 /** 從 localStorage 載入筆記 */
 function loadNotes() {
   try {
-    const raw = localStorage.getItem('quickNotes');
+    const raw = getStorageItem(STORAGE_KEYS.QUICK_NOTES);
     notes = raw ? JSON.parse(raw) : [];
 
     // 轉換舊的 file:// 圖片路徑為 local:// 以配合新協定 (避免 CSP 或跨域被擋)
@@ -129,7 +131,7 @@ function loadNotes() {
 
 /** 儲存所有筆記至 localStorage */
 function saveNotes() {
-  localStorage.setItem('quickNotes', JSON.stringify(notes));
+  setStorageItem(STORAGE_KEYS.QUICK_NOTES, JSON.stringify(notes));
 }
 
 /** 渲染筆記清單 */
@@ -168,6 +170,7 @@ function openNote(id) {
   const note = notes.find(n => n.id === id);
   if (!note) return;
   activeNoteId = id;
+  setStorageItem(STORAGE_KEYS.ACTIVE_NOTE_ID, id);
   renderNotesList();
 
   const editorEmpty = document.getElementById('notes-editor-empty');
@@ -233,6 +236,7 @@ function deleteCurrentNote() {
   notes.splice(idx, 1);
   saveNotes();
   activeNoteId = null;
+  setStorageItem(STORAGE_KEYS.ACTIVE_NOTE_ID, '');
 
   const editorEmpty = document.getElementById('notes-editor-empty');
   const editorContent = document.getElementById('notes-editor-content');
@@ -460,7 +464,7 @@ export function initQuickNotes() {
               const imagePath = await window.electronAPI.saveImage({ buffer, ext });
               if (imagePath) insertImageToNote(imagePath);
             } catch (err) {
-              console.error('Save image failed', err);
+              logRendererError('Quick Notes', err);
             }
           }
         }
@@ -479,7 +483,7 @@ export function initQuickNotes() {
               const imagePath = await window.electronAPI.saveImage({ buffer, ext });
               if (imagePath) insertImageToNote(imagePath);
             } catch (err) {
-              console.error('Save image failed', err);
+              logRendererError('Quick Notes', err);
             }
           }
         }
@@ -522,7 +526,7 @@ export function initQuickNotes() {
   window.addEventListener('notes-updated', () => {
     loadNotes();
     // 如果有 activeNoteId，重新開啟以更新編輯器
-    const newActiveId = localStorage.getItem('activeNoteId');
+    const newActiveId = getStorageItem(STORAGE_KEYS.ACTIVE_NOTE_ID);
     if (newActiveId && newActiveId !== activeNoteId) {
       openNote(newActiveId);
     } else if (activeNoteId) {

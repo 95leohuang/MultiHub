@@ -4,6 +4,7 @@
  */
 
 import { showToast } from './toast.js';
+import { STORAGE_KEYS, getStorageItem, setStorageItem } from './storage.js';
 
 /**
  * 套用主題
@@ -25,14 +26,14 @@ export function applyTheme(theme) {
     if (themeIconLight) themeIconLight.style.display = 'none';
     if (themeToggleBtn) themeToggleBtn.title = '切換為淺色主題';
   }
-  localStorage.setItem('theme', theme);
+  setStorageItem(STORAGE_KEYS.THEME, theme);
 }
 
 /**
  * 初始化主題（讀取上次偏好並綁定切換按鈕）
  */
 export function initTheme() {
-  const savedTheme = localStorage.getItem('theme') || 'dark';
+  const savedTheme = getStorageItem(STORAGE_KEYS.THEME, 'dark');
   applyTheme(savedTheme);
 
   const themeToggleBtn = document.getElementById('theme-toggle');

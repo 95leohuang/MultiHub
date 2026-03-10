@@ -7,6 +7,7 @@ import { setNavTitle, updateNavBar, setNavLoading } from './nav-bar.js';
 import { closePopup } from './grid-popup.js';
 import { openExternalUrl } from './toast.js';
 import { updateBadge } from './sidebar.js';
+import { STORAGE_KEYS, getActiveTab, setStorageItem } from './storage.js';
 
 /** @type {Record<string, HTMLElement>} */
 export const webviews = {};
@@ -111,7 +112,7 @@ export function switchTab(tabName, shortcutConfig) {
   setNavTitle(cfg ? cfg.label : tabName);
   updateNavBar(tabName, webviews);
 
-  localStorage.setItem('activeTab', tabName);
+  setStorageItem(STORAGE_KEYS.ACTIVE_TAB, tabName);
 
   // 6. 關閉 Grid Popup
   closePopup();
@@ -126,7 +127,7 @@ export function switchTabCarousel(shortcutNum, shortcutConfig) {
   const services = shortcutConfig[shortcutNum];
   if (!services || services.length === 0) return;
   if (services.length === 1) { switchTab(services[0], shortcutConfig); return; }
-  const cur = localStorage.getItem('activeTab');
+  const cur = getActiveTab();
   const idx = services.indexOf(cur);
   switchTab(services[idx !== -1 ? (idx + 1) % services.length : 0], shortcutConfig);
 }
@@ -163,12 +164,12 @@ export function bindWebviewEvents(shortcutConfig) {
 
     wv.addEventListener('did-start-loading', () => {
       wv.classList.add('loading');
-      if (name === localStorage.getItem('activeTab')) setNavLoading(true);
+      if (name === getActiveTab()) setNavLoading(true);
     });
 
     wv.addEventListener('did-stop-loading', () => {
       wv.classList.remove('loading');
-      if (name === localStorage.getItem('activeTab')) {
+      if (name === getActiveTab()) {
         setNavLoading(false);
         try {
           const nb = document.getElementById('nav-back');
@@ -180,17 +181,17 @@ export function bindWebviewEvents(shortcutConfig) {
     });
 
     wv.addEventListener('page-title-updated', (e) => {
-      if (name === localStorage.getItem('activeTab')) {
+      if (name === getActiveTab()) {
         setNavTitle(e.title || platformConfig[name].label);
       }
       if (name === 'messenger' || name === 'telegram' || name === 'discord') {
         const match = (e.title || '').match(/\((\d+)\)/);
-        updateBadge(name, match ? parseInt(match[1], 10) : 0, shortcutConfig, document.getElementById('dock-badge'));
+        updateBadge(name, match ? parseInt(match[1], 10) : 0, document.getElementById('dock-badge'));
       }
     });
 
     wv.addEventListener('did-navigate', (e) => {
-      if (name === localStorage.getItem('activeTab')) {
+      if (name === getActiveTab()) {
         try {
           const nb = document.getElementById('nav-back');
           const nf = document.getElementById('nav-forward');
@@ -204,7 +205,7 @@ export function bindWebviewEvents(shortcutConfig) {
     });
 
     wv.addEventListener('did-navigate-in-page', () => {
-      if (name === localStorage.getItem('activeTab')) {
+      if (name === getActiveTab()) {
         try {
           const nb = document.getElementById('nav-back');
           const nf = document.getElementById('nav-forward');
