@@ -1053,6 +1053,332 @@ function registerGitGuiHandlers() {
     };
   });
   //#endregion
+
+  //#region Submodule 管理
+  ipcMain.handle('git-gui-submodules', async (event, repoPath) => {
+    try {
+      const out = await runGitSilent('git submodule status', repoPath);
+      return out.trim().split('\n').filter(Boolean).map(line => {
+        const parts = line.trim().split(/\s+/);
+        const [hash, path, ...descParts] = parts;
+        const initialized = !line.startsWith('-');
+        const description = descParts.join(' ').replace(/^\(|\)$/g, '');
+        return { hash: hash.replace(/^[-+]/, ''), path, initialized, description };
+      });
+    } catch (err) {
+      return [];
+    }
+  });
+
+  ipcMain.handle('git-gui-submodule-update', async (event, repoPath, path, init) => {
+    try {
+      const args = ['submodule', 'update'];
+      if (init) args.push('--init');
+      if (path) args.push('--', path);
+      const out = await runGit(`git ${args.join(' ')}`, repoPath);
+      return { success: true, output: out };
+    } catch (err) {
+      return { success: false, error: err.stderr || err.message };
+    }
+  });
+
+  ipcMain.handle('git-gui-submodule-sync', async (event, repoPath, path) => {
+    try {
+      const args = ['submodule', 'sync'];
+      if (path) args.push('--', path);
+      const out = await runGit(`git ${args.join(' ')}`, repoPath);
+      return { success: true, output: out };
+    } catch (err) {
+      return { success: false, error: err.stderr || err.message };
+    }
+  });
+
+  ipcMain.handle('git-gui-submodule-init', async (event, repoPath, path) => {
+    try {
+      const args = ['submodule', 'init'];
+      if (path) args.push('--', path);
+      const out = await runGit(`git ${args.join(' ')}`, repoPath);
+      return { success: true, output: out };
+    } catch (err) {
+      return { success: false, error: err.stderr || err.message };
+    }
+  });
+
+  ipcMain.handle('git-gui-submodule-deinit', async (event, repoPath, path) => {
+    try {
+      const args = ['submodule', 'deinit', '--force', '--', path];
+      const out = await runGit(`git ${args.join(' ')}`, repoPath);
+      return { success: true, output: out };
+    } catch (err) {
+      return { success: false, error: err.stderr || err.message };
+    }
+  });
+  //#endregion
+
+  //#region LFS 管理
+  ipcMain.handle('git-gui-lfs-locks', async (event, repoPath) => {
+    try {
+      const out = await runGitSilent('git lfs locks', repoPath);
+      return out.trim().split('\n').filter(Boolean).map(line => {
+        // 解析: locked_file.txt    ID:123  user@domain.com
+        const match = line.match(/^\s*(.+?)\s+ID:(\d+)\s+(.+)$/);
+        if (!match) return null;
+        const [, path, id, email] = match;
+        return { path: path.trim(), id: id.trim(), email: email.trim() };
+      }).filter(Boolean);
+    } catch (err) {
+      return [];
+    }
+  });
+
+  ipcMain.handle('git-gui-lfs-lock', async (event, repoPath, path) => {
+    try {
+      const out = await runGit(`git lfs lock "${path}"`, repoPath);
+      return { success: true, output: out };
+    } catch (err) {
+      return { success: false, error: err.stderr || err.message };
+    }
+  });
+
+  ipcMain.handle('git-gui-lfs-unlock', async (event, repoPath, path, force) => {
+    try {
+      const args = ['lfs', 'unlock'];
+      if (force) args.push('--force');
+      args.push('--', path);
+      const out = await runGit(`git ${args.join(' ')}`, repoPath);
+      return { success: true, output: out };
+    } catch (err) {
+      return { success: false, error: err.stderr || err.message };
+    }
+  });
+
+  ipcMain.handle('git-gui-lfs-pull', async (event, repoPath) => {
+    try {
+      const out = await runGit('git lfs pull', repoPath);
+      return { success: true, output: out };
+    } catch (err) {
+      return { success: false, error: err.stderr || err.message };
+    }
+  });
+
+  ipcMain.handle('git-gui-lfs-push', async (event, repoPath) => {
+    try {
+      const out = await runGit('git lfs push', repoPath);
+      return { success: true, output: out };
+    } catch (err) {
+      return { success: false, error: err.stderr || err.message };
+    }
+  });
+  //#endregion
+
+  //#region Git Config 編輯
+  ipcMain.handle('git-gui-config-get', async (event, repoPath, scope) => {
+    // scope: 'local' | 'global'
+    try {
+      const flag = scope === 'global' ? '--global' : '--local';
+      const out = await runGitSilent(`git config ${flag} --list`, repoPath);
+      const result = {};
+      out.trim().split('\n').filter(Boolean).forEach(line => {
+        const idx = line.indexOf('=');
+        if (idx === -1) return;
+        const key = line.substring(0, idx).trim();
+        const val = line.substring(idx + 1).trim();
+        result[key] = val;
+      });
+      return result;
+    } catch (err) {
+      return {};
+    }
+  });
+
+  ipcMain.handle('git-gui-config-set', async (event, repoPath, scope, key, value) => {
+    try {
+      const flag = scope === 'global' ? '--global' : '--local';
+      await runGit(`git config ${flag} "${key}" "${value}"`, repoPath);
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err.stderr || err.message };
+    }
+  });
+
+  ipcMain.handle('git-gui-config-unset', async (event, repoPath, scope, key) => {
+    try {
+      const flag = scope === 'global' ? '--global' : '--local';
+      await runGit(`git config ${flag} --unset "${key}"`, repoPath);
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err.stderr || err.message };
+    }
+  });
+  //#endregion
+
+  //#region Clean / GC
+  ipcMain.handle('git-gui-clean-preview', async (event, repoPath) => {
+    try {
+      const out = await runGitSilent('git clean -nd', repoPath);
+      return out.trim().split('\n').filter(Boolean).map(line => line.replace(/^Would remove /, '').trim());
+    } catch (err) {
+      return [];
+    }
+  });
+
+  ipcMain.handle('git-gui-clean', async (event, repoPath, force, directories) => {
+    try {
+      let args = 'git clean -f';
+      if (directories) args += 'd';
+      const out = await runGit(args, repoPath);
+      return { success: true, output: out };
+    } catch (err) {
+      return { success: false, error: err.stderr || err.message };
+    }
+  });
+
+  ipcMain.handle('git-gui-gc', async (event, repoPath) => {
+    try {
+      const out = await runGit('git gc --auto', repoPath);
+      return { success: true, output: out };
+    } catch (err) {
+      return { success: false, error: err.stderr || err.message };
+    }
+  });
+  //#endregion
+
+  //#region Bisect
+  ipcMain.handle('git-gui-bisect-start', async (event, repoPath, badRef, goodRef) => {
+    try {
+      await runGit(`git bisect start`, repoPath);
+      await runGit(`git bisect bad ${badRef}`, repoPath);
+      const out = await runGit(`git bisect good ${goodRef}`, repoPath);
+      return { success: true, output: out };
+    } catch (err) {
+      return { success: false, error: err.stderr || err.message };
+    }
+  });
+
+  ipcMain.handle('git-gui-bisect-mark', async (event, repoPath, mark) => {
+    // mark: 'good' | 'bad' | 'skip'
+    try {
+      const out = await runGit(`git bisect ${mark}`, repoPath);
+      return { success: true, output: out };
+    } catch (err) {
+      return { success: false, error: err.stderr || err.message };
+    }
+  });
+
+  ipcMain.handle('git-gui-bisect-reset', async (event, repoPath) => {
+    try {
+      const out = await runGit('git bisect reset', repoPath);
+      return { success: true, output: out };
+    } catch (err) {
+      return { success: false, error: err.stderr || err.message };
+    }
+  });
+
+  ipcMain.handle('git-gui-bisect-status', async (event, repoPath) => {
+    const p = require('path');
+    const f = require('fs');
+    const bisectLog = p.join(repoPath, '.git', 'BISECT_LOG');
+    const bisectHead = p.join(repoPath, '.git', 'BISECT_HEAD');
+    const isActive = f.existsSync(bisectHead) || f.existsSync(p.join(repoPath, '.git', 'BISECT_START'));
+    if (!isActive) return { active: false };
+    try {
+      const logContent = f.existsSync(bisectLog) ? f.readFileSync(bisectLog, 'utf8') : '';
+      return { active: true, log: logContent };
+    } catch (err) {
+      return { active: true, log: '' };
+    }
+  });
+  //#endregion
+
+  //#region Worktree 管理
+  ipcMain.handle('git-gui-worktrees', async (event, repoPath) => {
+    try {
+      const out = await runGitSilent('git worktree list --porcelain', repoPath);
+      const worktrees = [];
+      let current = {};
+      out.trim().split('\n').forEach(line => {
+        if (line.startsWith('worktree ')) { current = { path: line.replace('worktree ', '').trim() }; }
+        else if (line.startsWith('HEAD ')) { current.hash = line.replace('HEAD ', '').trim(); }
+        else if (line.startsWith('branch ')) { current.branch = line.replace('branch refs/heads/', '').trim(); }
+        else if (line === 'bare') { current.bare = true; }
+        else if (line === '') { if (current.path) worktrees.push(current); current = {}; }
+      });
+      if (current.path) worktrees.push(current);
+      return worktrees;
+    } catch (err) {
+      return [];
+    }
+  });
+
+  ipcMain.handle('git-gui-worktree-add', async (event, repoPath, wtPath, branch, createBranch) => {
+    try {
+      const args = ['worktree', 'add'];
+      if (createBranch) args.push('-b', branch);
+      args.push(wtPath);
+      if (!createBranch) args.push(branch);
+      const out = await runGit(`git ${args.join(' ')}`, repoPath);
+      return { success: true, output: out };
+    } catch (err) {
+      return { success: false, error: err.stderr || err.message };
+    }
+  });
+
+  ipcMain.handle('git-gui-worktree-remove', async (event, repoPath, wtPath, force) => {
+    try {
+      const args = ['worktree', 'remove'];
+      if (force) args.push('--force');
+      args.push(wtPath);
+      const out = await runGit(`git ${args.join(' ')}`, repoPath);
+      return { success: true, output: out };
+    } catch (err) {
+      return { success: false, error: err.stderr || err.message };
+    }
+  });
+
+  ipcMain.handle('git-gui-worktree-prune', async (event, repoPath) => {
+    try {
+      const out = await runGit('git worktree prune', repoPath);
+      return { success: true, output: out };
+    } catch (err) {
+      return { success: false, error: err.stderr || err.message };
+    }
+  });
+  //#endregion
+
+  //#region Reflog 檢視
+  ipcMain.handle('git-gui-reflog', async (event, repoPath, limit = 50) => {
+    try {
+      const format = '%H%x00%h%x00%gs%x00%gd%x00%gD';
+      const out = await runGitSilent(`git reflog --pretty=format:"${format}" -${limit}`, repoPath);
+      return out.trim().split('\n').filter(Boolean).map(line => {
+        const [hash, shortHash, subject, ref, selector] = line.split('\x00');
+        return {
+          hash,
+          shortHash,
+          subject: subject || 'HEAD@{0}',
+          ref: ref || '',
+          selector: selector || ''
+        };
+      });
+    } catch (err) {
+      return [];
+    }
+  });
+
+  ipcMain.handle('git-gui-reset-to-reflog', async (event, repoPath, refHash, mode = 'mixed') => {
+    try {
+      const args = ['reset'];
+      if (mode === 'soft') args.push('--soft');
+      else if (mode === 'hard') args.push('--hard');
+      else args.push('--mixed');
+      args.push(refHash);
+      const out = await runGit(`git ${args.join(' ')}`, repoPath);
+      return { success: true, output: out };
+    } catch (err) {
+      return { success: false, error: err.stderr || err.message };
+    }
+  });
+  //#endregion
 }
 
 module.exports = { registerGitGuiHandlers };

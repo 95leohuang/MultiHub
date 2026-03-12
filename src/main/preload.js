@@ -141,6 +141,39 @@ contextBridge.exposeInMainWorld('electronAPI', {
   gitGuiRebaseContinue: (repoPath) => ipcRenderer.invoke('git-gui-rebase-continue', repoPath),
   // In-Progress 狀態
   gitGuiInProgress: (repoPath) => ipcRenderer.invoke('git-gui-in-progress', repoPath),
+  // Submodule 管理
+  gitGuiSubmodules: (repoPath) => ipcRenderer.invoke('git-gui-submodules', repoPath),
+  gitGuiSubmoduleUpdate: (repoPath, path, init) => ipcRenderer.invoke('git-gui-submodule-update', repoPath, path, init),
+  gitGuiSubmoduleSync: (repoPath, path) => ipcRenderer.invoke('git-gui-submodule-sync', repoPath, path),
+  gitGuiSubmoduleInit: (repoPath, path) => ipcRenderer.invoke('git-gui-submodule-init', repoPath, path),
+  gitGuiSubmoduleDeinit: (repoPath, path) => ipcRenderer.invoke('git-gui-submodule-deinit', repoPath, path),
+  // LFS 管理
+  gitGuiLfsLocks: (repoPath) => ipcRenderer.invoke('git-gui-lfs-locks', repoPath),
+  gitGuiLfsLock: (repoPath, path) => ipcRenderer.invoke('git-gui-lfs-lock', repoPath, path),
+  gitGuiLfsUnlock: (repoPath, path, force) => ipcRenderer.invoke('git-gui-lfs-unlock', repoPath, path, force),
+  gitGuiLfsPull: (repoPath) => ipcRenderer.invoke('git-gui-lfs-pull', repoPath),
+  gitGuiLfsPush: (repoPath) => ipcRenderer.invoke('git-gui-lfs-push', repoPath),
+  // Bisect
+  gitGuiBisectStart: (repoPath, badRef, goodRef) => ipcRenderer.invoke('git-gui-bisect-start', repoPath, badRef, goodRef),
+  gitGuiBisectMark: (repoPath, mark) => ipcRenderer.invoke('git-gui-bisect-mark', repoPath, mark),
+  gitGuiBisectReset: (repoPath) => ipcRenderer.invoke('git-gui-bisect-reset', repoPath),
+  gitGuiBisectStatus: (repoPath) => ipcRenderer.invoke('git-gui-bisect-status', repoPath),
+  // Worktree 管理
+  gitGuiWorktrees: (repoPath) => ipcRenderer.invoke('git-gui-worktrees', repoPath),
+  gitGuiWorktreeAdd: (repoPath, wtPath, branch, createBranch) => ipcRenderer.invoke('git-gui-worktree-add', repoPath, wtPath, branch, createBranch),
+  gitGuiWorktreeRemove: (repoPath, wtPath, force) => ipcRenderer.invoke('git-gui-worktree-remove', repoPath, wtPath, force),
+  gitGuiWorktreePrune: (repoPath) => ipcRenderer.invoke('git-gui-worktree-prune', repoPath),
+  // Git Config 編輯
+  gitGuiConfigGet: (repoPath, scope) => ipcRenderer.invoke('git-gui-config-get', repoPath, scope),
+  gitGuiConfigSet: (repoPath, scope, key, value) => ipcRenderer.invoke('git-gui-config-set', repoPath, scope, key, value),
+  gitGuiConfigUnset: (repoPath, scope, key) => ipcRenderer.invoke('git-gui-config-unset', repoPath, scope, key),
+  // Clean / GC
+  gitGuiCleanPreview: (repoPath) => ipcRenderer.invoke('git-gui-clean-preview', repoPath),
+  gitGuiClean: (repoPath, force, directories) => ipcRenderer.invoke('git-gui-clean', repoPath, force, directories),
+  gitGuiGc: (repoPath) => ipcRenderer.invoke('git-gui-gc', repoPath),
+  // Reflog 檢視
+  gitGuiReflog: (repoPath, limit) => ipcRenderer.invoke('git-gui-reflog', repoPath, limit),
+  gitGuiResetToReflog: (repoPath, refHash, mode) => ipcRenderer.invoke('git-gui-reset-to-reflog', repoPath, refHash, mode),
   // AI Butler API
   aiButlerChat: (data) => ipcRenderer.invoke('ai-butler-chat', data),
   aiButlerGetConfig: () => ipcRenderer.invoke('ai-butler-get-config'),

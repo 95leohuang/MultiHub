@@ -667,6 +667,7 @@
 .gg-panel {
   display: none;
   flex: 1;
+  flex-direction: column;
   overflow: hidden;
 }
 
@@ -2589,4 +2590,378 @@ body.theme-light .gg-diff-line.removed .gg-diff-line-content {
 .gg-icon-btn.danger:hover {
   background: rgba(244, 67, 54, 0.1);
   color: var(--danger, #f44336);
+}
+
+/* ========================================
+   Submodules Panel
+   ======================================== */
+.gg-panel-submodules {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+}
+
+.gg-submodules-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  flex-shrink: 0;
+}
+
+.gg-submodules-list {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.gg-submodule-item {
+  border-bottom: 1px solid var(--border-color);
+  padding: 8px 12px;
+  transition: background 0.1s;
+}
+
+.gg-submodule-item:hover {
+  background: var(--bg-hover);
+}
+
+.gg-submodule-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.gg-submodule-path {
+  flex: 1;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.gg-submodule-actions {
+  display: flex;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 0.1s;
+}
+
+.gg-submodule-item:hover .gg-submodule-actions {
+  opacity: 1;
+}
+
+.gg-submodule-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 3px;
+  padding-left: 2px;
+}
+
+.gg-submodule-hash {
+  font-family: var(--font-mono, monospace);
+  background: var(--bg-primary);
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+.gg-submodule-desc {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ========================================
+   LFS Toolbar
+   ======================================== */
+.gg-lfs-toolbar {
+  display: flex;
+  gap: 6px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  flex-shrink: 0;
+}
+
+.gg-lfs-toolbar .gg-toolbar-btn {
+  font-size: 11px;
+  padding: 4px 8px;
+}
+
+/* ========================================
+   LFS Locks Modal
+   ======================================== */
+.gg-lfs-locks-container {
+  max-height: 300px;
+  overflow-y: auto;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  margin-bottom: 12px;
+}
+
+.gg-lfs-lock-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-color);
+  transition: background 0.1s;
+}
+
+.gg-lfs-lock-item:last-child {
+  border-bottom: none;
+}
+
+.gg-lfs-lock-item:hover {
+  background: var(--bg-hover);
+}
+
+.gg-lock-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.gg-lock-path {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+  word-break: break-all;
+}
+
+.gg-lock-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.gg-lock-actions {
+  display: flex;
+  gap: 4px;
+  margin-left: 8px;
+}
+
+.gg-lfs-lock-new {
+  border-top: 1px solid var(--border-color);
+  padding-top: 12px;
+}
+
+/* ========================================
+   Reflog Toggle
+   ======================================== */
+.gg-reflog-toggle {
+  display: flex;
+  padding: 4px 10px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+}
+
+.gg-reflog-toggle .gg-toolbar-btn {
+  font-size: 11px;
+  padding: 4px 8px;
+}
+
+.gg-reflog-toggle .gg-toolbar-btn.active {
+  background: var(--accent);
+  color: white;
+}
+
+/* ========================================
+   Git Config Modal
+   ======================================== */
+.gg-config-scope-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 10px;
+}
+
+.gg-config-scope-btn {
+  padding: 4px 14px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.gg-config-scope-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+.gg-config-scope-btn:hover:not(.active) {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.gg-config-key {
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  color: var(--text-muted);
+  font-weight: normal;
+}
+
+.gg-config-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ========================================
+   Clean Modal
+   ======================================== */
+.gg-clean-list {
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 6px 8px;
+  background: var(--bg-primary);
+  margin-bottom: 8px;
+}
+
+.gg-clean-file {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  padding: 3px 4px;
+  border-radius: 3px;
+  font-family: var(--font-mono, monospace);
+}
+
+.gg-clean-file:hover {
+  background: var(--bg-hover);
+}
+
+/* ========================================
+   Worktrees Panel
+   ======================================== */
+.gg-worktrees-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  flex-shrink: 0;
+}
+
+.gg-worktrees-list {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.gg-worktree-item {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-color);
+  transition: background 0.1s;
+}
+
+.gg-worktree-item:hover {
+  background: var(--bg-hover);
+}
+
+.gg-worktree-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.gg-worktree-branch {
+  flex: 1;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.gg-worktree-main-badge {
+  font-size: 10px;
+  background: var(--accent);
+  color: white;
+  padding: 1px 6px;
+  border-radius: 10px;
+}
+
+.gg-worktree-actions {
+  display: flex;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 0.1s;
+}
+
+.gg-worktree-item:hover .gg-worktree-actions {
+  opacity: 1;
+}
+
+.gg-worktree-path {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 3px;
+  padding-left: 2px;
+  font-family: var(--font-mono, monospace);
+}
+
+.gg-worktree-hash {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-family: var(--font-mono, monospace);
+  margin-top: 2px;
+  padding-left: 2px;
+}
+
+/* ========================================
+   Bisect Modal
+   ======================================== */
+.gg-bisect-log {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 10px;
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  color: var(--text-secondary);
+  max-height: 160px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  margin-bottom: 10px;
+}
+
+.gg-bisect-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.gg-bisect-actions .gg-toolbar-btn {
+  flex: 1;
+  justify-content: center;
+}
+
+.gg-toolbar-btn.danger {
+  background: rgba(244, 67, 54, 0.1);
+  color: var(--danger, #f44336);
+  border-color: rgba(244, 67, 54, 0.3);
+}
+
+.gg-toolbar-btn.danger:hover {
+  background: rgba(244, 67, 54, 0.2);
+}
+
+.gg-toolbar-btn.success {
+  background: rgba(76, 175, 80, 0.1);
+  color: var(--success, #4caf50);
+  border-color: rgba(76, 175, 80, 0.3);
+}
+
+.gg-toolbar-btn.success:hover {
+  background: rgba(76, 175, 80, 0.2);
 }
