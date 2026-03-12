@@ -1127,7 +1127,7 @@
   object-fit: contain;
   border-radius: 4px;
   border: 1px solid var(--border-subtle);
-  background: repeating-conic-gradient(#888 0% 25%, transparent 0% 50%) 0 0 / 12px 12px;
+  background: repeating-conic-gradient(var(--text-muted) 0% 25%, transparent 0% 50%) 0 0 / 12px 12px;
 }
 
 .gg-blob-image-info {
@@ -2160,4 +2160,433 @@ body.theme-light .gg-diff-line.added .gg-diff-line-content {
 body.theme-light .gg-diff-line.removed .gg-diff-line-content {
   background: rgba(244, 67, 54, 0.08);
   color: #7a0000;
+}
+
+/* ========================================
+   通用 hidden
+   ======================================== */
+.hidden {
+  display: none !important;
+}
+
+/* ========================================
+   Generic Modal Overlay
+   ======================================== */
+.gg-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 9000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 1;
+  transition: opacity 0.15s;
+}
+
+.gg-modal-overlay.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.gg-modal-box,
+.gg-modal {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  min-width: 340px;
+  max-width: 520px;
+  width: 90%;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.gg-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.gg-modal-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.gg-modal-close {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px 4px;
+  font-size: 14px;
+  border-radius: 3px;
+  line-height: 1;
+}
+
+.gg-modal-close:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.gg-modal-body {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.gg-modal-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.gg-modal-field label {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.gg-modal-input {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  font-size: 12px;
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color 0.15s;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.gg-modal-input:focus {
+  border-color: var(--accent);
+}
+
+.gg-modal-checkbox {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.gg-modal-checkbox input[type="checkbox"] {
+  margin: 0;
+  cursor: pointer;
+}
+
+.gg-modal-checkbox label {
+  font-size: 12px;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.gg-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 10px 16px 14px;
+  border-top: 1px solid var(--border-color);
+}
+
+.gg-modal-btn {
+  padding: 6px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  cursor: pointer;
+  border: 1px solid var(--border-color);
+  transition: all 0.15s;
+}
+
+.gg-modal-btn.cancel {
+  background: var(--bg-primary);
+  color: var(--text-muted);
+}
+
+.gg-modal-btn.cancel:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.gg-modal-btn.confirm {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  font-weight: 500;
+}
+
+.gg-modal-btn.confirm:hover {
+  filter: brightness(1.1);
+}
+
+/* ========================================
+   In-Progress Banner
+   ======================================== */
+.gg-in-progress-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 14px;
+  background: rgba(255, 160, 0, 0.12);
+  border-bottom: 1px solid rgba(255, 160, 0, 0.3);
+  font-size: 12px;
+  color: var(--text-primary);
+  flex-shrink: 0;
+}
+
+.gg-in-progress-banner.hidden {
+  display: none;
+}
+
+.gg-in-progress-icon {
+  color: #ffa000;
+  flex-shrink: 0;
+}
+
+.gg-in-progress-label {
+  flex: 1;
+  font-weight: 500;
+}
+
+.gg-in-progress-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.gg-in-progress-btn {
+  padding: 3px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  cursor: pointer;
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  transition: all 0.15s;
+}
+
+.gg-in-progress-btn:hover {
+  background: var(--bg-hover);
+}
+
+.gg-in-progress-btn.danger {
+  border-color: var(--danger, #f44336);
+  color: var(--danger, #f44336);
+}
+
+.gg-in-progress-btn.danger:hover {
+  background: rgba(244, 67, 54, 0.1);
+}
+
+/* ========================================
+   Amend Checkbox
+   ======================================== */
+.gg-amend-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px 2px;
+  user-select: none;
+}
+
+.gg-amend-label input[type="checkbox"] {
+  cursor: pointer;
+  margin: 0;
+}
+
+.gg-amend-label:has(input:checked) {
+  color: var(--accent);
+}
+
+/* ========================================
+   Commit Log Search Bar
+   ======================================== */
+.gg-log-search-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  flex-shrink: 0;
+}
+
+.gg-log-search-bar.hidden {
+  display: none;
+}
+
+.gg-log-search-bar input {
+  flex: 1;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
+  font-size: 12px;
+  color: var(--text-primary);
+  outline: none;
+}
+
+.gg-log-search-bar input:focus {
+  border-color: var(--accent);
+}
+
+.gg-log-search-bar select {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 4px 6px;
+  font-size: 11px;
+  color: var(--text-muted);
+  outline: none;
+  cursor: pointer;
+}
+
+/* ========================================
+   Tags Panel Toolbar
+   ======================================== */
+.gg-tag-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  flex-shrink: 0;
+}
+
+.gg-tag-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border-color);
+  transition: background 0.1s;
+  font-size: 12px;
+}
+
+.gg-tag-item:hover {
+  background: var(--bg-hover);
+}
+
+.gg-tag-name {
+  font-weight: 500;
+  color: var(--text-primary);
+  flex: 1;
+}
+
+.gg-tag-date {
+  font-size: 11px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.gg-tag-msg {
+  font-size: 11px;
+  color: var(--text-muted);
+  flex: 2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ========================================
+   Remotes Panel
+   ======================================== */
+.gg-panel-remotes {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+}
+
+.gg-remotes-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  flex-shrink: 0;
+}
+
+.gg-remotes-list {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.gg-remote-item {
+  border-bottom: 1px solid var(--border-color);
+  padding: 8px 12px;
+  transition: background 0.1s;
+}
+
+.gg-remote-item:hover {
+  background: var(--bg-hover);
+}
+
+.gg-remote-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.gg-remote-name {
+  flex: 1;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.gg-remote-actions {
+  display: flex;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 0.1s;
+}
+
+.gg-remote-item:hover .gg-remote-actions {
+  opacity: 1;
+}
+
+.gg-remote-url {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 3px;
+  padding-left: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gg-icon-btn {
+  background: none;
+  border: none;
+  padding: 3px 5px;
+  border-radius: 3px;
+  cursor: pointer;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  transition: all 0.12s;
+}
+
+.gg-icon-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.gg-icon-btn.danger:hover {
+  background: rgba(244, 67, 54, 0.1);
+  color: var(--danger, #f44336);
 }

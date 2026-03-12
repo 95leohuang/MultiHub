@@ -16,11 +16,11 @@
   --bg-surface: #252525;
   --bg-hover: rgba(255, 255, 255, 0.06);
   --bg-active: rgba(255, 255, 255, 0.1);
-  --border-color: rgba(255, 255, 255, 0.08);
+  --border-color: rgba(246, 255, 195, 0.08);
   --border-subtle: rgba(255, 255, 255, 0.05);
-  --text-primary: #f0f0f0;
-  --text-secondary: #999;
-  --text-muted: #555;
+  --text-primary: rgb(255, 255, 255);
+  --text-secondary: #ddd99f;
+  --text-muted: lightgray;
   --accent: #0084ff;
   --accent-hover: #0073e6;
   --accent-glow: rgba(0, 132, 255, 0.25);

@@ -87,19 +87,23 @@ function registerGitGuiHandlers() {
   //#region 取得單一 Commit 的 Diff
   ipcMain.handle('git-gui-commit-diff', async (event, repoPath, hash) => {
     try {
-      // -m 旗標使 merge commit 也能正確列出相對於第一個 parent 的變更
-      const statOut = await runGitSilent(`git diff-tree -m --no-commit-id -r --name-status ${hash}`, repoPath);
-      // 去重複（-m 可能輸出重複行）
-      const seen = new Set();
+      // 先取得 parents 數量
+      const parentsOut = await runGitSilent(`git log -1 --pretty=format:%P ${hash}`, repoPath);
+      const parents = parentsOut.trim().split(/\s+/).filter(Boolean);
+
+      let statOut;
+      if (parents.length >= 2) {
+        // merge commit：只與第一個 parent diff（與 SourceGit 行為一致）
+        statOut = await runGitSilent(`git diff-tree --no-commit-id -r --name-status ${parents[0]} ${hash}`, repoPath);
+      } else {
+        // 一般 commit
+        statOut = await runGitSilent(`git diff-tree --no-commit-id -r --name-status ${hash}`, repoPath);
+      }
+
       const files = statOut.trim().split('\n').filter(Boolean)
         .map(line => {
           const parts = line.split('\t');
           return { status: parts[0], path: parts[parts.length - 1] };
-        })
-        .filter(f => {
-          if (seen.has(f.path)) return false;
-          seen.add(f.path);
-          return true;
         });
       return { files };
     } catch (err) {
@@ -640,6 +644,413 @@ function registerGitGuiHandlers() {
     } catch (err) {
       return [];
     }
+  });
+  //#endregion
+
+  //#region Tag 建立 / 刪除 / Push
+  ipcMain.handle('git-gui-create-tag', async (event, repoPath, tagName, ref, message) => {
+    try {
+      const target = ref || 'HEAD';
+      if (message) {
+        await runGitArgs(['tag', '-a', tagName, target, '-m', message], repoPath);
+      } else {
+        await runGitArgs(['tag', tagName, target], repoPath);
+      }
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err.stderr || err.message };
+    }
+  });
+
+  ipcMain.handle('git-gui-delete-tag', async (event, repoPath, tagName) => {
+    try {
+      await runGitArgs(['tag', '-d', tagName], repoPath);
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err.stderr || err.message };
+    }
+  });
+
+  ipcMain.handle('git-gui-push-tag', async (event, repoPath, tagName, remote) => {
+    try {
+      const r = remote || 'origin';
+      await runGitArgs(['push', r, tagName], repoPath);
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err.stderr || err.message };
+    }
+  });
+
+  ipcMain.handle('git-gui-push-all-tags', async (event, repoPath, remote) => {
+    try {
+      const r = remote || 'origin';
+      await runGitArgs(['push', r, '--tags'], repoPath);
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err.stderr || err.message };
+    }
+  });
+  //#endregion
+
+  //#region Remote 管理（列表 / 新增 / 編輯 / 刪除 / Prune）
+  ipcMain.handle('git-gui-remotes', async (event, repoPath) => {
+    try {
+      const out = await runGitSilent('git remote -v', repoPath);
+      const map = {};
+      out.trim().split('\n').filter(Boolean).forEach(line => {
+        const m = line.match(/^(\S+)\s+(\S+)\s+\((\w+)\)$/);
+        if (m) {
+          const [, name, url, type] = m;
+          if (!map[name]) map[name] = { name, fetchUrl: '', pushUrl: '' };
+          if (type === 'fetch') map[name].fetchUrl = url;
+          if (type === 'push') map[name].pushUrl = url;
+        }
+      });
+      return Object.values(map);
+    } catch (err) {
+      return [];
+    }
+  });
+
+  ipcMain.handle('git-gui-add-remote', async (event, repoPath, name, url) => {
+    try {
+      await runGitArgs(['remote', 'add', name, url], repoPath);
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err.stderr || err.message };
+    }
+  });
+
+  ipcMain.handle('git-gui-edit-remote', async (event, repoPath, name, newName, newUrl) => {
+    try {
+      if (newUrl) await runGitArgs(['remote', 'set-url', name, newUrl], repoPath);
+      if (newName && newName !== name) await runGitArgs(['remote', 'rename', name, newName], repoPath);
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err.stderr || err.message };
+    }
+  });
+
+  ipcMain.handle('git-gui-delete-remote', async (event, repoPath, name) => {
+    try {
+      await runGitArgs(['remote', 'remove', name], repoPath);
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err.stderr || err.message };
+    }
+  });
+
+  ipcMain.handle('git-gui-prune-remote', async (event, repoPath, name) => {
+    try {
+      const out = await runGit(`git remote prune ${name}`, repoPath);
+      return { success: true, output: out };
+    } catch (err) {
+      return { success: false, error: err.stderr || err.message };
+    }
+  });
+
+  ipcMain.handle('git-gui-fetch-remote', async (event, repoPath, remote) => {
+    try {
+      const r = remote || '--all';
+      const out = await runGit(`git fetch ${r} --prune`, repoPath);
+      return { success: true, output: out };
+    } catch (err) {
+      return { success: false, error: err.stderr || err.message };
+    }
+  });
+  //#endregion
+
+  //#region Merge branch
+  ipcMain.handle('git-gui-merge', async (event, repoPath, branch, strategy) => {
+    try {
+      // strategy: 'merge'(default) | 'squash' | 'ff-only' | 'no-ff'
+      const args = ['merge'];
+      if (strategy === 'squash') args.push('--squash');
+      else if (strategy === 'ff-only') args.push('--ff-only');
+      else if (strategy === 'no-ff') args.push('--no-ff');
+      args.push(branch);
+      const out = await runGit(`git ${args.join(' ')}`, repoPath);
+      return { success: true, output: out };
+    } catch (err) {
+      return { success: false, error: err.stderr || err.message };
+    }
+  });
+
+  ipcMain.handle('git-gui-abort-merge', async (event, repoPath) => {
+    try {
+      await runGit('git merge --abort', repoPath);
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err.stderr || err.message };
+    }
+  });
+  //#endregion
+
+  //#region Reset（Soft / Mixed / Hard）
+  ipcMain.handle('git-gui-reset', async (event, repoPath, hash, mode) => {
+    try {
+      // mode: 'soft' | 'mixed' | 'hard'
+      const m = ['soft', 'mixed', 'hard'].includes(mode) ? mode : 'mixed';
+      await runGitArgs(['reset', `--${m}`, hash], repoPath);
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err.stderr || err.message };
+    }
+  });
+  //#endregion
+
+  //#region Cherry-pick
+  ipcMain.handle('git-gui-cherry-pick', async (event, repoPath, hash) => {
+    try {
+      await runGitArgs(['cherry-pick', hash], repoPath);
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err.stderr || err.message };
+    }
+  });
+
+  ipcMain.handle('git-gui-cherry-pick-abort', async (event, repoPath) => {
+    try {
+      await runGitArgs(['cherry-pick', '--abort'], repoPath);
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err.stderr || err.message };
+    }
+  });
+  //#endregion
+
+  //#region Revert
+  ipcMain.handle('git-gui-revert', async (event, repoPath, hash) => {
+    try {
+      await runGitArgs(['revert', '--no-edit', hash], repoPath);
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err.stderr || err.message };
+    }
+  });
+  //#endregion
+
+  //#region Rename Branch
+  ipcMain.handle('git-gui-rename-branch', async (event, repoPath, oldName, newName) => {
+    try {
+      await runGitArgs(['branch', '-m', oldName, newName], repoPath);
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err.stderr || err.message };
+    }
+  });
+  //#endregion
+
+  //#region Set Upstream
+  ipcMain.handle('git-gui-set-upstream', async (event, repoPath, localBranch, upstream) => {
+    try {
+      if (upstream) {
+        await runGitArgs(['branch', '--set-upstream-to', upstream, localBranch], repoPath);
+      } else {
+        await runGitArgs(['branch', '--unset-upstream', localBranch], repoPath);
+      }
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err.stderr || err.message };
+    }
+  });
+  //#endregion
+
+  //#region Commit Amend
+  ipcMain.handle('git-gui-commit-amend', async (event, repoPath, message) => {
+    try {
+      if (message) {
+        await runGitArgs(['commit', '--amend', '-m', message], repoPath);
+      } else {
+        await runGitArgs(['commit', '--amend', '--no-edit'], repoPath);
+      }
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err.stderr || err.message };
+    }
+  });
+
+  /** 取得最後一筆 commit 的 message（供 Amend 填入） */
+  ipcMain.handle('git-gui-last-commit-message', async (event, repoPath) => {
+    try {
+      const out = await runGitSilent('git log -1 --pretty=format:%B', repoPath);
+      return out.trim();
+    } catch (err) {
+      return '';
+    }
+  });
+  //#endregion
+
+  //#region Commit 搜尋
+  ipcMain.handle('git-gui-search-commits', async (event, repoPath, keyword, field) => {
+    try {
+      // field: 'message' | 'author' | 'hash'
+      const limit = 200;
+      const format = '%H%x00%h%x00%s%x00%an%x00%ai%x00%D%x00%P';
+      let args = ['log', '--all', `--pretty=format:${format}`, `--max-count=${limit}`];
+      if (field === 'author') {
+        args.push(`--author=${keyword}`);
+      } else if (field === 'hash') {
+        // hash 直接用 git show 確認
+        args = ['log', '--all', `--pretty=format:${format}`, `--max-count=${limit}`, `--grep=${keyword}`];
+      } else {
+        args.push(`--grep=${keyword}`);
+      }
+      const out = await runGitArgs(args, repoPath);
+      if (!out.trim()) return [];
+      return out.trim().split(/\r?\n/).map(line => {
+        const parts = line.split('\x00');
+        const [hash, shortHash, subject, authorName, authorDate, refs, parentsStr] = parts;
+        if (!hash || !hash.trim()) return null;
+        const refList = refs ? refs.split(',').map(r => r.trim()).filter(Boolean) : [];
+        const parents = parentsStr ? parentsStr.trim().split(/\s+/).filter(Boolean) : [];
+        return { hash: hash.trim(), shortHash: (shortHash || '').trim(), subject: (subject || '').trim(), authorName: (authorName || '').trim(), authorDate: (authorDate || '').trim(), refs: refList, parents };
+      }).filter(Boolean);
+    } catch (err) {
+      return [];
+    }
+  });
+  //#endregion
+
+  //#region Push with options
+  ipcMain.handle('git-gui-push-options', async (event, repoPath, remote, branch, force, setUpstream) => {
+    try {
+      const args = ['push'];
+      if (force) args.push('--force-with-lease');
+      if (setUpstream) args.push('-u');
+      if (remote) args.push(remote);
+      if (branch) args.push(branch);
+      const out = await runGit(`git ${args.join(' ')}`, repoPath);
+      return { success: true, output: out };
+    } catch (err) {
+      return { success: false, error: err.stderr || err.message };
+    }
+  });
+  //#endregion
+
+  //#region Pull with options
+  ipcMain.handle('git-gui-pull-options', async (event, repoPath, remote, branch, strategy) => {
+    try {
+      // strategy: 'merge' | 'rebase' | 'ff-only'
+      const args = ['pull'];
+      if (strategy === 'rebase') args.push('--rebase');
+      else if (strategy === 'ff-only') args.push('--ff-only');
+      if (remote) args.push(remote);
+      if (branch) args.push(branch);
+      const out = await runGit(`git ${args.join(' ')}`, repoPath);
+      return { success: true, output: out };
+    } catch (err) {
+      return { success: false, error: err.stderr || err.message };
+    }
+  });
+  //#endregion
+
+  //#region File Watcher（監聽 .git 目錄，回傳變化事件給 renderer）
+  const fs = require('fs');
+  const path = require('path');
+  /** @type {Map<string, fs.FSWatcher>} */
+  const watchers = new Map();
+
+  ipcMain.handle('git-gui-watch-start', async (event, repoPath) => {
+    if (watchers.has(repoPath)) return { success: true };
+    try {
+      const gitDir = path.join(repoPath, '.git');
+      if (!fs.existsSync(gitDir)) return { success: false, error: '.git not found' };
+
+      // 只監聽真正代表 commit/branch/checkout 的特定檔案，
+      // 忽略 index/objects/logs 等 git 讀取操作也會碰觸的路徑
+      const WATCH_PATTERNS = [
+        /^HEAD$/,
+        /^COMMIT_EDITMSG$/,
+        /^MERGE_HEAD$/,
+        /^CHERRY_PICK_HEAD$/,
+        /^REVERT_HEAD$/,
+        /^packed-refs$/,
+        /^refs[\\/]/,
+      ];
+      // 完全忽略這些路徑
+      const IGNORE_PATTERNS = [
+        /\.lock$/,
+        /^index$/,
+        /^logs[\\/]/,
+        /^objects[\\/]/,
+        /^lfs[\\/]/,
+      ];
+      let debounceTimer = null;
+      const watcher = fs.watch(gitDir, { recursive: true }, (eventType, filename) => {
+        if (!filename) return;
+        const normalized = filename.replace(/\\/g, '/');
+        if (IGNORE_PATTERNS.some(p => p.test(normalized))) return;
+        if (!WATCH_PATTERNS.some(p => p.test(normalized))) return;
+        if (debounceTimer) clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+          debounceTimer = null;
+          if (!event.sender.isDestroyed()) {
+            event.sender.send('git-gui-repo-changed', repoPath);
+          }
+        }, 1000);
+      });
+      watcher.on('error', () => watchers.delete(repoPath));
+      watchers.set(repoPath, watcher);
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  });
+
+  ipcMain.handle('git-gui-watch-stop', async (event, repoPath) => {
+    const w = watchers.get(repoPath);
+    if (w) { w.close(); watchers.delete(repoPath); }
+    return { success: true };
+  });
+  //#endregion
+
+  //#region Rebase
+  ipcMain.handle('git-gui-rebase', async (event, repoPath, branch) => {
+    try {
+      await runGitArgs(['rebase', branch], repoPath);
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err.stderr || err.message };
+    }
+  });
+
+  ipcMain.handle('git-gui-rebase-abort', async (event, repoPath) => {
+    try {
+      await runGitArgs(['rebase', '--abort'], repoPath);
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err.stderr || err.message };
+    }
+  });
+
+  ipcMain.handle('git-gui-rebase-continue', async (event, repoPath) => {
+    try {
+      const env = { ...process.env, GIT_EDITOR: 'true' };
+      return await new Promise((resolve) => {
+        execFile('git', ['rebase', '--continue'], { cwd: repoPath, env, maxBuffer: 1024 * 1024 * 10 }, (error, stdout, stderr) => {
+          if (error) resolve({ success: false, error: stderr || error.message });
+          else resolve({ success: true, output: stdout });
+        });
+      });
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  });
+  //#endregion
+
+  //#region 取得 In-Progress 狀態（merge/rebase/cherry-pick/revert 進行中）
+  ipcMain.handle('git-gui-in-progress', async (event, repoPath) => {
+    const p = require('path');
+    const f = require('fs');
+    const gitDir = p.join(repoPath, '.git');
+    const check = (file) => f.existsSync(p.join(gitDir, file));
+    return {
+      merging: check('MERGE_HEAD'),
+      rebasing: check('rebase-merge') || check('rebase-apply'),
+      cherryPicking: check('CHERRY_PICK_HEAD'),
+      reverting: check('REVERT_HEAD'),
+    };
   });
   //#endregion
 }

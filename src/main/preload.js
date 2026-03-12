@@ -96,6 +96,51 @@ contextBridge.exposeInMainWorld('electronAPI', {
   gitGuiDiscard: (repoPath, filePath, staged) => ipcRenderer.invoke('git-gui-discard', repoPath, filePath, staged),
   gitGuiOpenFile: (repoPath, filePath) => ipcRenderer.invoke('git-gui-open-file', repoPath, filePath),
   gitGuiRevealFile: (repoPath, filePath) => ipcRenderer.invoke('git-gui-reveal-file', repoPath, filePath),
+  // Tag 操作
+  gitGuiCreateTag: (repoPath, name, ref, message) => ipcRenderer.invoke('git-gui-create-tag', repoPath, name, ref, message),
+  gitGuiDeleteTag: (repoPath, name) => ipcRenderer.invoke('git-gui-delete-tag', repoPath, name),
+  gitGuiPushTag: (repoPath, name, remote) => ipcRenderer.invoke('git-gui-push-tag', repoPath, name, remote),
+  gitGuiPushAllTags: (repoPath, remote) => ipcRenderer.invoke('git-gui-push-all-tags', repoPath, remote),
+  // Remote 管理
+  gitGuiRemotes: (repoPath) => ipcRenderer.invoke('git-gui-remotes', repoPath),
+  gitGuiAddRemote: (repoPath, name, url) => ipcRenderer.invoke('git-gui-add-remote', repoPath, name, url),
+  gitGuiEditRemote: (repoPath, name, newName, newUrl) => ipcRenderer.invoke('git-gui-edit-remote', repoPath, name, newName, newUrl),
+  gitGuiDeleteRemote: (repoPath, name) => ipcRenderer.invoke('git-gui-delete-remote', repoPath, name),
+  gitGuiPruneRemote: (repoPath, name) => ipcRenderer.invoke('git-gui-prune-remote', repoPath, name),
+  gitGuiFetchRemote: (repoPath, remote) => ipcRenderer.invoke('git-gui-fetch-remote', repoPath, remote),
+  // Merge
+  gitGuiMerge: (repoPath, branch, strategy) => ipcRenderer.invoke('git-gui-merge', repoPath, branch, strategy),
+  gitGuiAbortMerge: (repoPath) => ipcRenderer.invoke('git-gui-abort-merge', repoPath),
+  // Reset
+  gitGuiReset: (repoPath, hash, mode) => ipcRenderer.invoke('git-gui-reset', repoPath, hash, mode),
+  // Cherry-pick
+  gitGuiCherryPick: (repoPath, hash) => ipcRenderer.invoke('git-gui-cherry-pick', repoPath, hash),
+  gitGuiCherryPickAbort: (repoPath) => ipcRenderer.invoke('git-gui-cherry-pick-abort', repoPath),
+  // Revert
+  gitGuiRevert: (repoPath, hash) => ipcRenderer.invoke('git-gui-revert', repoPath, hash),
+  // Rename Branch
+  gitGuiRenameBranch: (repoPath, oldName, newName) => ipcRenderer.invoke('git-gui-rename-branch', repoPath, oldName, newName),
+  // Set Upstream
+  gitGuiSetUpstream: (repoPath, localBranch, upstream) => ipcRenderer.invoke('git-gui-set-upstream', repoPath, localBranch, upstream),
+  // Commit Amend
+  gitGuiCommitAmend: (repoPath, message) => ipcRenderer.invoke('git-gui-commit-amend', repoPath, message),
+  gitGuiLastCommitMessage: (repoPath) => ipcRenderer.invoke('git-gui-last-commit-message', repoPath),
+  // Commit 搜尋
+  gitGuiSearchCommits: (repoPath, keyword, field) => ipcRenderer.invoke('git-gui-search-commits', repoPath, keyword, field),
+  // Push/Pull with options
+  gitGuiPushOptions: (repoPath, remote, branch, force, setUpstream) => ipcRenderer.invoke('git-gui-push-options', repoPath, remote, branch, force, setUpstream),
+  gitGuiPullOptions: (repoPath, remote, branch, strategy) => ipcRenderer.invoke('git-gui-pull-options', repoPath, remote, branch, strategy),
+  // Watcher
+  gitGuiWatchStart: (repoPath) => ipcRenderer.invoke('git-gui-watch-start', repoPath),
+  gitGuiWatchStop: (repoPath) => ipcRenderer.invoke('git-gui-watch-stop', repoPath),
+  onGitGuiRepoChanged: (callback) => ipcRenderer.on('git-gui-repo-changed', (event, repoPath) => callback(repoPath)),
+  offGitGuiRepoChanged: (callback) => ipcRenderer.removeListener('git-gui-repo-changed', callback),
+  // Rebase
+  gitGuiRebase: (repoPath, branch) => ipcRenderer.invoke('git-gui-rebase', repoPath, branch),
+  gitGuiRebaseAbort: (repoPath) => ipcRenderer.invoke('git-gui-rebase-abort', repoPath),
+  gitGuiRebaseContinue: (repoPath) => ipcRenderer.invoke('git-gui-rebase-continue', repoPath),
+  // In-Progress 狀態
+  gitGuiInProgress: (repoPath) => ipcRenderer.invoke('git-gui-in-progress', repoPath),
   // AI Butler API
   aiButlerChat: (data) => ipcRenderer.invoke('ai-butler-chat', data),
   aiButlerGetConfig: () => ipcRenderer.invoke('ai-butler-get-config'),

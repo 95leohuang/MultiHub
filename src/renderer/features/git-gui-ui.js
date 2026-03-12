@@ -75,6 +75,18 @@ document.addEventListener('DOMContentLoaded', () => {
   let branchFilter = '';
   /** @type {object[]} */
   let changeFiles = [];
+  /** @type {{ name: string, fetchUrl: string, pushUrl: string }[]} */
+  let remotesData = [];
+  /** @type {{ merging: boolean, rebasing: boolean, cherryPicking: boolean, reverting: boolean }} */
+  let inProgressState = { merging: false, rebasing: false, cherryPicking: false, reverting: false };
+  /** @type {boolean} Commit box 是否為 Amend 模式 */
+  let amendMode = false;
+  /** @type {boolean} 是否在 commit log 搜尋模式 */
+  let logSearchMode = false;
+  /** @type {boolean} watcher 是否已啟動 */
+  let watcherActive = false;
+  /** @type {boolean} 防止 watcher 觸發無限循環的 flag */
+  let isRefreshing = false;
   //#endregion
 
   //#region DOM 骨架注入
@@ -125,6 +137,13 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="gg-tab" data-tab="changes">Changes <span class="gg-tab-badge hidden" id="gg-changes-badge">0</span></div>
         <div class="gg-tab" data-tab="stash">Stashes</div>
         <div class="gg-tab" data-tab="tags">Tags</div>
+        <div class="gg-tab" data-tab="remotes">Remotes</div>
+      </div>
+
+      <!-- In-Progress Banner（Merge/Rebase/CherryPick/Revert 進行中時顯示）-->
+      <div class="gg-in-progress-banner hidden" id="gg-in-progress-banner">
+        <span id="gg-in-progress-label"></span>
+        <div class="gg-in-progress-actions" id="gg-in-progress-actions"></div>
       </div>
 
       <!-- === Commit Log 面板 === -->
@@ -180,6 +199,17 @@ document.addEventListener('DOMContentLoaded', () => {
               <div class="gg-log-toolbar">
                 <button class="gg-log-filter-btn active" id="gg-log-all-btn">All Branches</button>
                 <button class="gg-log-filter-btn" id="gg-log-current-btn">${LucideIcon('git-branch', 12)} Current</button>
+                <div class="gg-toolbar-spacer"></div>
+                <button class="gg-icon-btn" id="gg-log-search-btn" title="搜尋 Commits">${LucideIcon('search', 13)}</button>
+              </div>
+              <!-- 搜尋欄（預設隱藏）-->
+              <div class="gg-log-search-bar hidden" id="gg-log-search-bar">
+                <select id="gg-log-search-field" class="gg-search-field-select">
+                  <option value="message">Message</option>
+                  <option value="author">Author</option>
+                </select>
+                <input type="text" id="gg-log-search-input" placeholder="搜尋關鍵字..." class="gg-log-search-input"/>
+                <button class="gg-icon-btn" id="gg-log-search-clear" title="關閉搜尋">${LucideIcon('x', 12)}</button>
               </div>
               <div class="gg-log-cols-header">
                 <div class="gg-col-graph-subject">GRAPH &amp; SUBJECT</div>
@@ -367,8 +397,37 @@ document.addEventListener('DOMContentLoaded', () => {
 
       <!-- === Tags 面板 === -->
       <div class="gg-panel" id="gg-panel-tags">
+        <div class="gg-tag-toolbar">
+          <button class="gg-toolbar-btn primary" id="gg-create-tag-btn">${LucideIcon('plus', 13)} New Tag</button>
+          <button class="gg-toolbar-btn" id="gg-push-all-tags-btn" title="Push All Tags to origin">${LucideIcon('arrow-up-right', 13)} Push All</button>
+        </div>
         <div class="gg-tag-list" id="gg-tag-list">
           <div class="gg-empty"><div class="gg-empty-icon">${LucideIcon('tag', 32)}</div><p>無 Tags</p></div>
+        </div>
+      </div>
+
+      <!-- === Remotes 面板 === -->
+      <div class="gg-panel" id="gg-panel-remotes">
+        <div class="gg-remotes-toolbar">
+          <button class="gg-toolbar-btn primary" id="gg-add-remote-btn">${LucideIcon('plus', 13)} Add Remote</button>
+        </div>
+        <div class="gg-remotes-list" id="gg-remotes-list">
+          <div class="gg-empty"><div class="gg-empty-icon">${LucideIcon('git-remote', 32)}</div><p>無 Remotes</p></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== 通用 Modal 彈窗 ===== -->
+    <div class="gg-modal-overlay hidden" id="gg-modal-overlay">
+      <div class="gg-modal" id="gg-modal">
+        <div class="gg-modal-header">
+          <span class="gg-modal-title" id="gg-modal-title">操作</span>
+          <button class="gg-icon-btn" id="gg-modal-close">${LucideIcon('x', 14)}</button>
+        </div>
+        <div class="gg-modal-body" id="gg-modal-body"></div>
+        <div class="gg-modal-footer" id="gg-modal-footer">
+          <button class="gg-toolbar-btn" id="gg-modal-cancel">取消</button>
+          <button class="gg-toolbar-btn primary" id="gg-modal-confirm">確認</button>
         </div>
       </div>
     </div>
@@ -431,6 +490,29 @@ document.addEventListener('DOMContentLoaded', () => {
   const lbsTagsCount = document.getElementById('gg-lbs-tags-count');
   const lbsNewBranchBtn = document.getElementById('gg-lbs-new-branch');
   const logBranchResizerEl = document.getElementById('gg-log-branch-resizer');
+  // 搜尋
+  const logSearchBtn = document.getElementById('gg-log-search-btn');
+  const logSearchBar = document.getElementById('gg-log-search-bar');
+  const logSearchInput = document.getElementById('gg-log-search-input');
+  const logSearchField = document.getElementById('gg-log-search-field');
+  const logSearchClear = document.getElementById('gg-log-search-clear');
+  // Tags 工具列
+  const createTagBtn = document.getElementById('gg-create-tag-btn');
+  const pushAllTagsBtn = document.getElementById('gg-push-all-tags-btn');
+  // Remotes
+  const remotesListEl = document.getElementById('gg-remotes-list');
+  const addRemoteBtn = document.getElementById('gg-add-remote-btn');
+  // In-Progress Banner
+  const inProgressBanner = document.getElementById('gg-in-progress-banner');
+  const inProgressLabel = document.getElementById('gg-in-progress-label');
+  const inProgressActions = document.getElementById('gg-in-progress-actions');
+  // Modal
+  const modalOverlay = document.getElementById('gg-modal-overlay');
+  const modalTitle = document.getElementById('gg-modal-title');
+  const modalBody = document.getElementById('gg-modal-body');
+  const modalConfirm = document.getElementById('gg-modal-confirm');
+  const modalCancel = document.getElementById('gg-modal-cancel');
+  const modalClose = document.getElementById('gg-modal-close');
   //#endregion
 
   //#region 工具函式
@@ -525,6 +607,151 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   //#endregion
 
+  //#region 通用 Modal 系統
+
+  /** @type {Function|null} 目前 modal 的確認回調 */
+  let _modalConfirmCb = null;
+
+  /**
+   * 顯示通用 Modal
+   * @param {{ title: string, body: string, confirmText?: string, cancelText?: string, onConfirm: Function, danger?: boolean }} opts
+   */
+  function ShowModal(opts) {
+    modalTitle.textContent = opts.title || '操作';
+    modalBody.innerHTML = opts.body || '';
+    modalConfirm.textContent = opts.confirmText || '確認';
+    modalCancel.textContent = opts.cancelText || '取消';
+    modalConfirm.className = `gg-toolbar-btn${opts.danger ? ' danger' : ' primary'}`;
+    _modalConfirmCb = opts.onConfirm || null;
+    modalOverlay.classList.remove('hidden');
+    // 自動 focus 第一個 input
+    setTimeout(() => {
+      const first = modalBody.querySelector('input, select, textarea');
+      if (first) first.focus();
+    }, 50);
+  }
+
+  function CloseModal() {
+    modalOverlay.classList.add('hidden');
+    _modalConfirmCb = null;
+  }
+
+  modalConfirm.addEventListener('click', () => {
+    if (_modalConfirmCb) _modalConfirmCb();
+  });
+  modalCancel.addEventListener('click', CloseModal);
+  modalClose.addEventListener('click', CloseModal);
+  modalOverlay.addEventListener('click', e => {
+    if (e.target === modalOverlay) CloseModal();
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && !modalOverlay.classList.contains('hidden')) CloseModal();
+  });
+  //#endregion
+
+  //#region In-Progress Banner（Merge / Rebase / Cherry-pick / Revert）
+
+  function CheckInProgress() {
+    if (!activeRepo) return;
+    window.electronAPI.gitGuiInProgress(activeRepo.path)
+      .then(state => {
+        inProgressState = state;
+        RenderInProgressBanner();
+      })
+      .catch(() => { });
+  }
+
+  function RenderInProgressBanner() {
+    const { merging, rebasing, cherryPicking, reverting } = inProgressState;
+    const active = merging || rebasing || cherryPicking || reverting;
+    inProgressBanner.classList.toggle('hidden', !active);
+    if (!active) return;
+
+    if (merging) {
+      inProgressLabel.textContent = '⚠ Merge 進行中，請解決衝突後提交。';
+      inProgressActions.innerHTML = `
+        <button class="gg-toolbar-btn danger" id="gg-ipb-abort">Abort Merge</button>
+      `;
+      document.getElementById('gg-ipb-abort')?.addEventListener('click', () => {
+        window.electronAPI.gitGuiAbortMerge(activeRepo.path)
+          .then(r => { if (r.success) { Toast('Merge 已中止', 'success'); RefreshAll(); } else Toast(r.error, 'error'); });
+      });
+    } else if (rebasing) {
+      inProgressLabel.textContent = '⚠ Rebase 進行中，請解決衝突後繼續。';
+      inProgressActions.innerHTML = `
+        <button class="gg-toolbar-btn primary" id="gg-ipb-continue">Continue</button>
+        <button class="gg-toolbar-btn danger" id="gg-ipb-abort">Abort Rebase</button>
+      `;
+      document.getElementById('gg-ipb-continue')?.addEventListener('click', () => {
+        window.electronAPI.gitGuiRebaseContinue(activeRepo.path)
+          .then(r => { if (r.success) { Toast('Rebase Continue 成功', 'success'); RefreshAll(); } else Toast(r.error, 'error'); });
+      });
+      document.getElementById('gg-ipb-abort')?.addEventListener('click', () => {
+        window.electronAPI.gitGuiRebaseAbort(activeRepo.path)
+          .then(r => { if (r.success) { Toast('Rebase 已中止', 'success'); RefreshAll(); } else Toast(r.error, 'error'); });
+      });
+    } else if (cherryPicking) {
+      inProgressLabel.textContent = '⚠ Cherry-pick 進行中，請解決衝突後提交。';
+      inProgressActions.innerHTML = `
+        <button class="gg-toolbar-btn danger" id="gg-ipb-abort">Abort Cherry-pick</button>
+      `;
+      document.getElementById('gg-ipb-abort')?.addEventListener('click', () => {
+        window.electronAPI.gitGuiCherryPickAbort(activeRepo.path)
+          .then(r => { if (r.success) { Toast('Cherry-pick 已中止', 'success'); RefreshAll(); } else Toast(r.error, 'error'); });
+      });
+    } else if (reverting) {
+      inProgressLabel.textContent = '⚠ Revert 進行中，請解決衝突後提交。';
+      inProgressActions.innerHTML = '';
+    }
+  }
+
+  /** 完整刷新所有面板 */
+  function RefreshAll() {
+    if (isRefreshing) return;
+    isRefreshing = true;
+    CheckInProgress();
+    RefreshActiveTab();
+    branchData = null;
+    window.electronAPI.getRepoInfo(activeRepo.path)
+      .then(info => {
+        activeRepo.branch = info.branch || '?';
+        activeRepo.isDirty = info.isDirty || false;
+        toolbarBranchName.textContent = activeRepo.branch;
+        SaveRepos();
+        RenderRepoList();
+      })
+      .catch(() => { })
+      .finally(() => { setTimeout(() => { isRefreshing = false; }, 3000); });
+  }
+  //#endregion
+
+  //#region Watcher（Git 目錄監聽 → 自動 Refresh）
+
+  function StartWatcher(repoPath) {
+    if (watcherActive) return;
+    window.electronAPI.gitGuiWatchStart(repoPath)
+      .then(r => {
+        if (r.success) {
+          watcherActive = true;
+        }
+      })
+      .catch(() => { });
+  }
+
+  function StopWatcher(repoPath) {
+    if (!watcherActive) return;
+    window.electronAPI.gitGuiWatchStop(repoPath).catch(() => { });
+    watcherActive = false;
+  }
+
+  // 監聽 main process 推送的 repo-changed 事件
+  window.electronAPI.onGitGuiRepoChanged((changedPath) => {
+    if (activeRepo && activeRepo.path === changedPath && !isRefreshing) {
+      RefreshAll();
+    }
+  });
+  //#endregion
+
   //#region Repo 列表
 
   function LoadSavedRepos() {
@@ -609,11 +836,14 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function SelectRepo(repo) {
+    if (activeRepo && activeRepo.path !== repo.path) StopWatcher(activeRepo.path);
     ClearRepoState();
     activeRepo = repo;
     toolbarRepoName.textContent = repo.name;
     toolbarBranchName.textContent = repo.branch || '...';
     RenderRepoList();
+    StartWatcher(repo.path);
+    CheckInProgress();
     RefreshActiveTab();
   }
 
@@ -680,6 +910,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (tab === 'branches') LoadBranches();
     if (tab === 'stash') LoadStashes();
     if (tab === 'tags') LoadTags();
+    if (tab === 'remotes') LoadRemotes();
   }
 
   function ClearRepoState() {
@@ -687,6 +918,11 @@ document.addEventListener('DOMContentLoaded', () => {
     activeCommitHash = null;
     activeCommitFiles = [];
     changeFiles = [];
+    remotesData = [];
+    inProgressState = { merging: false, rebasing: false, cherryPicking: false, reverting: false };
+    amendMode = false;
+    logSearchMode = false;
+    isRefreshing = false;
   }
   //#endregion
 
@@ -717,26 +953,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   btnPull.addEventListener('click', () => {
     if (!activeRepo) return;
-    SetBtnLoading(btnPull, '...');
-    window.electronAPI.gitGuiPull(activeRepo.path)
-      .then(r => {
-        ResetBtn(btnPull);
-        if (r.success) { Toast('Pull 完成', 'success'); RefreshActiveTab(); }
-        else Toast(`Pull 失敗：${r.error}`, 'error');
-      })
-      .catch(e => { ResetBtn(btnPull); Toast(e.message, 'error'); });
+    ShowPullOptionsModal();
   });
 
   btnPush.addEventListener('click', () => {
     if (!activeRepo) return;
-    SetBtnLoading(btnPush, '...');
-    window.electronAPI.gitGuiPush(activeRepo.path, false)
-      .then(r => {
-        ResetBtn(btnPush);
-        if (r.success) { Toast('Push 完成', 'success'); RefreshActiveTab(); }
-        else Toast(`Push 失敗：${r.error}`, 'error');
-      })
-      .catch(e => { ResetBtn(btnPush); Toast(e.message, 'error'); });
+    ShowPushOptionsModal();
   });
 
   btnRefresh.addEventListener('click', () => {
@@ -991,7 +1213,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const extra = refTags.length - visibleTags.length;
       const tagsHtml = visibleTags.join('') + (extra > 0 ? `<span class="gg-ref-tag more">+${extra}</span>` : '');
 
-      return `<div class="gg-commit-item ${activeCommitHash === c.hash ? 'active' : ''}" data-hash="${c.hash}" data-idx="${i}">
+      return `<div class="gg-commit-item ${activeCommitHash === c.hash ? 'active' : ''}" data-hash="${c.hash}" data-short-hash="${c.shortHash}" data-idx="${i}">
         <div class="gg-col-graph-subject">
           <div class="gg-commit-graph" style="width:${SVG_W}px;height:${ROW_H}px;flex-shrink:0">${BuildGraphSvg(g, ROW_H, SVG_W)}</div>
           <div class="gg-commit-subject-wrap">
@@ -1012,6 +1234,7 @@ document.addEventListener('DOMContentLoaded', () => {
         LoadCommitDetail(el.dataset.hash);
       });
     });
+    InitLogContextMenu();
   }
 
   function LoadCommitDetail(hash) {
@@ -1264,6 +1487,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     BindChangesEvents();
+    document.dispatchEvent(new Event('gg-changes-loaded'));
   }
 
   /** 一次性 event delegation 初始化 */
@@ -1510,6 +1734,25 @@ document.addEventListener('DOMContentLoaded', () => {
   commitBtn.addEventListener('click', () => {
     if (!activeRepo) return;
     const msg = commitMsgEl.value.trim();
+    // Amend 模式
+    if (amendMode) {
+      window.electronAPI.gitGuiCommitAmend(activeRepo.path, msg)
+        .then(r => {
+          if (r.success) {
+            commitMsgEl.value = '';
+            const amendCb = document.getElementById('gg-amend-checkbox');
+            if (amendCb) amendCb.checked = false;
+            amendMode = false;
+            Toast('Amend 成功', 'success');
+            LoadChanges();
+            if (activeTab === 'log') LoadLog();
+          } else {
+            Toast(`Amend 失敗：${r.error}`, 'error');
+          }
+        })
+        .catch(e => Toast(e.message, 'error'));
+      return;
+    }
     if (!msg) { Toast('請輸入 commit message', 'warning'); return; }
     window.electronAPI.gitGuiCommit(activeRepo.path, msg)
       .then(r => {
@@ -1534,15 +1777,7 @@ document.addEventListener('DOMContentLoaded', () => {
       .catch(e => Toast(e.message, 'error'));
   });
 
-  stashSaveBtn.addEventListener('click', () => {
-    if (!activeRepo) return;
-    window.electronAPI.gitGuiStashPush(activeRepo.path, '')
-      .then(r => {
-        if (r.success) { Toast('Stash 成功', 'success'); LoadChanges(); }
-        else Toast(`Stash 失敗：${r.error}`, 'error');
-      })
-      .catch(e => Toast(e.message, 'error'));
-  });
+  // stashSaveBtn 已由下方 Stash with Message Modal 區塊覆寫，此處不重複綁定
   //#endregion
 
   //#region Branch 管理
@@ -1750,7 +1985,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  /** Branch sidebar 右鍵選單 */
+  /** Branch sidebar 右鍵選單（含 Merge / Rebase / Rename / Set Upstream） */
   function ShowLbsContextMenu(e, branchNames, primaryType) {
     document.querySelectorAll('.gg-ctx-menu').forEach(m => m.remove());
     const menu = document.createElement('div');
@@ -1760,14 +1995,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const isMulti = branchNames.length > 1;
     const isTag = primaryType === 'tag';
+    const isRemote = primaryType === 'remote';
     const firstBranch = branchNames[0];
     const labelSuffix = isMulti ? ` (${branchNames.length} 個)` : '';
     const SEP = { sep: true };
 
     const items = [
       !isMulti && !isTag ? { label: `${LucideIcon('check', 12)} Checkout`, action: 'checkout' } : null,
-      !isMulti && !isTag ? { label: `${LucideIcon('plus', 12)} Create Branch Here`, action: 'create' } : null,
-      !isMulti && !isTag ? SEP : null,
+      !isMulti && !isTag && !isRemote ? { label: `${LucideIcon('plus', 12)} Create Branch Here`, action: 'create' } : null,
+      !isMulti && !isTag && !isRemote ? { label: `${LucideIcon('git-merge', 12)} Merge into Current`, action: 'merge' } : null,
+      !isMulti && !isTag && !isRemote ? { label: `${LucideIcon('arrow-right', 12)} Rebase Current onto This`, action: 'rebase' } : null,
+      !isMulti && !isTag && !isRemote ? SEP : null,
+      !isMulti && !isTag && !isRemote ? { label: `${LucideIcon('edit-2', 12)} Rename`, action: 'rename' } : null,
+      !isMulti && !isTag && !isRemote ? { label: `${LucideIcon('link', 12)} Set Upstream`, action: 'set-upstream' } : null,
+      !isTag && !isRemote ? SEP : null,
       !isTag ? { label: `${LucideIcon('trash-2', 12)} Delete${labelSuffix}`, action: 'delete', cls: 'danger' } : null,
       !isMulti && isTag ? { label: `${LucideIcon('trash-2', 12)} Delete Tag`, action: 'delete-tag', cls: 'danger' } : null,
       SEP,
@@ -1791,15 +2032,93 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!action || !activeRepo) return;
 
       if (action === 'checkout') { DoCheckout(firstBranch); return; }
+      if (action === 'copy') { navigator.clipboard.writeText(firstBranch); Toast('已複製分支名稱', 'success'); return; }
       if (action === 'create') {
         const newName = prompt(`從 ${firstBranch} 建立新分支：`, '');
         if (newName) {
           window.electronAPI.gitGuiCreateBranch(activeRepo.path, newName, firstBranch)
+            .then(r => { if (r.success) { Toast(`已建立 ${newName}`, 'success'); LoadBranches(); } else Toast(`建立失敗：${r.error}`, 'error'); });
+        }
+        return;
+      }
+      if (action === 'merge') {
+        ShowModal({
+          title: `Merge "${firstBranch}" into current branch`,
+          body: `<div class="gg-modal-field">
+            <label>Strategy</label>
+            <select id="gg-m-merge-strategy" class="gg-modal-input">
+              <option value="merge">Merge commit</option>
+              <option value="squash">Squash</option>
+              <option value="ff-only">Fast-forward Only</option>
+              <option value="no-ff">No Fast-forward</option>
+            </select>
+          </div>`,
+          confirmText: 'Merge',
+          onConfirm: () => {
+            const strategy = document.getElementById('gg-m-merge-strategy')?.value || 'merge';
+            CloseModal();
+            window.electronAPI.gitGuiMerge(activeRepo.path, firstBranch, strategy)
+              .then(r => {
+                if (r.success) { Toast('Merge 成功', 'success'); RefreshAll(); }
+                else { Toast(`Merge 失敗：${r.error}`, 'error'); CheckInProgress(); }
+              });
+          }
+        });
+        return;
+      }
+      if (action === 'rebase') {
+        if (confirm(`確定要將當前分支 Rebase 到 "${firstBranch}"？`)) {
+          window.electronAPI.gitGuiRebase(activeRepo.path, firstBranch)
             .then(r => {
-              if (r.success) { Toast(`已建立 ${newName}`, 'success'); LoadBranches(); }
-              else Toast(`建立失敗：${r.error}`, 'error');
+              if (r.success) { Toast('Rebase 成功', 'success'); RefreshAll(); }
+              else { Toast(`Rebase 失敗：${r.error}`, 'error'); CheckInProgress(); }
             });
         }
+        return;
+      }
+      if (action === 'rename') {
+        ShowModal({
+          title: `Rename Branch: ${firstBranch}`,
+          body: `<div class="gg-modal-field">
+            <label>New Name</label>
+            <input id="gg-m-rename-branch" type="text" value="${EscHtml(firstBranch)}" class="gg-modal-input"/>
+          </div>`,
+          confirmText: 'Rename',
+          onConfirm: () => {
+            const newName = document.getElementById('gg-m-rename-branch')?.value.trim();
+            if (!newName || newName === firstBranch) { CloseModal(); return; }
+            CloseModal();
+            window.electronAPI.gitGuiRenameBranch(activeRepo.path, firstBranch, newName)
+              .then(r => {
+                if (r.success) { Toast(`已重新命名為 "${newName}"`, 'success'); LoadBranches(); }
+                else Toast(`重新命名失敗：${r.error}`, 'error');
+              });
+          }
+        });
+        return;
+      }
+      if (action === 'set-upstream') {
+        window.electronAPI.gitGuiBranches(activeRepo.path)
+          .then(data => {
+            const remoteOpts = (data.remote || []).map(b => `<option value="${EscHtml(b.name)}">${EscHtml(b.name)}</option>`).join('');
+            ShowModal({
+              title: `Set Upstream for "${firstBranch}"`,
+              body: `<div class="gg-modal-field">
+                <label>Upstream Branch</label>
+                <select id="gg-m-upstream" class="gg-modal-input">
+                  <option value="">（清除 Upstream）</option>
+                  ${remoteOpts}
+                </select>
+              </div>`,
+              confirmText: 'Set',
+              onConfirm: () => {
+                const upstream = document.getElementById('gg-m-upstream')?.value || '';
+                CloseModal();
+                window.electronAPI.gitGuiSetUpstream(activeRepo.path, firstBranch, upstream)
+                  .then(r => { if (r.success) Toast('Upstream 已設定', 'success'); else Toast(`設定失敗：${r.error}`, 'error'); });
+              }
+            });
+          });
         return;
       }
       if (action === 'delete') {
@@ -1810,7 +2129,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         return;
       }
-      if (action === 'copy') { navigator.clipboard.writeText(firstBranch); Toast('已複製分支名稱', 'success'); return; }
+      if (action === 'delete-tag') {
+        if (confirm(`確定要刪除 Tag ${firstBranch} 嗎？`)) {
+          window.electronAPI.gitGuiDeleteTag(activeRepo.path, firstBranch)
+            .then(r => { if (r.success) { Toast('已刪除 Tag', 'success'); LoadTags(); } else Toast(r.error, 'error'); });
+        }
+        return;
+      }
     });
 
     const close = ev => { if (!menu.contains(ev.target)) { menu.remove(); document.removeEventListener('mousedown', close); } };
@@ -2360,21 +2685,508 @@ document.addEventListener('DOMContentLoaded', () => {
     window.electronAPI.gitGuiTags(activeRepo.path)
       .then(tags => {
         if (tags.length === 0) {
-          tagListEl.innerHTML = '<div class="gg-empty"><div class="gg-empty-icon">🏷</div><p>無 Tags</p></div>';
+          tagListEl.innerHTML = `<div class="gg-empty"><div class="gg-empty-icon">${LucideIcon('tag', 28)}</div><p>無 Tags</p></div>`;
           return;
         }
         tagListEl.innerHTML = tags.map(t => `
-          <div class="gg-tag-item">
-            <span class="gg-tag-name">🏷 ${EscHtml(t.name)}</span>
+          <div class="gg-tag-item" data-name="${EscHtml(t.name)}">
+            ${LucideIcon('tag', 12)}
+            <span class="gg-tag-name">${EscHtml(t.name)}</span>
             <span class="gg-tag-date">${EscHtml(t.date || '')}</span>
             <span class="gg-tag-msg">${EscHtml(t.message || '')}</span>
           </div>
         `).join('');
+        InitTagEvents();
       })
       .catch(() => {
         tagListEl.innerHTML = '<div class="gg-empty"><p>載入失敗</p></div>';
       });
   }
+
+  function InitTagEvents() {
+    const panel = document.getElementById('gg-panel-tags');
+    if (!panel || panel._tagInited) return;
+    panel._tagInited = true;
+
+    tagListEl.addEventListener('contextmenu', e => {
+      const item = e.target.closest('.gg-tag-item');
+      if (!item) return;
+      e.preventDefault();
+      ShowTagContextMenu(e, item.dataset.name);
+    });
+  }
+
+  function ShowTagContextMenu(e, tagName) {
+    document.querySelectorAll('.gg-ctx-menu').forEach(m => m.remove());
+    const menu = document.createElement('div');
+    menu.className = 'gg-ctx-menu';
+    menu.style.left = e.clientX + 'px';
+    menu.style.top = e.clientY + 'px';
+    menu.innerHTML = [
+      `<div class="gg-ctx-item" data-action="push">${LucideIcon('arrow-up-right', 12)} Push Tag to origin</div>`,
+      `<div class="gg-ctx-item" data-action="copy">${LucideIcon('list', 12)} Copy Name</div>`,
+      '<div class="gg-ctx-sep"></div>',
+      `<div class="gg-ctx-item danger" data-action="delete">${LucideIcon('trash-2', 12)} Delete Tag</div>`,
+    ].join('');
+    document.body.appendChild(menu);
+
+    menu.addEventListener('click', ev => {
+      const action = ev.target.closest('[data-action]')?.dataset.action;
+      menu.remove();
+      if (!action || !activeRepo) return;
+      if (action === 'copy') { navigator.clipboard.writeText(tagName); Toast('已複製 Tag 名稱', 'success'); }
+      if (action === 'push') {
+        window.electronAPI.gitGuiPushTag(activeRepo.path, tagName, 'origin')
+          .then(r => { if (r.success) Toast(`Tag "${tagName}" 已推送`, 'success'); else Toast(r.error, 'error'); });
+      }
+      if (action === 'delete') {
+        if (confirm(`確定要刪除 Tag "${tagName}"？`)) {
+          window.electronAPI.gitGuiDeleteTag(activeRepo.path, tagName)
+            .then(r => { if (r.success) { Toast(`已刪除 Tag "${tagName}"`, 'success'); LoadTags(); } else Toast(r.error, 'error'); });
+        }
+      }
+    });
+    const close = ev => { if (!menu.contains(ev.target)) { menu.remove(); document.removeEventListener('mousedown', close); } };
+    setTimeout(() => document.addEventListener('mousedown', close), 0);
+  }
+
+  // Create Tag 按鈕
+  if (createTagBtn) {
+    createTagBtn.addEventListener('click', () => {
+      if (!activeRepo) return;
+      ShowModal({
+        title: 'New Tag',
+        body: `
+          <div class="gg-modal-field">
+            <label>Tag Name</label>
+            <input id="gg-m-tag-name" type="text" placeholder="v1.0.0" class="gg-modal-input"/>
+          </div>
+          <div class="gg-modal-field">
+            <label>Ref（預設 HEAD）</label>
+            <input id="gg-m-tag-ref" type="text" placeholder="HEAD" class="gg-modal-input"/>
+          </div>
+          <div class="gg-modal-field">
+            <label>Message（可選，留空為 lightweight tag）</label>
+            <input id="gg-m-tag-msg" type="text" placeholder="Release message..." class="gg-modal-input"/>
+          </div>`,
+        confirmText: 'Create Tag',
+        onConfirm: () => {
+          const name = document.getElementById('gg-m-tag-name')?.value.trim();
+          const ref = document.getElementById('gg-m-tag-ref')?.value.trim() || 'HEAD';
+          const msg = document.getElementById('gg-m-tag-msg')?.value.trim();
+          if (!name) { Toast('請輸入 Tag 名稱', 'warning'); return; }
+          CloseModal();
+          window.electronAPI.gitGuiCreateTag(activeRepo.path, name, ref, msg)
+            .then(r => { if (r.success) { Toast(`Tag "${name}" 已建立`, 'success'); LoadTags(); } else Toast(r.error, 'error'); });
+        }
+      });
+    });
+  }
+
+  // Push All Tags 按鈕
+  if (pushAllTagsBtn) {
+    pushAllTagsBtn.addEventListener('click', () => {
+      if (!activeRepo) return;
+      window.electronAPI.gitGuiPushAllTags(activeRepo.path, 'origin')
+        .then(r => { if (r.success) Toast('所有 Tags 已推送至 origin', 'success'); else Toast(r.error, 'error'); });
+    });
+  }
+  //#endregion
+
+  //#region Remotes 面板
+
+  function LoadRemotes() {
+    if (!activeRepo) return;
+    remotesListEl.innerHTML = '<div class="gg-loading"><div class="gg-spinner"></div></div>';
+    window.electronAPI.gitGuiRemotes(activeRepo.path)
+      .then(remotes => {
+        remotesData = remotes;
+        RenderRemotes(remotes);
+      })
+      .catch(() => {
+        remotesListEl.innerHTML = '<div class="gg-empty"><p>載入失敗</p></div>';
+      });
+  }
+
+  function RenderRemotes(remotes) {
+    if (remotes.length === 0) {
+      remotesListEl.innerHTML = `<div class="gg-empty"><div class="gg-empty-icon">${LucideIcon('server', 28)}</div><p>無 Remotes</p></div>`;
+      return;
+    }
+    remotesListEl.innerHTML = remotes.map(r => `
+      <div class="gg-remote-item" data-name="${EscHtml(r.name)}">
+        <div class="gg-remote-header">
+          ${LucideIcon('server', 13)}
+          <span class="gg-remote-name">${EscHtml(r.name)}</span>
+          <div class="gg-remote-actions">
+            <button class="gg-icon-btn" data-action="fetch" data-name="${EscHtml(r.name)}" title="Fetch ${EscHtml(r.name)}">${LucideIcon('arrow-down-circle', 13)}</button>
+            <button class="gg-icon-btn" data-action="edit" data-name="${EscHtml(r.name)}" title="Edit Remote">${LucideIcon('edit-2', 13)}</button>
+            <button class="gg-icon-btn danger" data-action="delete" data-name="${EscHtml(r.name)}" title="Delete Remote">${LucideIcon('trash-2', 13)}</button>
+          </div>
+        </div>
+        <div class="gg-remote-url">${LucideIcon('link', 11)} ${EscHtml(r.fetchUrl)}</div>
+      </div>
+    `).join('');
+    InitRemoteEvents();
+  }
+
+  function InitRemoteEvents() {
+    const panel = document.getElementById('gg-panel-remotes');
+    if (!panel || panel._remoteInited) return;
+    panel._remoteInited = true;
+
+    remotesListEl.addEventListener('click', e => {
+      const btn = e.target.closest('[data-action]');
+      if (!btn || !activeRepo) return;
+      const action = btn.dataset.action;
+      const name = btn.dataset.name;
+
+      if (action === 'fetch') {
+        Toast(`Fetching ${name}...`, 'info');
+        window.electronAPI.gitGuiFetchRemote(activeRepo.path, name)
+          .then(r => { if (r.success) { Toast(`Fetch ${name} 完成`, 'success'); RefreshActiveTab(); } else Toast(r.error, 'error'); });
+      }
+      if (action === 'edit') {
+        const remote = remotesData.find(r => r.name === name);
+        if (!remote) return;
+        ShowModal({
+          title: `Edit Remote: ${name}`,
+          body: `
+            <div class="gg-modal-field">
+              <label>Name</label>
+              <input id="gg-m-remote-name" type="text" value="${EscHtml(remote.name)}" class="gg-modal-input"/>
+            </div>
+            <div class="gg-modal-field">
+              <label>URL</label>
+              <input id="gg-m-remote-url" type="text" value="${EscHtml(remote.fetchUrl)}" class="gg-modal-input"/>
+            </div>`,
+          confirmText: 'Save',
+          onConfirm: () => {
+            const newName = document.getElementById('gg-m-remote-name')?.value.trim();
+            const newUrl = document.getElementById('gg-m-remote-url')?.value.trim();
+            if (!newName) { Toast('名稱不可為空', 'warning'); return; }
+            CloseModal();
+            window.electronAPI.gitGuiEditRemote(activeRepo.path, name, newName, newUrl)
+              .then(r => { if (r.success) { Toast('Remote 已更新', 'success'); LoadRemotes(); } else Toast(r.error, 'error'); });
+          }
+        });
+      }
+      if (action === 'delete') {
+        if (confirm(`確定要刪除 Remote "${name}"？`)) {
+          window.electronAPI.gitGuiDeleteRemote(activeRepo.path, name)
+            .then(r => { if (r.success) { Toast(`已刪除 Remote "${name}"`, 'success'); LoadRemotes(); } else Toast(r.error, 'error'); });
+        }
+      }
+    });
+  }
+
+  // Add Remote 按鈕
+  if (addRemoteBtn) {
+    addRemoteBtn.addEventListener('click', () => {
+      if (!activeRepo) return;
+      ShowModal({
+        title: 'Add Remote',
+        body: `
+          <div class="gg-modal-field">
+            <label>Name</label>
+            <input id="gg-m-remote-name" type="text" placeholder="origin" class="gg-modal-input"/>
+          </div>
+          <div class="gg-modal-field">
+            <label>URL</label>
+            <input id="gg-m-remote-url" type="text" placeholder="https://github.com/..." class="gg-modal-input"/>
+          </div>`,
+        confirmText: 'Add',
+        onConfirm: () => {
+          const name = document.getElementById('gg-m-remote-name')?.value.trim();
+          const url = document.getElementById('gg-m-remote-url')?.value.trim();
+          if (!name || !url) { Toast('名稱與 URL 不可為空', 'warning'); return; }
+          CloseModal();
+          window.electronAPI.gitGuiAddRemote(activeRepo.path, name, url)
+            .then(r => { if (r.success) { Toast(`Remote "${name}" 已新增`, 'success'); LoadRemotes(); } else Toast(r.error, 'error'); });
+        }
+      });
+    });
+  }
+  //#endregion
+
+  //#region Push / Pull Options Modal
+
+  function ShowPullOptionsModal() {
+    window.electronAPI.gitGuiRemotes(activeRepo.path)
+      .then(remotes => {
+        const remoteOpts = remotes.map(r => `<option value="${EscHtml(r.name)}">${EscHtml(r.name)}</option>`).join('');
+        ShowModal({
+          title: 'Pull Options',
+          body: `
+            <div class="gg-modal-field">
+              <label>Remote</label>
+              <select id="gg-m-pull-remote" class="gg-modal-input">
+                ${remoteOpts || '<option value="">（無 Remote）</option>'}
+              </select>
+            </div>
+            <div class="gg-modal-field">
+              <label>Strategy</label>
+              <select id="gg-m-pull-strategy" class="gg-modal-input">
+                <option value="merge">Merge（預設）</option>
+                <option value="rebase">Rebase</option>
+                <option value="ff-only">Fast-forward Only</option>
+              </select>
+            </div>`,
+          confirmText: 'Pull',
+          onConfirm: () => {
+            const remote = document.getElementById('gg-m-pull-remote')?.value || '';
+            const strategy = document.getElementById('gg-m-pull-strategy')?.value || 'merge';
+            CloseModal();
+            SetBtnLoading(btnPull, '...');
+            window.electronAPI.gitGuiPullOptions(activeRepo.path, remote, '', strategy)
+              .then(r => {
+                ResetBtn(btnPull);
+                if (r.success) { Toast('Pull 完成', 'success'); RefreshAll(); }
+                else Toast(`Pull 失敗：${r.error}`, 'error');
+              })
+              .catch(e => { ResetBtn(btnPull); Toast(e.message, 'error'); });
+          }
+        });
+      })
+      .catch(() => {
+        // fallback：直接 pull
+        SetBtnLoading(btnPull, '...');
+        window.electronAPI.gitGuiPull(activeRepo.path)
+          .then(r => { ResetBtn(btnPull); if (r.success) { Toast('Pull 完成', 'success'); RefreshAll(); } else Toast(`Pull 失敗：${r.error}`, 'error'); })
+          .catch(e => { ResetBtn(btnPull); Toast(e.message, 'error'); });
+      });
+  }
+
+  function ShowPushOptionsModal() {
+    window.electronAPI.gitGuiRemotes(activeRepo.path)
+      .then(remotes => {
+        const remoteOpts = remotes.map(r => `<option value="${EscHtml(r.name)}">${EscHtml(r.name)}</option>`).join('');
+        ShowModal({
+          title: 'Push Options',
+          body: `
+            <div class="gg-modal-field">
+              <label>Remote</label>
+              <select id="gg-m-push-remote" class="gg-modal-input">
+                ${remoteOpts || '<option value="">（無 Remote）</option>'}
+              </select>
+            </div>
+            <div class="gg-modal-field gg-modal-checkbox">
+              <input type="checkbox" id="gg-m-push-force"/>
+              <label for="gg-m-push-force">Force Push（--force-with-lease）</label>
+            </div>
+            <div class="gg-modal-field gg-modal-checkbox">
+              <input type="checkbox" id="gg-m-push-upstream"/>
+              <label for="gg-m-push-upstream">Set Upstream（-u）</label>
+            </div>`,
+          confirmText: 'Push',
+          onConfirm: () => {
+            const remote = document.getElementById('gg-m-push-remote')?.value || '';
+            const force = document.getElementById('gg-m-push-force')?.checked || false;
+            const setUpstream = document.getElementById('gg-m-push-upstream')?.checked || false;
+            CloseModal();
+            SetBtnLoading(btnPush, '...');
+            window.electronAPI.gitGuiPushOptions(activeRepo.path, remote, '', force, setUpstream)
+              .then(r => {
+                ResetBtn(btnPush);
+                if (r.success) { Toast('Push 完成', 'success'); RefreshAll(); }
+                else Toast(`Push 失敗：${r.error}`, 'error');
+              })
+              .catch(e => { ResetBtn(btnPush); Toast(e.message, 'error'); });
+          }
+        });
+      })
+      .catch(() => {
+        SetBtnLoading(btnPush, '...');
+        window.electronAPI.gitGuiPush(activeRepo.path, false)
+          .then(r => { ResetBtn(btnPush); if (r.success) { Toast('Push 完成', 'success'); RefreshAll(); } else Toast(`Push 失敗：${r.error}`, 'error'); })
+          .catch(e => { ResetBtn(btnPush); Toast(e.message, 'error'); });
+      });
+  }
+  //#endregion
+
+  //#region Commit Amend 模式
+
+  /** 在 Commit box 注入 Amend checkbox（只在第一次初始化）*/
+  function InitAmendCheckbox() {
+    const commitBox = document.getElementById('gg-commit-box');
+    if (!commitBox || commitBox._amendInited) return;
+    commitBox._amendInited = true;
+
+    const checkbox = document.createElement('label');
+    checkbox.className = 'gg-amend-label';
+    checkbox.innerHTML = `<input type="checkbox" id="gg-amend-checkbox"/> Amend last commit`;
+    commitBox.insertBefore(checkbox, commitBox.querySelector('#gg-commit-btn'));
+
+    document.getElementById('gg-amend-checkbox').addEventListener('change', e => {
+      amendMode = e.target.checked;
+      if (amendMode) {
+        window.electronAPI.gitGuiLastCommitMessage(activeRepo.path)
+          .then(msg => { commitMsgEl.value = msg; });
+      } else {
+        commitMsgEl.value = '';
+      }
+    });
+  }
+
+  /** LoadChanges 後呼叫以注入 Amend checkbox */
+  document.addEventListener('gg-changes-loaded', InitAmendCheckbox);
+  //#endregion
+
+  //#region Commit Log 搜尋
+
+  if (logSearchBtn) {
+    logSearchBtn.addEventListener('click', () => {
+      logSearchMode = !logSearchMode;
+      logSearchBar.classList.toggle('hidden', !logSearchMode);
+      if (logSearchMode) {
+        logSearchInput.focus();
+      } else {
+        logSearchInput.value = '';
+        LoadLog();
+      }
+    });
+  }
+
+  if (logSearchClear) {
+    logSearchClear.addEventListener('click', () => {
+      logSearchMode = false;
+      logSearchBar.classList.add('hidden');
+      logSearchInput.value = '';
+      LoadLog();
+    });
+  }
+
+  let logSearchTimer = null;
+  if (logSearchInput) {
+    logSearchInput.addEventListener('input', () => {
+      clearTimeout(logSearchTimer);
+      logSearchTimer = setTimeout(() => {
+        const kw = logSearchInput.value.trim();
+        if (!kw || !activeRepo) { LoadLog(); return; }
+        const field = logSearchField?.value || 'message';
+        SetLoading(logListEl);
+        window.electronAPI.gitGuiSearchCommits(activeRepo.path, kw, field)
+          .then(commits => RenderLogList(commits))
+          .catch(() => { logListEl.innerHTML = '<div class="gg-empty"><p>搜尋失敗</p></div>'; });
+      }, 400);
+    });
+    logSearchInput.addEventListener('keydown', e => {
+      if (e.key === 'Escape') logSearchClear?.click();
+    });
+  }
+  //#endregion
+
+  //#region Commit Log 右鍵選單（Reset / Cherry-pick / Revert）
+
+  /** 覆寫 / 擴充 logListEl 的 contextmenu 事件以支援新操作 */
+  function InitLogContextMenu() {
+    const logList = document.getElementById('gg-log-list');
+    if (!logList || logList._ctxInited) return;
+    logList._ctxInited = true;
+
+    logList.addEventListener('contextmenu', e => {
+      const row = e.target.closest('.gg-log-row');
+      if (!row) return;
+      e.preventDefault();
+      const hash = row.dataset.hash;
+      const shortHash = row.dataset.shortHash || hash?.substring(0, 7);
+      ShowLogContextMenu(e, hash, shortHash);
+    });
+  }
+
+  function ShowLogContextMenu(e, hash, shortHash) {
+    document.querySelectorAll('.gg-ctx-menu').forEach(m => m.remove());
+    const menu = document.createElement('div');
+    menu.className = 'gg-ctx-menu';
+    menu.style.left = e.clientX + 'px';
+    menu.style.top = e.clientY + 'px';
+    menu.innerHTML = [
+      `<div class="gg-ctx-item" data-action="cherry-pick">${LucideIcon('git-commit', 12)} Cherry-pick</div>`,
+      `<div class="gg-ctx-item" data-action="revert">${LucideIcon('rotate-ccw', 12)} Revert Commit</div>`,
+      '<div class="gg-ctx-sep"></div>',
+      `<div class="gg-ctx-item" data-action="reset-soft">${LucideIcon('arrow-left', 12)} Reset → Soft</div>`,
+      `<div class="gg-ctx-item" data-action="reset-mixed">${LucideIcon('arrow-left', 12)} Reset → Mixed</div>`,
+      `<div class="gg-ctx-item danger" data-action="reset-hard">${LucideIcon('alert-triangle', 12)} Reset → Hard</div>`,
+      '<div class="gg-ctx-sep"></div>',
+      `<div class="gg-ctx-item" data-action="copy-hash">${LucideIcon('copy', 12)} Copy Hash</div>`,
+    ].join('');
+    document.body.appendChild(menu);
+
+    menu.addEventListener('click', ev => {
+      const action = ev.target.closest('[data-action]')?.dataset.action;
+      menu.remove();
+      if (!action || !activeRepo || !hash) return;
+
+      if (action === 'copy-hash') {
+        navigator.clipboard.writeText(hash);
+        Toast('Hash 已複製', 'success');
+        return;
+      }
+      if (action === 'cherry-pick') {
+        if (confirm(`確定要 Cherry-pick ${shortHash}？`)) {
+          window.electronAPI.gitGuiCherryPick(activeRepo.path, hash)
+            .then(r => {
+              if (r.success) { Toast('Cherry-pick 成功', 'success'); RefreshAll(); }
+              else { Toast(`Cherry-pick 失敗：${r.error}`, 'error'); CheckInProgress(); }
+            });
+        }
+        return;
+      }
+      if (action === 'revert') {
+        if (confirm(`確定要 Revert ${shortHash}？`)) {
+          window.electronAPI.gitGuiRevert(activeRepo.path, hash)
+            .then(r => {
+              if (r.success) { Toast('Revert 成功', 'success'); RefreshAll(); }
+              else { Toast(`Revert 失敗：${r.error}`, 'error'); CheckInProgress(); }
+            });
+        }
+        return;
+      }
+      const modeMap = { 'reset-soft': 'soft', 'reset-mixed': 'mixed', 'reset-hard': 'hard' };
+      const mode = modeMap[action];
+      if (mode) {
+        const warn = mode === 'hard' ? '\n⚠ Hard reset 將丟棄所有未提交的變更！' : '';
+        if (confirm(`確定要 Reset（${mode}）到 ${shortHash}？${warn}`)) {
+          window.electronAPI.gitGuiReset(activeRepo.path, hash, mode)
+            .then(r => {
+              if (r.success) { Toast(`Reset (${mode}) 成功`, 'success'); RefreshAll(); }
+              else Toast(`Reset 失敗：${r.error}`, 'error');
+            });
+        }
+      }
+    });
+
+    const close = ev => { if (!menu.contains(ev.target)) { menu.remove(); document.removeEventListener('mousedown', close); } };
+    setTimeout(() => document.addEventListener('mousedown', close), 0);
+  }
+
+  //#endregion
+
+  //#region Stash with Message Modal
+
+  const _stashSaveBtnHandler = () => {
+    if (!activeRepo) return;
+    ShowModal({
+      title: 'Stash Changes',
+      body: `
+        <div class="gg-modal-field">
+          <label>Message（可選）</label>
+          <input id="gg-m-stash-msg" type="text" placeholder="WIP: ..." class="gg-modal-input"/>
+        </div>`,
+      confirmText: 'Stash',
+      onConfirm: () => {
+        const msg = document.getElementById('gg-m-stash-msg')?.value.trim() || '';
+        CloseModal();
+        window.electronAPI.gitGuiStashPush(activeRepo.path, msg)
+          .then(r => {
+            if (r.success) { Toast('Stash 成功', 'success'); LoadStashes(); LoadChanges(); }
+            else Toast(`Stash 失敗：${r.error}`, 'error');
+          })
+          .catch(e => Toast(e.message, 'error'));
+      }
+    });
+  };
+  stashSaveBtn.addEventListener('click', _stashSaveBtnHandler);
   //#endregion
 
   //#region Repo Sidebar 收縮 / Resizer

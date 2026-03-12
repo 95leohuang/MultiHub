@@ -55,7 +55,7 @@
 }
 
 .summary-missing {
-  color: #666;
+  color: var(--text-muted);
 }
 
 .filter-toggle-btn {
@@ -95,7 +95,7 @@
 
 .search-pattern-hint {
   font-size: 11px;
-  color: #666;
+  color: var(--text-muted);
   background: rgba(255, 255, 255, 0.03);
   padding: 2px 8px;
   border-radius: 4px;
@@ -147,7 +147,7 @@
 
 .skill-matrix th {
   background: #1d1d1d;
-  color: #888;
+  color: var(--text-muted);
   font-weight: 600;
   position: sticky;
   top: 0;
@@ -208,7 +208,7 @@
 .sync-row-btn {
   background: transparent;
   border: 1px solid #444;
-  color: #888;
+  color: var(--text-muted);
   padding: 2px 6px;
   border-radius: 4px;
   font-size: 10px;
@@ -304,7 +304,7 @@
 .sidebar-header {
   padding: 12px;
   font-size: 11px;
-  color: #666;
+  color: var(--text-muted);
   text-transform: uppercase;
   border-bottom: 1px solid #2a2a2a;
 }
@@ -479,7 +479,7 @@
 }
 
 .diff-stats .stat-identical {
-  color: #888;
+  color: var(--text-muted);
 }
 
 .panel-scroller::-webkit-scrollbar {
