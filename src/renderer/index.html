@@ -17,6 +17,7 @@
   <link rel="stylesheet" href="css/features/git-updater.css">
   <link rel="stylesheet" href="css/features/quick-notes.css">
   <link rel="stylesheet" href="css/features/git-gui.css">
+  <link rel="stylesheet" href="css/features/release-notes.css">
   <link rel="stylesheet" href="css/themes.css">
   <!-- Lucide Icons (local) -->
   <script src="../../node_modules/lucide/dist/umd/lucide.min.js"></script>
@@ -29,7 +30,7 @@
   <div id="app-layout">
     <!-- 側邊欄 Tab 導航 -->
     <div id="sidebar">
-      <div id="sidebar-logo" title="Multi Hub">
+      <div id="sidebar-logo" class="sidebar-logo" title="查看更新日誌 (Release Notes)" style="cursor: pointer;">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="12" cy="12" r="2" />
           <circle cx="12" cy="5" r="2" />
@@ -300,6 +301,24 @@
       <div class="modal-footer">
         <button id="reset-shortcuts" class="git-btn secondary">恢復預設</button>
         <button id="save-shortcuts" class="git-btn">儲存設定</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Release Notes Modal -->
+  <div id="release-notes-modal" class="modal-overlay hidden">
+    <div class="modal-content release-notes-container">
+      <div class="modal-header">
+        <div class="rn-header-title">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          <h3>更新日誌</h3>
+        </div>
+        <button id="close-release-notes" class="close-btn">&times;</button>
+      </div>
+      <div class="modal-body rn-modal-body">
+        <div id="release-notes-timeline" class="rn-timeline">
+           <!-- Dynamic injection of timeline items goes here -->
+        </div>
       </div>
     </div>
   </div>

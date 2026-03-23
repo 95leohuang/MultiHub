@@ -28,6 +28,7 @@ import { initAiButler, toggleDrawer as toggleAiButler } from './features/ai-butl
 import './features/git-updater-ui.js';
 import './features/skill-sync-ui.js';
 import './features/git-gui-ui.js';
+import './features/release-notes-ui.js';
 
 document.addEventListener('DOMContentLoaded', () => {
 
