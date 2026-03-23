@@ -108,7 +108,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   function addRepoTab(repoPath) {
     const parts = repoPath.split(/[\\/]/);
     const repoName = parts.length > 1 ? parts[parts.length - 2] : parts[0];
-    if (document.querySelector(`.log-tab[data-tab="${repoPath}"]`)) return;
+    
+    // Avoid CSS selector syntax errors with backslashes in Windows paths
+    const existingTabs = Array.from(logTabs.querySelectorAll('.log-tab'));
+    if (existingTabs.some(t => t.dataset.tab === repoPath)) return;
 
     const tab = document.createElement('div');
     tab.className = 'log-tab';
